@@ -1,0 +1,332 @@
+"""
+The Infinite Bookshelf API: a stateless engine for the web app.
+
+Nothing is stored. Each request carries what it needs (including the user's API key, from
+their browser), is turned into model calls, and is forgotten. Long operations stream their
+progress as Server-Sent Events:
+
+    POST /api/outline           stage → outline → stage → title → stats → done
+    POST /api/sections/stream   start → delta* → stats → done
+    (any of them may end with an `error` event instead)
+"""
+
+from pathlib import Path
+from typing import Any, Dict, Iterator, List, Tuple
+
+from fastapi import APIRouter, FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
+from sse_starlette import EventSourceResponse
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
+from .. import __version__
+from ..engine.agents import generate_book_structure, generate_book_title, generate_section
+from ..engine.agents.structure_writer import normalize_structure
+from ..engine.book import Book, outline_nodes
+from ..engine.client import PROVIDER_PRESETS, create_llm_client, list_models
+from ..engine.errors import InfiniteBookshelfError, error_payload
+from ..engine.generation import SECTION_LENGTHS, section_inputs
+from ..engine.inference import GenerationStatistics
+from ..engine.tools import create_pdf_file
+from .config import Settings, get_settings
+from .schemas import (
+    ModelsRequest,
+    ModelsResponse,
+    OutlineRequest,
+    PdfRequest,
+    ProviderAuth,
+    ProviderPreset,
+    SectionRequest,
+    ServerConfig,
+)
+from .security import EndpointNotAllowed, RateLimiter, check_endpoint
+from .streaming import Event, sse_events
+
+MAX_OUTLINE_NODES = 400
+SSE_PING_SECONDS = 15  # Keeps proxies from closing the connection while a model is thinking
+
+RATE_LIMITED_PATHS = {"/api/models", "/api/outline", "/api/sections/stream", "/api/export/pdf"}
+
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "X-Frame-Options": "DENY",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    # API keys live in the browser's localStorage, so no third-party scripts may run on the page
+    "Content-Security-Policy": (
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; "
+        "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    ),
+}
+
+
+# --- Provider access -------------------------------------------------------------------------
+
+
+def _client_for(auth: ProviderAuth, settings: Settings) -> Tuple[Any, List[str]]:
+    """Returns (client, secrets) for a request's provider, enforcing the endpoint rules."""
+    key = auth.api_key.get_secret_value().strip()
+    if auth.preset:
+        preset = PROVIDER_PRESETS.get(auth.preset)
+        if preset is None:
+            raise ValueError(f"Unknown provider '{auth.preset}'.")
+        base_url = preset["base_url"]
+        if preset.get("local"):
+            base_url = auth.base_url or base_url  # Local servers may run on another host/port
+            check_endpoint(base_url, settings, is_preset=True)
+        requires_key = preset.get("requires_key", True)
+    else:
+        if not auth.base_url:
+            raise ValueError("Choose a provider or enter a base URL.")
+        base_url = auth.base_url
+        check_endpoint(base_url, settings)
+        requires_key = False  # Many self-hosted servers don't use keys
+    return create_llm_client(key, base_url, requires_key=requires_key), [key]
+
+
+def _stats(stats: GenerationStatistics) -> Dict[str, Any]:
+    return {
+        "input_tokens": stats.input_tokens,
+        "output_tokens": stats.output_tokens,
+        "input_time": round(stats.input_time, 3),
+        "output_time": round(stats.output_time, 3),
+        "total_time": round(stats.total_time, 3),
+    }
+
+
+# --- Event streams (run in a worker thread) ------------------------------------------------
+
+
+def _outline_events(req: OutlineRequest, settings: Settings) -> Iterator[Event]:
+    secrets: List[str] = []
+    try:
+        options = req.options.to_engine()
+        yield "stage", {"stage": "outline"}
+        outline_client, outline_secrets = _client_for(req.outline_model.provider, settings)
+        secrets += outline_secrets
+        stats, structure = generate_book_structure(
+            prompt=options.topic,
+            additional_instructions=options.extra_context(),
+            model=req.outline_model.model,
+            llm_client=outline_client,
+            long=options.long_outline,
+        )
+        yield "outline", {"structure": structure}
+
+        yield "stage", {"stage": "title"}
+        title_client, title_secrets = _client_for(req.title_model.provider, settings)
+        secrets += title_secrets
+        title = generate_book_title(prompt=options.topic, model=req.title_model.model, llm_client=title_client)
+        yield "title", {"title": title}
+        yield "stats", _stats(stats)
+        yield "done", {}
+    except Exception as e:
+        yield "error", error_payload(e, secrets)
+
+
+def _section_events(req: SectionRequest, settings: Settings) -> Iterator[Event]:
+    secrets: List[str] = []
+    try:
+        structure = normalize_structure(req.book.structure)
+        if len(outline_nodes(structure)) > MAX_OUTLINE_NODES:
+            raise ValueError(f"The outline is too large (over {MAX_OUTLINE_NODES} entries).")
+        book = Book.from_written(req.book.title, structure, [(w.path, w.text) for w in req.book.written])
+        revision = req.revision
+        inputs = section_inputs(
+            book,
+            req.path,
+            req.options.to_engine(),
+            revision_note=revision.note if revision else None,
+            previous_text=revision.previous if revision else "",
+        )
+        client, secrets = _client_for(req.model.provider, settings)
+
+        yield "start", {"path": req.path}
+        for chunk in generate_section(model=req.model.model, llm_client=client, **inputs):
+            if isinstance(chunk, GenerationStatistics):
+                yield "stats", _stats(chunk)
+            elif chunk:
+                yield "delta", {"text": chunk}
+        yield "done", {}
+    except KeyError as e:
+        yield "error", error_payload(ValueError(str(e).strip("'\"")), secrets)
+    except Exception as e:
+        yield "error", error_payload(e, secrets)
+
+
+# --- ASGI middleware -------------------------------------------------------------------------
+
+
+class RequestGuard:
+    """Body-size limit for every request, and the per-IP rate limit for generation endpoints."""
+
+    def __init__(self, app: ASGIApp, settings: Settings):
+        self.app = app
+        self.max_bytes = settings.max_request_bytes
+        self.limiter = RateLimiter(settings.rate_limit_per_minute)
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+
+        path = scope.get("path", "")
+        if scope.get("method") == "POST" and path in RATE_LIMITED_PATHS:
+            client_ip = (scope.get("client") or ("unknown", 0))[0]
+            if not self.limiter.allow(client_ip):
+                return await _json(send, 429, _error("rate_limited", "Too many requests", "Slow down a little and try again in a minute."))
+
+        headers = dict(scope.get("headers") or [])
+        declared = headers.get(b"content-length")
+        if declared and declared.isdigit() and int(declared) > self.max_bytes:
+            return await _json(send, 413, _error("too_large", "Request too large", "This book is larger than this server accepts."))
+
+        received = 0
+
+        async def limited_receive() -> Message:
+            nonlocal received
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                if received > self.max_bytes:
+                    raise ValueError("Request body too large")
+            return message
+
+        await self.app(scope, limited_receive, send)
+
+
+class SecurityHeaders:
+    def __init__(self, app: ASGIApp):
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+
+        async def send_with_headers(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                existing = {k.lower() for k, _ in message.get("headers", [])}
+                extra = [(k.lower().encode(), v.encode()) for k, v in SECURITY_HEADERS.items() if k.lower().encode() not in existing]
+                message["headers"] = list(message.get("headers", [])) + extra
+            await send(message)
+
+        await self.app(scope, receive, send_with_headers)
+
+
+def _error(code: str, title: str, hint: str, message: str = "") -> Dict[str, Any]:
+    return {"error": {"code": code, "title": title, "message": message or title, "hint": hint}}
+
+
+async def _json(send: Send, status: int, body: Dict[str, Any]) -> None:
+    response = JSONResponse(body, status_code=status)
+    await response({"type": "http"}, None, send)  # type: ignore[arg-type]
+
+
+# --- App -------------------------------------------------------------------------------------
+
+
+def create_app(settings: Settings = None) -> FastAPI:
+    settings = settings or get_settings()
+    app = FastAPI(
+        title="Infinite Bookshelf API",
+        version=__version__,
+        docs_url="/api/docs",
+        openapi_url="/api/openapi.json",
+        redoc_url=None,
+    )
+    app.state.settings = settings
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(request: Request, exc: RequestValidationError):
+        # Never echo request input back: it can contain API keys
+        problems = [f"{'.'.join(str(p) for p in err['loc'][1:])}: {err['msg']}" for err in exc.errors()]
+        return JSONResponse(_error("invalid_input", "Invalid request", "", "; ".join(problems)), status_code=422)
+
+    @app.exception_handler(EndpointNotAllowed)
+    async def endpoint_not_allowed(request: Request, exc: EndpointNotAllowed):
+        return JSONResponse(_error("endpoint_not_allowed", "Endpoint not allowed", "", str(exc)), status_code=400)
+
+    @app.exception_handler(InfiniteBookshelfError)
+    async def provider_error(request: Request, exc: InfiniteBookshelfError):
+        return JSONResponse({"error": error_payload(exc)}, status_code=502)
+
+    @app.exception_handler(ValueError)
+    async def bad_value(request: Request, exc: ValueError):
+        return JSONResponse({"error": error_payload(exc)}, status_code=400)
+
+    api = APIRouter(prefix="/api")
+
+    @api.get("/health")
+    def health() -> Dict[str, str]:
+        return {"status": "ok", "version": __version__}
+
+    @api.get("/config", response_model=ServerConfig)
+    def config() -> ServerConfig:
+        presets = [
+            ProviderPreset(id=pid, **{k: v for k, v in p.items() if k in ProviderPreset.model_fields})
+            for pid, p in PROVIDER_PRESETS.items()
+            if settings.allow_private_endpoints or not p.get("local")
+        ]
+        return ServerConfig(
+            version=__version__,
+            providers=presets,
+            allow_custom_endpoints=settings.allow_custom_endpoints,
+            allow_private_endpoints=settings.allow_private_endpoints,
+            section_lengths={name: words for name, (words, _) in SECTION_LENGTHS.items()},
+        )
+
+    @api.post("/models", response_model=ModelsResponse)
+    def models(req: ModelsRequest) -> ModelsResponse:
+        """Lists a provider's models; doubles as a key/connection test."""
+        client, secrets = _client_for(req.provider, settings)
+        try:
+            return ModelsResponse(models=list_models(client))
+        except Exception as e:
+            return JSONResponse({"error": error_payload(e, secrets)}, status_code=502)
+
+    @api.post("/outline")
+    async def outline(req: OutlineRequest) -> EventSourceResponse:
+        return EventSourceResponse(sse_events(_outline_events(req, settings)), ping=SSE_PING_SECONDS)
+
+    @api.post("/sections/stream")
+    async def section(req: SectionRequest) -> EventSourceResponse:
+        return EventSourceResponse(sse_events(_section_events(req, settings)), ping=SSE_PING_SECONDS)
+
+    @api.post("/export/pdf")
+    def export_pdf(req: PdfRequest) -> Response:
+        pdf = create_pdf_file(req.markdown).getvalue()
+        return Response(pdf, media_type="application/pdf")
+
+    app.include_router(api)
+    _mount_web_app(app, settings.web_dist)
+
+    if settings.cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.cors_origins,
+            allow_methods=["GET", "POST"],
+            allow_headers=["Content-Type"],
+        )
+    app.add_middleware(RequestGuard, settings=settings)
+    app.add_middleware(SecurityHeaders)
+    return app
+
+
+def _mount_web_app(app: FastAPI, dist: Path) -> None:
+    """Serves the built web app, with client-side routes falling back to index.html."""
+    if not dist or not (Path(dist) / "index.html").is_file():
+        return
+    dist = Path(dist).resolve()
+    if (dist / "assets").is_dir():
+        app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def web_app(full_path: str) -> FileResponse:
+        if full_path.startswith("api/"):
+            return JSONResponse(_error("not_found", "Not found", ""), status_code=404)
+        candidate = (dist / full_path).resolve()
+        if full_path and candidate.is_file() and candidate.is_relative_to(dist):
+            return FileResponse(candidate)
+        return FileResponse(dist / "index.html", headers={"Cache-Control": "no-cache"})

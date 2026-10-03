@@ -1,8 +1,28 @@
-.env
-venv
-.venv
-*.pyc
-__pycache__
-.data/
+# Dependencies and environments
+node_modules/
+.venv/
+venv/
+
+# Build output and caches
+web/dist/
+*.tsbuildinfo
+__pycache__/
+*.py[cod]
 .pytest_cache/
+
+# Local configuration (copy api/.env.example to api/.env)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Editors and OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
 .DS_Store
+Thumbs.db

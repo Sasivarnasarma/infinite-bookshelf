@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120" role="img" aria-label="Infinite Bookshelf">
+  <title>Infinite Bookshelf</title>
+  <defs>
+    <!-- Warm sunrise gradient along the loop -->
+    <linearGradient id="ib-loop" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFB547"/>
+      <stop offset="0.35" stop-color="#FF8A3D"/>
+      <stop offset="0.65" stop-color="#F86522"/>
+      <stop offset="1" stop-color="#E5481A"/>
+    </linearGradient>
+    <clipPath id="ib-left"><ellipse cx="57" cy="60" rx="25" ry="21"/></clipPath>
+    <clipPath id="ib-right"><ellipse cx="143" cy="60" rx="25" ry="21"/></clipPath>
+  </defs>
+
+  <!-- Left shelf -->
+  <g clip-path="url(#ib-left)">
+    <rect x="30" y="73" width="54" height="4" rx="2" fill="#A8A29E" opacity="0.7"/>
+    <rect x="36" y="48" width="7" height="25" rx="1.5" fill="#FFC56B"/>
+    <rect x="44" y="42" width="6" height="31" rx="1.5" fill="#FFAA4C"/>
+    <rect x="51" y="50" width="7" height="23" rx="1.5" fill="#FF8A3D"/>
+    <rect x="59" y="44" width="6" height="29" rx="1.5" fill="#F86522"/>
+    <rect x="68" y="47" width="6" height="26" rx="1.5" fill="#E5481A" transform="rotate(12 71 73)"/>
+  </g>
+
+  <!-- Right shelf -->
+  <g clip-path="url(#ib-right)">
+    <rect x="116" y="73" width="54" height="4" rx="2" fill="#A8A29E" opacity="0.7"/>
+    <rect x="123" y="46" width="6" height="27" rx="1.5" fill="#E5481A"/>
+    <rect x="130" y="50" width="7" height="23" rx="1.5" fill="#F86522"/>
+    <rect x="138" y="42" width="6" height="31" rx="1.5" fill="#FF8A3D"/>
+    <rect x="145" y="48" width="7" height="25" rx="1.5" fill="#FFAA4C"/>
+    <rect x="153" y="52" width="6" height="21" rx="1.5" fill="#FFC56B"/>
+  </g>
+
+  <!-- The infinity loop -->
+  <path d="M100 60
+           C 88 42, 72 30, 55 30
+           C 36 30, 22 44, 22 60
+           C 22 76, 36 90, 55 90
+           C 72 90, 88 78, 100 60
+           C 112 42, 128 30, 145 30
+           C 164 30, 178 44, 178 60
+           C 178 76, 164 90, 145 90
+           C 128 90, 112 78, 100 60 Z"
+        fill="none" stroke="url(#ib-loop)" stroke-width="11" stroke-linejoin="round"/>
+</svg>

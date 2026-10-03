@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Infinite Bookshelf">
+  <title>Infinite Bookshelf</title>
+  <defs>
+    <linearGradient id="ib-icon-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF8A3D"/>
+      <stop offset="1" stop-color="#E5481A"/>
+    </linearGradient>
+    <clipPath id="ib-icon-l"><ellipse cx="19" cy="32" rx="9.4" ry="8"/></clipPath>
+    <clipPath id="ib-icon-r"><ellipse cx="45" cy="32" rx="9.4" ry="8"/></clipPath>
+  </defs>
+  <!-- Orange tile with a white mark -->
+  <rect width="64" height="64" rx="14" fill="url(#ib-icon-bg)"/>
+  <g clip-path="url(#ib-icon-l)" fill="#FFFFFF">
+    <rect x="12" y="27" width="2.8" height="10" rx="0.6" opacity="0.95"/>
+    <rect x="15.6" y="24.5" width="2.6" height="12.5" rx="0.6" opacity="0.75"/>
+    <rect x="19" y="27.5" width="2.8" height="9.5" rx="0.6" opacity="0.9"/>
+    <rect x="22.6" y="25.5" width="2.6" height="11.5" rx="0.6" opacity="0.7"/>
+  </g>
+  <g clip-path="url(#ib-icon-r)" fill="#FFFFFF">
+    <rect x="38.6" y="25.5" width="2.6" height="11.5" rx="0.6" opacity="0.7"/>
+    <rect x="42" y="27.5" width="2.8" height="9.5" rx="0.6" opacity="0.9"/>
+    <rect x="45.6" y="24.5" width="2.6" height="12.5" rx="0.6" opacity="0.75"/>
+    <rect x="49" y="27" width="2.8" height="10" rx="0.6" opacity="0.95"/>
+  </g>
+  <path d="M32 32 C 28 25.5, 24.5 22, 19 22 C 12.5 22, 8 26.5, 8 32 C 8 37.5, 12.5 42, 19 42 C 24.5 42, 28 38.5, 32 32 C 36 25.5, 39.5 22, 45 22 C 51.5 22, 56 26.5, 56 32 C 56 37.5, 51.5 42, 45 42 C 39.5 42, 36 38.5, 32 32 Z"
+        fill="none" stroke="#FFFFFF" stroke-width="4.2" stroke-linejoin="round"/>
+</svg>
