@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     # Largest accepted request body; a section request carries the book written so far
     max_request_bytes: int = 8_000_000
 
+    # Interactive API docs at /api/docs and the schema at /api/openapi.json
+    docs_enabled: bool = True
+
     # Extra origins allowed to call the API from a browser (the bundled web app needs none)
     cors_origins: List[str] = []
     # Built web app to serve at "/" (the Docker image sets this); None = API only

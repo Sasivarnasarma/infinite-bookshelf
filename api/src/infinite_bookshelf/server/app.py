@@ -11,9 +11,10 @@ progress as Server-Sent Events:
 """
 
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Tuple
+from typing import Annotated, Any, Dict, Iterator, List, Optional, Tuple
 
-from fastapi import APIRouter, FastAPI, Request
+from fastapi import APIRouter, Body, FastAPI, Request
+from fastapi.routing import APIRoute
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
@@ -25,17 +26,22 @@ from .. import __version__
 from ..engine.agents import generate_book_structure, generate_book_title, generate_section
 from ..engine.agents.structure_writer import normalize_structure
 from ..engine.book import Book, outline_nodes
-from ..engine.client import PROVIDER_PRESETS, create_llm_client, list_models
+from ..engine.client import PROVIDER_PRESETS, create_llm_client
+from ..engine.client import list_models as fetch_model_ids
 from ..engine.errors import InfiniteBookshelfError, error_payload
 from ..engine.generation import SECTION_LENGTHS, section_inputs
 from ..engine.inference import GenerationStatistics
 from ..engine.tools import create_pdf_file
 from .config import Settings, get_settings
+from . import openapi
+from .docs import DOCS_URL, OPENAPI_URL, mount_docs
 from .schemas import (
+    HealthStatus,
     ModelsRequest,
     ModelsResponse,
     OutlineRequest,
     PdfRequest,
+    ServiceInfo,
     ProviderAuth,
     ProviderPreset,
     SectionRequest,
@@ -232,9 +238,17 @@ def create_app(settings: Settings = None) -> FastAPI:
     app = FastAPI(
         title="Infinite Bookshelf API",
         version=__version__,
-        docs_url="/api/docs",
-        openapi_url="/api/openapi.json",
+        summary=openapi.SUMMARY,
+        description=openapi.description(settings),
+        openapi_tags=openapi.TAGS,
+        license_info={"name": "MIT", "identifier": "MIT"},
+        contact={"name": "Infinite Bookshelf on GitHub", "url": openapi.REPO_URL},
+        # Operation ids are the function names: stream_section, not stream_section_api_sections_stream_post
+        generate_unique_id_function=lambda route: route.name,
+        # The docs page is our own (see docs.py); FastAPI's would break the CSP
+        docs_url=None,
         redoc_url=None,
+        openapi_url=OPENAPI_URL if settings.docs_enabled else None,
     )
     app.state.settings = settings
 
@@ -258,12 +272,19 @@ def create_app(settings: Settings = None) -> FastAPI:
 
     api = APIRouter(prefix="/api")
 
-    @api.get("/health")
-    def health() -> Dict[str, str]:
-        return {"status": "ok", "version": __version__}
+    @api.get("", response_model=ServiceInfo, tags=["Service"], summary="About this service")
+    def service_info() -> ServiceInfo:
+        """Name, version, and where to find the docs."""
+        return _service_info(app.title, settings)
 
-    @api.get("/config", response_model=ServerConfig)
-    def config() -> ServerConfig:
+    @api.get("/health", response_model=HealthStatus, tags=["Service"], summary="Health check")
+    def health() -> HealthStatus:
+        """Returns `ok` while the server is running. Used by the Docker health check."""
+        return HealthStatus(version=__version__)
+
+    @api.get("/config", response_model=ServerConfig, tags=["Service"], summary="Server configuration")
+    def server_config() -> ServerConfig:
+        """Built-in providers and what this server allows (custom and private endpoints, limits)."""
         presets = [
             ProviderPreset(id=pid, **{k: v for k, v in p.items() if k in ProviderPreset.model_fields})
             for pid, p in PROVIDER_PRESETS.items()
@@ -277,30 +298,93 @@ def create_app(settings: Settings = None) -> FastAPI:
             section_lengths={name: words for name, (words, _) in SECTION_LENGTHS.items()},
         )
 
-    @api.post("/models", response_model=ModelsResponse)
-    def models(req: ModelsRequest) -> ModelsResponse:
-        """Lists a provider's models; doubles as a key/connection test."""
+    @api.post(
+        "/models",
+        response_model=ModelsResponse,
+        tags=["Providers"],
+        summary="List models",
+        responses=openapi.errors(400, 413, 422, 429, 502),
+    )
+    def list_models(req: Annotated[ModelsRequest, Body(openapi_examples=openapi.MODELS_EXAMPLES)]) -> ModelsResponse:
+        """
+        Lists a provider's models, sorted. It's also the quickest way to check that a key or a
+        custom endpoint works.
+        """
         client, secrets = _client_for(req.provider, settings)
         try:
-            return ModelsResponse(models=list_models(client))
+            return ModelsResponse(models=fetch_model_ids(client))
         except Exception as e:
             return JSONResponse({"error": error_payload(e, secrets)}, status_code=502)
 
-    @api.post("/outline")
-    async def outline(req: OutlineRequest) -> EventSourceResponse:
+    @api.post(
+        "/outline",
+        tags=["Generation"],
+        summary="Draft an outline and title",
+        response_class=EventSourceResponse,
+        responses=openapi.event_stream(
+            "A stream of events: `stage`, `outline`, `stage`, `title`, `stats`, then `done`, or `error` at any point.",
+            openapi.OUTLINE_STREAM,
+            413, 422, 429,
+        ),
+    )
+    async def stream_outline(req: Annotated[OutlineRequest, Body(openapi_examples=openapi.OUTLINE_EXAMPLES)]) -> EventSourceResponse:
+        """
+        Drafts the book's outline with `outline_model`, then its title with `title_model`. The two
+        can use different providers.
+
+        The `outline` event carries the structure: each heading maps either to a short description
+        (a section to write) or to more headings (a chapter). Edit it freely before writing.
+        """
         return EventSourceResponse(sse_events(_outline_events(req, settings)), ping=SSE_PING_SECONDS)
 
-    @api.post("/sections/stream")
-    async def section(req: SectionRequest) -> EventSourceResponse:
+    @api.post(
+        "/sections/stream",
+        tags=["Generation"],
+        summary="Write one section",
+        response_class=EventSourceResponse,
+        responses=openapi.event_stream(
+            "A stream of events: `start`, a `delta` for each piece of text, `stats`, then `done`, or `error` at any point.",
+            openapi.SECTION_STREAM,
+            413, 422, 429,
+        ),
+    )
+    async def stream_section(req: Annotated[SectionRequest, Body(openapi_examples=openapi.SECTION_EXAMPLES)]) -> EventSourceResponse:
+        """
+        Writes the section at `path`, streaming its text as the model generates it. Append each
+        `delta` to build the section.
+
+        - **Context:** send the sections already finished in `book.written`. The model sees the
+          outline and a digest of them, so chapters build on each other instead of repeating.
+        - **Rewrite:** add `revision` with a note and the current text.
+        - **Pause:** close the connection. The model call stops; send the request again to restart
+          the section.
+        """
         return EventSourceResponse(sse_events(_section_events(req, settings)), ping=SSE_PING_SECONDS)
 
-    @api.post("/export/pdf")
-    def export_pdf(req: PdfRequest) -> Response:
+    @api.post(
+        "/export/pdf",
+        tags=["Export"],
+        summary="Export to PDF",
+        response_class=Response,
+        responses={
+            200: {"description": "The book as a PDF.", "content": {"application/pdf": {"schema": {"type": "string", "format": "binary"}}}},
+            **openapi.errors(413, 422, 429),
+        },
+    )
+    def export_pdf(req: Annotated[PdfRequest, Body(openapi_examples=openapi.PDF_EXAMPLES)]) -> Response:
+        """Renders a book's Markdown to PDF. Raw HTML is sanitised and nothing remote is fetched."""
         pdf = create_pdf_file(req.markdown).getvalue()
         return Response(pdf, media_type="application/pdf")
 
     app.include_router(api)
-    _mount_web_app(app, settings.web_dist)
+    # Docs first: the web app's catch-all route must not shadow them
+    web_bundled = _has_web_app(settings.web_dist)
+    if settings.docs_enabled:
+        mount_docs(app, app_url="/" if web_bundled else None)
+    if web_bundled:
+        _mount_web_app(app, Path(settings.web_dist))
+    else:
+        _add_service_root(app, settings)
 
     if settings.cors_origins:
         app.add_middleware(
@@ -314,11 +398,32 @@ def create_app(settings: Settings = None) -> FastAPI:
     return app
 
 
+def _service_info(title: str, settings: Settings) -> ServiceInfo:
+    return ServiceInfo(
+        name=title,
+        version=__version__,
+        docs=DOCS_URL if settings.docs_enabled else None,
+        openapi=OPENAPI_URL if settings.docs_enabled else None,
+        health="/api/health",
+    )
+
+
+def _add_service_root(app: FastAPI, settings: Settings) -> None:
+    """Without the web app (API-only or development), "/" describes the service like "/api"."""
+
+    @app.get("/", response_model=ServiceInfo, tags=["Service"], summary="About this service (root)")
+    def service_root() -> ServiceInfo:
+        """Same as `GET /api`. Serves the web app instead when it is bundled."""
+        return _service_info(app.title, settings)
+
+
+def _has_web_app(dist: Optional[Path]) -> bool:
+    return bool(dist) and (Path(dist) / "index.html").is_file()
+
+
 def _mount_web_app(app: FastAPI, dist: Path) -> None:
     """Serves the built web app, with client-side routes falling back to index.html."""
-    if not dist or not (Path(dist) / "index.html").is_file():
-        return
-    dist = Path(dist).resolve()
+    dist = dist.resolve()
     if (dist / "assets").is_dir():
         app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
 

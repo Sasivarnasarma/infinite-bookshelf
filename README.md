@@ -86,6 +86,9 @@ Then open **Settings**, switch on a provider, and paste your API key.
 Inspired by the original [Infinite Bookshelf](https://github.com/Bklieger/infinite-bookshelf) by
 Benjamin Klieger. Provider icons from [LobeHub Icons](https://github.com/lobehub/lobe-icons) (MIT);
 provider names and logos are trademarks of their owners, shown only to indicate compatibility.
+API docs use [Swagger UI](https://github.com/swagger-api/swagger-ui) (Apache-2.0), bundled by
+[fastapi-offline](https://github.com/turettn/fastapi_offline) (MIT), set in
+[Geist](https://github.com/vercel/geist-font) (SIL OFL 1.1).
 
 ## Licence
 

@@ -15,25 +15,42 @@ MAX_SEED_CHARS = 20_000
 class ProviderAuth(BaseModel):
     """How to reach a provider: a preset id, or a custom base URL, plus the user's key."""
 
-    preset: Optional[str] = Field(None, max_length=64, description="Built-in provider id, e.g. 'openai'")
-    base_url: Optional[str] = Field(None, max_length=2048, description="Custom OpenAI-compatible base URL")
+    preset: Optional[str] = Field(
+        None,
+        max_length=64,
+        description="Built-in provider id from `GET /api/config`, e.g. `openai`, `gemini`, `groq`. Leave empty to use `base_url`.",
+        examples=["openai"],
+    )
+    base_url: Optional[str] = Field(
+        None,
+        max_length=2048,
+        description="Any OpenAI-compatible API, e.g. `https://api.together.xyz/v1`. Used when `preset` is empty, or to point a local preset (Ollama) at another host.",
+    )
     # SecretStr keeps the key out of reprs, logs, and serialized output
-    api_key: SecretStr = Field(SecretStr(""), max_length=4096)
+    api_key: SecretStr = Field(
+        SecretStr(""),
+        max_length=4096,
+        description="Your key for this provider. Used for this request only; never stored or logged.",
+    )
 
 
 class ModelChoice(BaseModel):
+    """A provider plus one of its models."""
+
     provider: ProviderAuth
-    model: str = Field(..., min_length=1, max_length=256)
+    model: str = Field(..., min_length=1, max_length=256, description="Model id, as listed by `POST /api/models`.", examples=["gpt-4o-mini"])
 
 
 class OptionsIn(BaseModel):
-    topic: str = Field(..., min_length=3, max_length=500)
-    instructions: str = Field("", max_length=5000)
-    style: str = Field("", max_length=50)
-    complexity: str = Field("", max_length=50)
-    seed_content: str = Field("", max_length=MAX_SEED_CHARS)
-    long_outline: bool = False
-    section_length: Literal["short", "medium", "long"] = "medium"
+    """What the book is about and how it should read."""
+
+    topic: str = Field(..., min_length=3, max_length=500, description="What the book is about.", examples=["The history of tea"])
+    instructions: str = Field("", max_length=5000, description="Anything else the writer should follow.")
+    style: str = Field("", max_length=50, description="Writing style, e.g. `Casual`, `Formal`, `Academic`, `Creative`, `Technical`, `Storytelling`.")
+    complexity: str = Field("", max_length=50, description="Reader level, e.g. `Beginner`, `Intermediate`, `Advanced`, `Expert`.")
+    seed_content: str = Field("", max_length=MAX_SEED_CHARS, description="Your own notes or source material to build on.")
+    long_outline: bool = Field(False, description="Draft a longer, more detailed outline.")
+    section_length: Literal["short", "medium", "long"] = Field("medium", description="Target length of each section (see `section_lengths` in `GET /api/config`).")
 
     def to_engine(self) -> BookOptions:
         return BookOptions(**self.model_dump())
@@ -44,59 +61,100 @@ class ModelsRequest(BaseModel):
 
 
 class ModelsResponse(BaseModel):
-    models: List[str]
+    models: List[str] = Field(..., description="Model ids, sorted.", examples=[["gpt-4o", "gpt-4o-mini"]])
 
 
 class OutlineRequest(BaseModel):
-    outline_model: ModelChoice
-    title_model: ModelChoice
+    outline_model: ModelChoice = Field(..., description="Writes the outline.")
+    title_model: ModelChoice = Field(..., description="Writes the title. Can be a different provider.")
     options: OptionsIn
 
 
 class WrittenSection(BaseModel):
-    path: List[str] = Field(..., min_length=1)
-    text: str
+    path: List[str] = Field(..., min_length=1, description="The section's path in the outline.", examples=[["Origins"]])
+    text: str = Field(..., description="The section's finished text.")
 
 
 class BookIn(BaseModel):
-    title: str = Field(..., max_length=500)
-    structure: Dict[str, Any]
-    written: List[WrittenSection] = Field(default_factory=list, description="Finished sections, for context")
+    """The book so far: its outline and the sections already written."""
+
+    title: str = Field(..., max_length=500, examples=["Steeped: A Short History of Tea"])
+    structure: Dict[str, Any] = Field(
+        ...,
+        description="The outline, as returned by `POST /api/outline`: headings map to a description (a section) or to nested headings (a chapter).",
+    )
+    written: List[WrittenSection] = Field(default_factory=list, description="Finished sections, so the model knows what's been covered.")
 
 
 class Revision(BaseModel):
-    note: str = Field("", max_length=2000)
-    previous: str = ""
+    """Rewrite an existing section instead of writing it fresh."""
+
+    note: str = Field("", max_length=2000, description="What to change.", examples=["Add a worked example"])
+    previous: str = Field("", description="The current text of the section.")
 
 
 class SectionRequest(BaseModel):
     model: ModelChoice
     options: OptionsIn
     book: BookIn
-    path: List[str] = Field(..., min_length=1, description="Outline path of the section to write")
-    revision: Optional[Revision] = None
+    path: List[str] = Field(..., min_length=1, description="Outline path of the section to write, from the top heading down.", examples=[["Origins"]])
+    revision: Optional[Revision] = Field(None, description="Set to rewrite the section with a note.")
 
 
 class PdfRequest(BaseModel):
-    title: str = Field(..., max_length=500)
-    markdown: str
+    title: str = Field(..., max_length=500, examples=["Steeped: A Short History of Tea"])
+    markdown: str = Field(..., description="The whole book as Markdown. Raw HTML is sanitised.", examples=["# Steeped\n\n## Origins\n\nTea began in China..."])
 
 
 class ProviderPreset(BaseModel):
     id: str
     name: str
     base_url: str
-    key_url: str
+    key_url: str = Field(..., description="Where to get an API key.")
     default_model: str
-    models: List[str]
+    models: List[str] = Field(..., description="Suggested models; `POST /api/models` lists them all.")
     requires_key: bool = True
-    local: bool = False
+    local: bool = Field(False, description="Runs on your own machine (offered only when private endpoints are allowed).")
+
+
+class ServiceInfo(BaseModel):
+    name: str = Field(..., examples=["Infinite Bookshelf API"])
+    version: str = Field(..., examples=["0.6.0"])
+    docs: Optional[str] = Field(None, description="Interactive API docs, unless disabled", examples=["/api/docs"])
+    openapi: Optional[str] = Field(None, description="OpenAPI schema, unless disabled", examples=["/api/openapi.json"])
+    health: str = Field(..., examples=["/api/health"])
+
+
+class HealthStatus(BaseModel):
+    status: Literal["ok"] = "ok"
+    version: str = Field(..., examples=["0.6.0"])
 
 
 class ServerConfig(BaseModel):
     version: str
-    providers: List[ProviderPreset]
-    allow_custom_endpoints: bool
-    allow_private_endpoints: bool
-    section_lengths: Dict[str, int]
-    max_seed_chars: int = MAX_SEED_CHARS
+    providers: List[ProviderPreset] = Field(..., description="Built-in providers this server offers.")
+    allow_custom_endpoints: bool = Field(..., description="Whether `base_url` may point at any OpenAI-compatible API.")
+    allow_private_endpoints: bool = Field(..., description="Whether localhost and private network addresses are allowed.")
+    section_lengths: Dict[str, int] = Field(..., description="Target words per section for each `section_length`.", examples=[{"short": 500, "medium": 1000, "long": 2000}])
+    max_seed_chars: int = Field(MAX_SEED_CHARS, description="Longest accepted `seed_content`.")
+
+
+class ErrorDetail(BaseModel):
+    code: str = Field(
+        ...,
+        description=(
+            "Machine-readable reason: `invalid_input`, `endpoint_not_allowed`, `rate_limited`, `too_large`, "
+            "`not_found`, or from the provider: `auth`, `rate_limit`, `model_unavailable`, `bad_request`, "
+            "`connection`, `outline`, `generation_error`."
+        ),
+        examples=["auth"],
+    )
+    title: str = Field(..., description="Short, human-readable summary.", examples=["Authentication failed"])
+    message: str = Field(..., description="Details. Any API key is scrubbed out.", examples=["Incorrect API key provided: [redacted]"])
+    hint: str = Field("", description="What to try next, when there is a suggestion.", examples=["Check this provider's API key in Settings."])
+
+
+class ErrorResponse(BaseModel):
+    """Every error has this shape. Streams send the same `ErrorDetail` as an `error` event."""
+
+    error: ErrorDetail

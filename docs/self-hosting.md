@@ -33,6 +33,7 @@ All settings are environment variables prefixed with `IB_`:
 | `IB_MAX_REQUEST_BYTES` | `8000000` | Largest accepted request body |
 | `IB_CORS_ORIGINS` | `[]` | Extra browser origins allowed to call the API (JSON list) |
 | `IB_WEB_DIST` | unset | Folder of the built web app to serve at `/` (set in the image) |
+| `IB_DOCS_ENABLED` | `true` | Interactive API docs at `/api/docs` and the schema at `/api/openapi.json` |
 
 ## Running a public instance
 

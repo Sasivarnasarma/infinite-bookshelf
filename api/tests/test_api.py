@@ -1,4 +1,5 @@
 import json
+import re
 from types import SimpleNamespace
 
 import pytest
@@ -271,3 +272,65 @@ def test_serves_the_web_app_with_client_side_routing(tmp_path):
     assert client.get("/assets/app.js").text == "console.log(1)"
     assert "nope" not in client.get("/..%2Fsecret.txt").text
     assert client.get("/api/missing").status_code == 404
+    assert "Swagger" not in client.get("/").text
+    assert "swagger-ui" in client.get("/api/docs").text  # Docs still win over the app's catch-all
+    assert client.get("/api").json()["name"] == "Infinite Bookshelf API"  # /api still describes the API
+
+
+def test_root_and_api_describe_the_service_when_no_web_app_is_bundled():
+    client = make_client()
+    info = client.get("/api").json()
+    assert info == client.get("/").json()
+    assert info["name"] == "Infinite Bookshelf API"
+    assert info["docs"] == "/api/docs"
+    assert info["health"] == "/api/health"
+
+
+# --- API docs ----------------------------------------------------------------------------------
+
+
+def test_docs_are_served_locally_under_the_strict_csp():
+    client = make_client()
+    page = client.get("/api/docs")
+    assert page.status_code == 200
+    assert "script-src 'self'" in page.headers["content-security-policy"]
+    assert "<script>" not in page.text  # No inline scripts
+    # Scripts, styles, and fonts all come from this server, never a CDN
+    for url in re.findall(r'<(?:script|link)[^>]+(?:src|href)="([^"]+)"', page.text):
+        assert url.startswith("/api/docs/"), url
+    for asset in ("vendor/swagger-ui-bundle.js", "vendor/swagger-ui.css", "static/docs.js", "static/docs.css", "static/fonts/geist-latin-wght-normal.woff2"):
+        assert client.get(f"/api/docs/{asset}").status_code == 200
+
+
+def test_openapi_documents_the_event_streams():
+    schema = make_client().get("/api/openapi.json").json()
+    stream = schema["paths"]["/api/sections/stream"]["post"]
+    assert "text/event-stream" in stream["responses"]["200"]["content"]
+    assert {t["name"] for t in schema["tags"]} == {"Service", "Providers", "Generation", "Export"}
+
+
+def test_docs_can_be_disabled():
+    client = make_client(docs_enabled=False)
+    assert client.get("/api/docs").status_code == 404
+    assert client.get("/api/openapi.json").status_code == 404
+    assert client.get("/").json()["docs"] is None
+    assert client.get("/api").json()["openapi"] is None
+
+
+def test_docs_examples_are_valid_requests():
+    from infinite_bookshelf.server import openapi, schemas
+
+    for examples, model in [
+        (openapi.MODELS_EXAMPLES, schemas.ModelsRequest),
+        (openapi.OUTLINE_EXAMPLES, schemas.OutlineRequest),
+        (openapi.SECTION_EXAMPLES, schemas.SectionRequest),
+        (openapi.PDF_EXAMPLES, schemas.PdfRequest),
+    ]:
+        for example in examples.values():
+            model.model_validate(example["value"])
+
+
+def test_docs_link_to_the_web_app_only_when_it_is_bundled(tmp_path):
+    assert "Open app" not in make_client().get("/api/docs").text
+    (tmp_path / "index.html").write_text("<html>app</html>")
+    assert "Open app" in make_client(web_dist=tmp_path).get("/api/docs").text
