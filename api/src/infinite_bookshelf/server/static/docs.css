@@ -1101,3 +1101,306 @@ html.ib-docs .swagger-ui .opblock-section-header .tab-header .tab-item.active h4
 html.ib-docs .swagger-ui .response-col_links {
   display: none; /* This API has no OpenAPI links, so the column only ever says "No links" */
 }
+
+/* ---------- Touch screens ----------
+   Larger targets (about 44px) and 16px form text: iOS Safari zooms the whole page into a focused
+   field with smaller text. Mouse and trackpad layouts are unchanged. */
+@media (pointer: coarse) {
+  .ib-nav a,
+  .ib-theme {
+    height: 44px;
+  }
+
+  .ib-icon-link,
+  .ib-theme {
+    width: 44px;
+  }
+
+  .ib-copy {
+    width: 40px;
+    height: 40px;
+  }
+
+  .ib-footer a {
+    display: inline-block;
+    padding: 10px 2px;
+  }
+
+  html.ib-docs .swagger-ui .filter .operation-filter-input,
+  html.ib-docs .swagger-ui input[type='text'],
+  html.ib-docs .swagger-ui input[type='search'],
+  html.ib-docs .swagger-ui select,
+  html.ib-docs .swagger-ui textarea {
+    font-size: 16px;
+  }
+
+  html.ib-docs .swagger-ui .filter .operation-filter-input,
+  html.ib-docs .swagger-ui select,
+  html.ib-docs .swagger-ui input[type='text'] {
+    min-height: 44px;
+  }
+
+  html.ib-docs .swagger-ui .opblock-tag {
+    min-height: 48px;
+  }
+
+  html.ib-docs .swagger-ui .opblock-tag .expand-operation,
+  html.ib-docs .swagger-ui .opblock .opblock-summary .opblock-summary-control + button,
+  html.ib-docs .swagger-ui .opblock-summary .view-line-link.copy-to-clipboard {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  html.ib-docs .swagger-ui .opblock .opblock-summary {
+    min-height: 56px;
+  }
+
+  html.ib-docs .swagger-ui .btn {
+    min-height: 44px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  html.ib-docs .swagger-ui .tab li button.tablinks,
+  html.ib-docs .swagger-ui .models-control,
+  html.ib-docs .swagger-ui .model-box-control {
+    min-height: 44px;
+  }
+
+  html.ib-docs .swagger-ui .tab li button.tablinks {
+    padding: 0 6px;
+  }
+
+  html.ib-docs .swagger-ui .opblock-tag .info__externaldocs a {
+    display: inline-block;
+    padding: 14px 0;
+  }
+}
+
+/* ---------- Phones ---------- */
+@media (max-width: 640px) {
+  .ib-base {
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  .ib-base code {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Tag headings: name, description, and docs link wrap instead of being cut off */
+  html.ib-docs .swagger-ui .opblock-tag {
+    flex-wrap: wrap;
+    row-gap: 2px;
+    font-size: 18px;
+  }
+
+  html.ib-docs .swagger-ui .opblock-tag small {
+    flex: 1 1 60%;
+    padding-left: 10px;
+  }
+
+  html.ib-docs .swagger-ui .opblock-tag .info__externaldocs {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  html.ib-docs .swagger-ui .opblock .opblock-summary {
+    padding: 8px 10px;
+  }
+
+  html.ib-docs .swagger-ui .opblock .opblock-summary-method {
+    min-width: 52px;
+    font-size: 11px;
+  }
+
+  html.ib-docs .swagger-ui .opblock .opblock-summary-path {
+    font-size: 13.5px;
+    word-break: break-word;
+  }
+
+  /* Section headers (Parameters / Try it out, Request body / content type) wrap */
+  html.ib-docs .swagger-ui .opblock .opblock-section-header {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 14px;
+  }
+
+  html.ib-docs .swagger-ui .opblock .opblock-section-header > label,
+  html.ib-docs .swagger-ui .opblock .opblock-section-header select {
+    max-width: 100%;
+  }
+
+  html.ib-docs .swagger-ui .opblock-description-wrapper,
+  html.ib-docs .swagger-ui .opblock-external-docs-wrapper,
+  html.ib-docs .swagger-ui .opblock-title_normal,
+  html.ib-docs .swagger-ui .responses-inner,
+  html.ib-docs .swagger-ui .opblock-body .parameters-container,
+  html.ib-docs .swagger-ui .opblock-body .opblock-section-request-body > div {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  html.ib-docs .swagger-ui .btn-group {
+    padding: 14px;
+  }
+
+  /* Code keeps its lines and scrolls sideways, instead of breaking words mid-way */
+  html.ib-docs .swagger-ui .microlight,
+  html.ib-docs .swagger-ui .highlight-code > .microlight,
+  html.ib-docs .swagger-ui .info .description pre {
+    overflow-x: auto;
+    white-space: pre !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+  }
+
+  html.ib-docs .swagger-ui textarea.body-param__text {
+    min-height: 320px;
+    overflow-x: auto;
+    white-space: pre;
+    overflow-wrap: normal;
+  }
+
+  /* Responses: one card per status code instead of a cramped two-column table */
+  html.ib-docs .swagger-ui table.responses-table thead {
+    display: none;
+  }
+
+  html.ib-docs .swagger-ui table.responses-table,
+  html.ib-docs .swagger-ui table.responses-table tbody,
+  html.ib-docs .swagger-ui table.responses-table tr.response,
+  html.ib-docs .swagger-ui table.responses-table td {
+    display: block;
+    width: auto;
+  }
+
+  html.ib-docs .swagger-ui table.responses-table tr.response {
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  html.ib-docs .swagger-ui table.responses-table td.response-col_status {
+    padding: 0 0 6px;
+    font-size: 15px;
+  }
+
+  html.ib-docs .swagger-ui table.responses-table td.response-col_description {
+    padding: 0;
+  }
+
+  html.ib-docs .swagger-ui .response-col_description__inner div.markdown,
+  html.ib-docs .swagger-ui .response-col_description__inner div.renderedMarkdown {
+    padding: 0;
+  }
+
+  /* Live responses (after Execute) and models: no wider than the screen */
+  html.ib-docs .swagger-ui .live-responses-table,
+  html.ib-docs .swagger-ui .responses-wrapper,
+  html.ib-docs .swagger-ui .model-box,
+  html.ib-docs .swagger-ui section.models .model-container {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  html.ib-docs .swagger-ui section.models .model-container {
+    margin: 8px;
+  }
+
+  html.ib-docs .swagger-ui section.models h4 {
+    padding: 12px 14px;
+  }
+}
+
+/* "Browse endpoints" link in the hero */
+.ib-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 16px 0 0 4px;
+  padding: 8px 2px;
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font: 500 14px/1.2 var(--sans);
+  cursor: pointer;
+}
+
+.ib-jump svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s;
+}
+
+.ib-jump:hover svg {
+  transform: translateY(2px);
+}
+
+
+/* The overview's grid column may shrink below its widest line (the curl example scrolls instead) */
+html.ib-docs .swagger-ui .info .description {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (pointer: coarse) {
+  .ib-brand {
+    min-height: 44px;
+  }
+
+  .ib-jump {
+    padding: 12px 2px;
+  }
+
+  html.ib-docs .swagger-ui .opblock-tag a.nostyle {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  html.ib-docs .swagger-ui .opblock-summary .view-line-link.copy-to-clipboard {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+  }
+}
+
+@media (pointer: coarse) {
+  html.ib-docs .swagger-ui .opblock-summary .opblock-control-arrow {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Schemas: each property row and "Expand all" link becomes a comfortable tap */
+  html.ib-docs .swagger-ui .json-schema-2020-12-accordion {
+    min-height: 40px;
+  }
+
+  html.ib-docs .swagger-ui .json-schema-2020-12-expand-deep-button {
+    min-height: 40px;
+    padding: 0 8px;
+  }
+}
+
+html.ib-docs .swagger-ui table.responses-table td.response-col_links {
+  display: none !important;
+}
+
+@media (max-width: 640px) {
+  /* The highlighter sets wrapping inline on the inner <code>, so it needs !important too */
+  html.ib-docs .swagger-ui .microlight code,
+  html.ib-docs .swagger-ui .highlight-code code {
+    white-space: pre !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+  }
+
+  /* Tag heading: description shrinks beside the name, so the collapse arrow stays on the row */
+  html.ib-docs .swagger-ui .opblock-tag small {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}

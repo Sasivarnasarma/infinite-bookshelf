@@ -77,6 +77,15 @@
       })
     })
 
+    // A button, not a link: Swagger UI owns the URL hash for its deep links
+    document.getElementById('ib-jump').addEventListener('click', function () {
+      var target = document.getElementById('endpoints') || document.getElementById('swagger-ui')
+      // Land just below the sticky header
+      var header = document.querySelector('.ib-bar')
+      var offset = (header ? header.offsetHeight : 0) + 12
+      window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - offset, behavior: 'smooth' })
+    })
+
     var mount = document.getElementById('swagger-ui')
     window.ui = SwaggerUIBundle({
       url: mount.dataset.openapi,
@@ -104,6 +113,11 @@
       syntaxHighlight: { activated: true, theme: 'monokai' },
       presets: [SwaggerUIBundle.presets.apis],
       layout: 'BaseLayout',
+      onComplete: function () {
+        // The "Browse endpoints" target: the filter box just above the operations
+        var filter = document.querySelector('.swagger-ui .filter-container')
+        if (filter) filter.id = 'endpoints'
+      },
     })
   })
 })()

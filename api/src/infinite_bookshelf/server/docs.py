@@ -32,6 +32,7 @@ _ICON_SYSTEM = '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h
 _ICON_GITHUB = '<path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/>'
 _ICON_COPY = '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>'
 _ICON_ARROW = '<path d="M7 17 17 7M8 7h9v9"/>'
+_ICON_DOWN = '<path d="M12 5v14M19 12l-7 7-7-7"/>'
 
 
 def _icon(paths: str, cls: str = "") -> str:
@@ -86,6 +87,7 @@ _PAGE = """<!doctype html>
         <code id="ib-base-url">/api</code>
         <button type="button" class="ib-copy" id="ib-copy" aria-label="Copy base URL" title="Copy">{copy}</button>
       </div>
+      <div><button type="button" class="ib-jump" id="ib-jump">Browse endpoints {down}</button></div>
       <ul class="ib-features">
         <li><strong>Stateless</strong><span>No accounts, no database. Each request carries what it needs.</span></li>
         <li><strong>Your key, per request</strong><span>Sent in the body, used once, never stored or logged.</span></li>
@@ -128,6 +130,7 @@ def mount_docs(app: FastAPI, app_url: Optional[str] = None) -> None:
         sun=_icon(_ICON_SUN),
         moon=_icon(_ICON_MOON),
         copy=_icon(_ICON_COPY),
+        down=_icon(_ICON_DOWN),
     )
 
     @app.get(DOCS_URL, include_in_schema=False)
