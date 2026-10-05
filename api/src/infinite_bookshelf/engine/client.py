@@ -13,56 +13,149 @@ from openai import OpenAI
 
 from .errors import APIAuthenticationError, APIConnectionError, classify_api_error
 
+# Built-in providers, in the order the web app lists them. Every one speaks the OpenAI Chat
+# Completions API. Model IDs were checked against each provider's docs in October 2026; users can
+# load the live list with "Test", or type any model ID.
 PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
-    "gemini": {
-        "name": "Google Gemini",
-        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
-        "key_url": "https://aistudio.google.com/apikey",
-        "default_model": "gemini-2.5-flash",
-        "models": ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-2.5-flash"],
-    },
     "openai": {
         "name": "OpenAI",
         "base_url": "https://api.openai.com/v1",
         "key_url": "https://platform.openai.com/api-keys",
-        "default_model": "gpt-4o-mini",
-        "models": ["gpt-6-astra", "gpt-5.6-sol", "gpt-5.6-terra", "o4-mini", "o3", "gpt-4o-mini", "gpt-4o"],
+        "default_model": "gpt-6-luna",
+        "models": ["gpt-6.1-sol", "gpt-6-astra", "gpt-6-luna"],
+    },
+    "anthropic": {
+        # Anthropic's OpenAI-compatible endpoint (streaming, max_tokens, temperature supported)
+        "name": "Anthropic Claude",
+        "base_url": "https://api.anthropic.com/v1/",
+        "key_url": "https://platform.claude.com/settings/keys",
+        "default_model": "claude-sonnet-5-5",
+        "models": ["claude-sonnet-5-5", "claude-opus-5-5", "claude-fable-5-1", "claude-haiku-4-5"],
+    },
+    "gemini": {
+        "name": "Google Gemini",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+        "key_url": "https://aistudio.google.com/apikey",
+        "default_model": "gemini-3.8-flash",
+        "models": ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash-lite", "gemini-3.1-pro-preview"],
+    },
+    "xai": {
+        "name": "xAI Grok",
+        "base_url": "https://api.x.ai/v1",
+        "key_url": "https://console.x.ai",
+        "default_model": "grok-4.7",
+        "models": ["grok-4.7", "grok-4.3"],
     },
     "openrouter": {
         "name": "OpenRouter",
         "base_url": "https://openrouter.ai/api/v1",
         "key_url": "https://openrouter.ai/settings/keys",
-        "default_model": "google/gemini-2.5-flash",
+        "default_model": "google/gemini-3.8-flash",
         "models": [
             "google/gemini-3.8-flash",
-            "google/gemini-2.5-flash",
-            "anthropic/claude-sonnet-5",
-            "meta-llama/llama-4-maverick",
-            "deepseek/deepseek-r1",
+            "anthropic/claude-sonnet-5.5",
+            "openai/gpt-6.1-sol",
+            "x-ai/grok-4.7",
+            "deepseek/deepseek-v4.1-flash",
+            "moonshotai/kimi-k3",
+            "qwen/qwen3.8-flash",
+            "z-ai/glm-5.3",
         ],
     },
     "deepseek": {
         "name": "DeepSeek",
-        "base_url": "https://api.deepseek.com/v1",
+        "base_url": "https://api.deepseek.com",
         "key_url": "https://platform.deepseek.com/api_keys",
-        "default_model": "deepseek-chat",
-        "models": ["deepseek-flash", "deepseek-v4-pro", "deepseek-chat", "deepseek-reasoner"],
+        "default_model": "deepseek-flash",
+        "models": ["deepseek-flash", "deepseek-v4-pro"],
+    },
+    "mistral": {
+        "name": "Mistral AI",
+        "base_url": "https://api.mistral.ai/v1",
+        "key_url": "https://console.mistral.ai/api-keys",
+        "default_model": "mistral-medium-latest",
+        "models": ["mistral-large-latest", "mistral-medium-latest", "mistral-small-latest"],
     },
     "groq": {
         "name": "Groq",
         "base_url": "https://api.groq.com/openai/v1",
         "key_url": "https://console.groq.com/keys",
-        "default_model": "meta-llama/llama-4-maverick-17b-128e-instruct",
-        "models": ["meta-llama/llama-4-maverick-17b-128e-instruct", "qwen-2.5-72b-instruct"],
+        "default_model": "llama-3.3-70b-versatile",
+        "models": ["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"],
+    },
+    "moonshot": {
+        "name": "Moonshot Kimi",
+        "base_url": "https://api.moonshot.ai/v1",
+        "key_url": "https://platform.kimi.ai/console/api-keys",
+        "default_model": "kimi-k3",
+        "models": ["kimi-k3", "kimi-k2.6"],
+    },
+    "qwen": {
+        # Alibaba Cloud Model Studio, international region
+        "name": "Alibaba Qwen",
+        "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+        "key_url": "https://modelstudio.console.alibabacloud.com/",
+        "default_model": "qwen3.8-flash",
+        "models": ["qwen3.8-max", "qwen3.7-plus", "qwen3.8-flash"],
+    },
+    "zai": {
+        "name": "Z.ai GLM",
+        "base_url": "https://api.z.ai/api/paas/v4/",
+        "key_url": "https://z.ai/manage-apikey/apikey-list",
+        "default_model": "glm-5.3-flash",
+        "models": ["glm-5.3", "glm-5.3-flash"],
+    },
+    "together": {
+        "name": "Together AI",
+        "base_url": "https://api.together.xyz/v1",
+        "key_url": "https://api.together.ai/settings/api-keys",
+        "default_model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+        "models": [
+            "deepseek-ai/DeepSeek-V4-Flash-0731",
+            "deepseek-ai/DeepSeek-V4-Pro-0813",
+            "moonshotai/Kimi-K3",
+            "zai-org/GLM-5.3",
+            "openai/gpt-oss-120b",
+            "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        ],
+    },
+    "fireworks": {
+        "name": "Fireworks AI",
+        "base_url": "https://api.fireworks.ai/inference/v1",
+        "key_url": "https://app.fireworks.ai/settings/users/api-keys",
+        "default_model": "accounts/fireworks/models/glm-5p3-flash",
+        "models": [
+            "accounts/fireworks/models/glm-5p3-flash",
+            "accounts/fireworks/models/glm-5p3",
+            "accounts/fireworks/models/kimi-k3",
+            "accounts/fireworks/models/deepseek-v3p1",
+        ],
+    },
+    "cerebras": {
+        "name": "Cerebras",
+        "base_url": "https://api.cerebras.ai/v1",
+        "key_url": "https://cloud.cerebras.ai",
+        "default_model": "gpt-oss-120b",
+        "models": ["gpt-oss-120b", "qwen-3.8-27b"],
     },
     "ollama": {
         "name": "Ollama",
         "base_url": "http://localhost:11434/v1",
         "key_url": "",
-        "default_model": "llama3.3:latest",
-        "models": ["llama3.3:latest", "deepseek-r1:latest", "mistral:latest"],
+        "default_model": "gemma4:latest",
+        "models": ["gemma4:latest", "qwen3:latest", "llama3.1:latest", "deepseek-r1:latest"],
         "requires_key": False,
         "local": True,  # Only offered where the server may reach private addresses (self-hosting)
+    },
+    "lmstudio": {
+        # Models are whatever is loaded in LM Studio: "Test" lists them
+        "name": "LM Studio",
+        "base_url": "http://localhost:1234/v1",
+        "key_url": "",
+        "default_model": "",
+        "models": [],
+        "requires_key": False,
+        "local": True,
     },
 }
 

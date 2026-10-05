@@ -310,16 +310,23 @@ function HowItWorks() {
 // ---- Providers ----------------------------------------------------------------------------------
 
 const PROVIDERS = [
-  { id: 'gemini', name: 'Google Gemini' },
   { id: 'openai', name: 'OpenAI' },
+  { id: 'anthropic', name: 'Anthropic Claude' },
+  { id: 'gemini', name: 'Google Gemini' },
+  { id: 'xai', name: 'xAI Grok' },
   { id: 'openrouter', name: 'OpenRouter' },
   { id: 'deepseek', name: 'DeepSeek' },
+  { id: 'mistral', name: 'Mistral AI' },
   { id: 'groq', name: 'Groq' },
+  { id: 'moonshot', name: 'Moonshot Kimi' },
+  { id: 'qwen', name: 'Alibaba Qwen' },
+  { id: 'zai', name: 'Z.ai GLM' },
+  { id: 'together', name: 'Together AI' },
+  { id: 'fireworks', name: 'Fireworks AI' },
+  { id: 'cerebras', name: 'Cerebras' },
   { id: 'ollama', name: 'Ollama' },
   { id: 'lmstudio', name: 'LM Studio' },
   { id: 'vllm', name: 'vLLM' },
-  { id: 'together', name: 'Together AI' },
-  { id: 'fireworks', name: 'Fireworks AI' },
   { id: 'custom', name: 'Any OpenAI-compatible API' },
 ]
 
@@ -414,7 +421,7 @@ function Privacy() {
         <Flow label="your prompt" />
         <Node icon={Sparkles} title="Your AI provider" text="The provider you chose, billed to your own account. Or a local model.">
           <div className="mt-1 flex gap-2 text-lg">
-            {['gemini', 'openai', 'groq', 'ollama'].map((id) => (
+            {['openai', 'anthropic', 'gemini', 'deepseek', 'ollama'].map((id) => (
               <ProviderIcon key={id} id={id} />
             ))}
           </div>
@@ -508,7 +515,7 @@ const FAQ = [
   },
   {
     q: 'Which models can I use?',
-    a: 'Google Gemini, OpenAI, OpenRouter, DeepSeek, Groq, and any OpenAI-compatible API, including local servers when you run your own copy. You can pick a different model for the outline, the title, and the chapters.',
+    a: 'OpenAI, Anthropic Claude, Google Gemini, xAI Grok, DeepSeek, Mistral, Kimi, Qwen, GLM, and more through OpenRouter, Groq, Together, Fireworks, and Cerebras, or any OpenAI-compatible API, including local servers like Ollama and LM Studio when you run your own copy. You can pick a different model for the outline, the title, and the chapters, and add several keys per provider.',
   },
   {
     q: 'Where are my books saved?',

@@ -75,3 +75,13 @@ def test_auth_errors_are_not_retried():
     with pytest.raises(APIAuthenticationError):
         chat_completion(client, model="m", messages=[])
     assert len(client.calls) == 1
+
+
+def test_presets_are_complete():
+    from infinite_bookshelf.engine.client import PROVIDER_PRESETS
+
+    for pid, preset in PROVIDER_PRESETS.items():
+        assert preset["name"] and preset["base_url"].startswith(("https://", "http://localhost")), pid
+        # The default is offered in the picker (local servers list theirs with "Test")
+        assert preset["default_model"] in preset["models"] or (preset.get("local") and not preset["models"]), pid
+        assert len(set(preset["models"])) == len(preset["models"]), pid

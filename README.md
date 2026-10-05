@@ -26,8 +26,10 @@
 3. **Refine and export.** Rewrite any section with a note ("add a worked example"), then export to
    Markdown, PDF, or a JSON backup.
 
-**Also:** works with Google Gemini, OpenAI, OpenRouter, DeepSeek, Groq, Ollama, and any
-OpenAI-compatible API · a different model per step, even across providers · pause and resume any
+**Also:** works with OpenAI, Anthropic Claude, Google Gemini, xAI Grok, DeepSeek, Mistral, Kimi,
+Qwen, GLM, OpenRouter, Groq, Together, Fireworks, Cerebras, Ollama, LM Studio, and any
+OpenAI-compatible API · a different model per step, even across providers · several keys per
+provider, with automatic switching when one fails and optional rotation · pause and resume any
 time · section length, style, depth, and your own notes · light and dark themes.
 
 ## Your data stays yours
