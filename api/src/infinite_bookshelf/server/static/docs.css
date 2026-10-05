@@ -36,7 +36,6 @@ html.ib-docs {
   --get: #2563eb;
   --get-tint: #eff6ff;
   --get-border: #bfdbfe;
-  --ok: #16a34a;
   --bad: #dc2626;
   --dot: #d6d3d1;
   --code-bg: #141414;
@@ -66,7 +65,6 @@ html.ib-docs.dark-mode {
   --get: #60a5fa;
   --get-tint: rgb(96 165 250 / 0.08);
   --get-border: rgb(96 165 250 / 0.28);
-  --ok: #4ade80;
   --bad: #f87171;
   --dot: #262626;
   --code-bg: #0f0f0f;
@@ -283,24 +281,6 @@ html[data-theme='dark'] .ib-theme [data-theme-icon='dark'] {
   background: var(--surface);
   color: var(--muted);
   font: 500 12.5px/1.2 var(--mono);
-}
-
-.ib-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--ok);
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 60%, transparent);
-  animation: ib-pulse 2.4s infinite;
-}
-
-@keyframes ib-pulse {
-  70% {
-    box-shadow: 0 0 0 7px transparent;
-  }
-  100% {
-    box-shadow: 0 0 0 0 transparent;
-  }
 }
 
 .ib-hero h1 {

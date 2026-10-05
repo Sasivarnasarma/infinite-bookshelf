@@ -79,7 +79,7 @@ _PAGE = """<!doctype html>
 
   <section class="ib-hero">
     <div class="ib-hero__inner">
-      <p class="ib-eyebrow"><span class="ib-dot"></span>v{version} &middot; OpenAPI 3.1<span class="ib-eyebrow__extra"> &middot; REST + Server-Sent Events</span></p>
+      <p class="ib-eyebrow">v{version} &middot; OpenAPI 3.1<span class="ib-eyebrow__extra"> &middot; REST + Server-Sent Events</span></p>
       <h1>Infinite Bookshelf <span>API</span></h1>
       <p class="ib-lead">{summary}</p>
       <div class="ib-base">
