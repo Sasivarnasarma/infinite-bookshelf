@@ -27,8 +27,8 @@ export function BookCover({ title, topic, className, size = 'md' }: { title: str
       {size !== 'sm' && (
         <>
           <div className="mb-auto h-0.5 w-8 rounded-full bg-white/60" />
-          <p className={cn('font-display font-medium leading-tight [text-wrap:balance] drop-shadow-sm', size === 'lg' ? 'text-xl' : 'line-clamp-4 text-[15px]')}>{title || 'Untitled'}</p>
-          <p className="mt-2 text-[10px] font-medium uppercase tracking-[0.18em] text-white/70">Infinite Bookshelf</p>
+          <p className={cn('font-display font-medium leading-tight [overflow-wrap:anywhere] [text-wrap:balance] drop-shadow-sm hyphens-auto', size === 'lg' ? 'line-clamp-5 text-base sm:line-clamp-6 sm:text-xl' : 'line-clamp-4 text-[15px]')}>{title || 'Untitled'}</p>
+          <p className="mt-2 truncate text-[10px] font-medium uppercase tracking-[0.18em] text-white/70">Infinite Bookshelf</p>
         </>
       )}
     </div>

@@ -19,7 +19,9 @@ export function DialogContent({ className, children, title, description, ...prop
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm data-[state=open]:[animation:fade-in_160ms_ease-out] data-[state=closed]:[animation:fade-out_120ms_ease-in]" />
       <DialogPrimitive.Content
         className={cn(
-          'surface fixed left-1/2 top-1/2 z-50 grid w-[min(92vw,30rem)] -translate-x-1/2 -translate-y-1/2 gap-4 p-6 !bg-card data-[state=open]:[animation:dialog-in_200ms_cubic-bezier(0.16,1,0.3,1)] data-[state=closed]:[animation:fade-out_120ms_ease-in]',
+          'surface fixed left-1/2 top-1/2 z-50 grid max-h-[90dvh] w-[min(92vw,30rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto p-6 !bg-card data-[state=open]:[animation:dialog-in_200ms_cubic-bezier(0.16,1,0.3,1)] data-[state=closed]:[animation:fade-out_120ms_ease-in]',
+          // Phones: a sheet that slides up from the bottom edge, within thumb reach
+          'max-sm:inset-x-0 max-sm:bottom-0 max-sm:top-auto max-sm:left-0 max-sm:w-full max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-b-none max-sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] max-sm:data-[state=open]:[animation:sheet-in_260ms_cubic-bezier(0.16,1,0.3,1)] max-sm:data-[state=closed]:[animation:sheet-out_180ms_ease-in]',
           className,
         )}
         {...props}
@@ -33,7 +35,7 @@ export function DialogContent({ className, children, title, description, ...prop
           )}
         </div>
         {children}
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label="Close">
+        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg p-1.5 pointer-coarse:right-2.5 pointer-coarse:top-2.5 pointer-coarse:p-3 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label="Close">
           <X className="size-4" />
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>
@@ -52,7 +54,8 @@ export function MenuContent({ className, align = 'end', ...props }: React.Compon
       <MenuPrimitive.Content
         align={align}
         sideOffset={6}
-        className={cn('surface z-50 min-w-48 p-1.5 !bg-popover', popIn, className)}
+        collisionPadding={12}
+        className={cn('surface z-50 min-w-48 max-w-[calc(100vw-1.5rem)] p-1.5 !bg-popover', popIn, className)}
         {...props}
       />
     </MenuPrimitive.Portal>
@@ -63,7 +66,7 @@ export function MenuItem({ className, danger, ...props }: React.ComponentProps<t
   return (
     <MenuPrimitive.Item
       className={cn(
-        'flex cursor-pointer select-none items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm outline-none transition-colors data-[highlighted]:bg-muted data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:size-4 [&_svg]:text-muted-foreground',
+        'flex cursor-pointer select-none items-center gap-2.5 rounded-lg px-2.5 py-2 pointer-coarse:py-3 text-sm outline-none transition-colors data-[highlighted]:bg-muted data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:size-4 [&_svg]:text-muted-foreground',
         danger && 'text-danger data-[highlighted]:bg-danger/10 [&_svg]:text-danger',
         className,
       )}
@@ -80,7 +83,7 @@ export const PopoverTrigger = PopoverPrimitive.Trigger
 export function PopoverContent({ className, align = 'start', ...props }: React.ComponentProps<typeof PopoverPrimitive.Content>) {
   return (
     <PopoverPrimitive.Portal>
-      <PopoverPrimitive.Content align={align} sideOffset={8} className={cn('surface z-50 w-80 p-4 !bg-popover', popIn, className)} {...props} />
+      <PopoverPrimitive.Content align={align} sideOffset={8} collisionPadding={12} className={cn('surface z-50 w-80 max-w-[calc(100vw-1.5rem)] p-4 !bg-popover', popIn, className)} {...props} />
     </PopoverPrimitive.Portal>
   )
 }

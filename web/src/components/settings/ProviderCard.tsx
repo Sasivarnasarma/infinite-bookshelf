@@ -32,9 +32,9 @@ function ModelChips({ provider, onChange }: { provider: ProviderInfo; onChange: 
       <div className="flex flex-wrap gap-1.5">
         <AnimatePresence initial={false}>
           {provider.models.map((m) => (
-            <motion.span key={m} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted/60 py-1 pl-2.5 pr-1 font-mono text-xs">
-              {m}
-              <button type="button" onClick={() => onChange(provider.models.filter((x) => x !== m))} className="rounded p-0.5 text-muted-foreground hover:bg-background hover:text-foreground" aria-label={`Remove ${m}`}>
+            <motion.span key={m} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="inline-flex max-w-full items-center gap-1 rounded-lg border border-border bg-muted/60 py-1 pl-2.5 pr-1 font-mono text-xs">
+              <span className="min-w-0 break-all">{m}</span>
+              <button type="button" onClick={() => onChange(provider.models.filter((x) => x !== m))} className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-background hover:text-foreground pointer-coarse:-my-1.5 pointer-coarse:p-3" aria-label={`Remove ${m}`}>
                 <X className="size-3" />
               </button>
             </motion.span>
@@ -49,13 +49,13 @@ function ModelChips({ provider, onChange }: { provider: ProviderInfo; onChange: 
           add(draft)
         }}
       >
-        <Input value={draft} onChange={(e) => setDraft(e.target.value)} list={listId} placeholder={suggestions.length ? `Add a model (${suggestions.length} available)` : 'Add a model ID'} className="h-9 font-mono text-xs" />
+        <Input value={draft} onChange={(e) => setDraft(e.target.value)} list={listId} placeholder={suggestions.length ? `Add a model (${suggestions.length} available)` : 'Add a model ID'} className="h-9 font-mono text-xs pointer-coarse:h-11 pointer-coarse:text-base" />
         <datalist id={listId}>
           {suggestions.slice(0, 500).map((m) => (
             <option key={m} value={m} />
           ))}
         </datalist>
-        <Button type="submit" variant="outline" size="sm" className="h-9" disabled={!draft.trim()}>
+        <Button type="submit" variant="outline" size="sm" className="h-9 pointer-coarse:h-11" disabled={!draft.trim()}>
           <Plus /> Add
         </Button>
       </form>
@@ -101,14 +101,14 @@ export function ProviderCard({ provider }: { provider: ProviderInfo }) {
 
   return (
     <motion.div layout="position" className={cn('surface spotlight overflow-hidden transition-shadow', open && 'ring-1 ring-primary/20')}>
-      <div className="flex items-center gap-3 p-4">
+      <div className="flex items-center gap-3 p-4 max-[359px]:gap-2 max-[359px]:p-3">
         <ProviderTile id={provider.id} baseUrl={provider.baseUrl} />
         <div className="min-w-0 flex-1">
           {provider.custom ? (
             <input
               value={provider.name}
               onChange={(e) => update({ name: e.target.value })}
-              className="w-full bg-transparent font-display text-base font-medium outline-none"
+              className="w-full bg-transparent py-1 font-display text-base font-medium outline-none pointer-coarse:py-2.5"
               aria-label="Endpoint name"
             />
           ) : (
@@ -149,9 +149,9 @@ export function ProviderCard({ provider }: { provider: ProviderInfo }) {
                       placeholder={provider.requiresKey ? 'Paste your API key' : 'Not needed for most local servers'}
                       autoComplete="off"
                       spellCheck={false}
-                      className="pr-10 font-mono text-xs"
+                      className="pr-10 font-mono text-xs pointer-coarse:pr-12"
                     />
-                    <button type="button" onClick={() => setShowKey((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:text-foreground" aria-label={showKey ? 'Hide key' : 'Show key'}>
+                    <button type="button" onClick={() => setShowKey((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:text-foreground pointer-coarse:right-1 pointer-coarse:p-3" aria-label={showKey ? 'Hide key' : 'Show key'}>
                       {showKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                     </button>
                   </div>

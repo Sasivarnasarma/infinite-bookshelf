@@ -31,7 +31,7 @@ function EmptyLibrary() {
         <p className="max-w-sm text-sm text-muted-foreground">Books you write are saved here, in this browser. Start with any topic you're curious about.</p>
       </div>
       <Button asChild variant="brand" size="lg">
-        <Link to="/">
+        <Link to="/new">
           <Plus /> Write your first book
         </Link>
       </Button>
@@ -66,15 +66,15 @@ export function BooksPage() {
   if (books === undefined) return null
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-8 px-4 pb-24 pt-10 sm:px-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 pb-24 pt-10 sm:px-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end">
         <div>
           <h1 className="font-display text-4xl font-medium tracking-tight">My books</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {books.length} book{books.length === 1 ? '' : 's'}, saved in this browser
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 sm:ml-auto">
+        <div className="flex flex-wrap gap-2 md:ml-auto">
           <input ref={fileInput} type="file" accept="application/json,.json" hidden onChange={(e) => e.target.files?.[0] && void onImport(e.target.files[0])} />
           <Button variant="outline" onClick={() => fileInput.current?.click()}>
             <Upload /> Import
@@ -85,7 +85,7 @@ export function BooksPage() {
             </Button>
           )}
           <Button asChild>
-            <Link to="/">
+            <Link to="/new">
               <Plus /> New book
             </Link>
           </Button>
@@ -96,7 +96,7 @@ export function BooksPage() {
         <EmptyLibrary />
       ) : (
         <>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <div className="relative sm:w-72">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search books…" className="pl-9" />
@@ -117,7 +117,7 @@ export function BooksPage() {
             </NativeSelect>
           </div>
 
-          <motion.div layout className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          <motion.div layout className="grid grid-cols-2 gap-3 max-[359px]:grid-cols-1 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
             <AnimatePresence mode="popLayout">
               {visible.map((book, i) => (
                 <BookCard key={book.id} book={book} index={i} />

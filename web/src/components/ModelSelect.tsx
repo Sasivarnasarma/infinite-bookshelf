@@ -42,7 +42,7 @@ export function ModelSelect({
           id={id}
           type="button"
           className={cn(
-            'flex h-10 w-full items-center gap-2 rounded-xl border border-input bg-card/70 px-3 text-left text-sm transition-colors hover:bg-muted/50 focus-visible:border-ring',
+            'flex h-10 w-full min-w-0 items-center gap-2 rounded-xl border border-input bg-card/70 px-3 text-left text-sm transition-colors pointer-coarse:h-11 hover:bg-muted/50 focus-visible:border-ring',
             className,
           )}
         >
@@ -58,7 +58,7 @@ export function ModelSelect({
           <ChevronsUpDown className="ml-auto size-4 shrink-0 text-muted-foreground" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-72 p-0">
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-[min(18rem,calc(100vw-1.5rem))] p-0">
         <div className="flex items-center gap-2 border-b border-border px-3">
           <Search className="size-4 text-muted-foreground" />
           <input
@@ -66,7 +66,7 @@ export function ModelSelect({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search models…"
-            className="h-10 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            className="h-10 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground pointer-coarse:h-12 pointer-coarse:text-base"
           />
         </div>
         <div className="max-h-72 overflow-y-auto p-1.5">

@@ -44,7 +44,7 @@ function ErrorBanner({ book, onRetry }: { book: Book; onRetry: () => void }) {
         <p className="break-words text-foreground/80">{book.error.message}</p>
         {book.error.hint && <p className="text-muted-foreground">{book.error.hint}</p>}
       </div>
-      <div className="flex shrink-0 gap-2 sm:ml-auto">
+      <div className="flex shrink-0 flex-wrap gap-2 sm:ml-auto">
         {keyProblem && (
           <Button asChild variant="outline" size="sm">
             <Link to="/settings">
@@ -202,14 +202,14 @@ function Header({ book }: { book: Book }) {
   return (
     <header className="flex flex-col gap-6 sm:flex-row sm:items-end">
       <motion.div initial={{ opacity: 0, rotate: -4, y: 10 }} animate={{ opacity: 1, rotate: 0, y: 0 }} transition={{ type: 'spring', stiffness: 140, damping: 16 }} className="mx-auto shrink-0 sm:mx-0">
-        <BookCover title={book.title} topic={book.options.topic} size="lg" />
+        <BookCover title={book.title} topic={book.options.topic} size="lg" className="w-32 p-3.5 sm:w-52 sm:p-5" />
       </motion.div>
       <div className="grid min-w-0 flex-1 gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge book={book} />
           <ModelLabels book={book} />
         </div>
-        <h1 className="font-display text-3xl font-medium leading-tight tracking-tight [text-wrap:balance] sm:text-4xl">{book.title}</h1>
+        <h1 className="font-display text-2xl font-medium leading-tight tracking-tight [text-wrap:balance] sm:text-4xl">{book.title}</h1>
         {book.title !== book.options.topic && <p className="text-sm text-muted-foreground">{book.options.topic}</p>}
         {total > 0 && (
           <div className="grid max-w-md gap-1.5">
@@ -261,8 +261,8 @@ export function BookPage() {
   const retry = () => (book.outline ? void writeBook(book.id) : void draftOutline(book.id))
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-10 px-4 pb-32 pt-8 sm:px-6">
-      <Link to="/books" className="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-4 pb-32 pt-8 sm:px-6">
+      <Link to="/books" className="-mx-2 inline-flex w-fit items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-muted-foreground hover:text-foreground pointer-coarse:py-2.5">
         <ArrowLeft className="size-4" /> My books
       </Link>
       <Header book={book} />

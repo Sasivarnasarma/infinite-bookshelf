@@ -12,7 +12,7 @@ export function NotFoundPage() {
       <p className="text-muted-foreground">This page isn't on any shelf.</p>
       <Button asChild variant="outline">
         <Link to="/">
-          <ArrowLeft /> Back to writing
+          <ArrowLeft /> Back home
         </Link>
       </Button>
     </div>

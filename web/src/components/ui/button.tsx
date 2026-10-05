@@ -24,11 +24,12 @@ const buttonVariants = cva(
         link: 'h-auto rounded-none px-0 text-primary underline-offset-4 hover:underline',
       },
       size: {
-        sm: 'h-8 px-3.5 text-[13px]',
-        md: 'h-10 px-5',
+        // Touch screens get larger targets (pointer-coarse): at least 40px, most 44px
+        sm: 'h-8 px-3.5 text-[13px] pointer-coarse:h-10 pointer-coarse:px-4',
+        md: 'h-10 px-5 pointer-coarse:h-11',
         lg: 'h-12 px-7 text-[15px]',
-        icon: 'size-9',
-        'icon-sm': 'size-8',
+        icon: 'size-9 pointer-coarse:size-11',
+        'icon-sm': 'size-8 pointer-coarse:size-10',
       },
     },
     defaultVariants: { variant: 'primary', size: 'md' },

@@ -1,14 +1,14 @@
 import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ChevronLeft, ChevronRight, GripVertical, PenLine, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Ellipsis, GripVertical, PenLine, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/fields'
-import { Tooltip } from '@/components/ui/overlays'
+import { Menu, MenuContent, MenuItem, MenuTrigger, Tooltip } from '@/components/ui/overlays'
 import { updateBook } from '@/lib/db'
 import { outlineToRows, rowsToOutline, type OutlineLevel, type OutlineRow } from '@/lib/outline'
 import { draftOutline, writeBook } from '@/lib/runner'
@@ -27,8 +27,8 @@ function Row({ row, index, isHeading, onChange, onRemove }: { row: OutlineRow; i
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ delay: Math.min(index, 20) * 0.015 }}
-      style={{ transform: CSS.Transform.toString(transform), transition, paddingLeft: `${(row.level - 1) * 1.75}rem` }}
-      className={cn('group relative', isDragging && 'z-10')}
+      style={{ transform: CSS.Transform.toString(transform), transition, '--indent': row.level - 1 } as React.CSSProperties}
+      className={cn('group relative pl-[calc(var(--indent)*0.85rem)] sm:pl-[calc(var(--indent)*1.75rem)]', isDragging && 'z-10')}
     >
       <div
         className={cn(
@@ -37,11 +37,11 @@ function Row({ row, index, isHeading, onChange, onRemove }: { row: OutlineRow; i
           row.level === 1 && 'mt-2',
         )}
       >
-        <button type="button" className="mt-1.5 cursor-grab touch-none rounded-md p-1 text-muted-foreground/60 hover:bg-muted hover:text-foreground active:cursor-grabbing" aria-label="Drag to reorder" {...attributes} {...listeners}>
+        <button type="button" className="mt-1.5 cursor-grab touch-none rounded-md p-1 text-muted-foreground/60 hover:bg-muted hover:text-foreground active:cursor-grabbing pointer-coarse:-ml-1 pointer-coarse:mt-0 pointer-coarse:p-3" aria-label="Drag to reorder" {...attributes} {...listeners}>
           <GripVertical className="size-4" />
         </button>
-        <div className="grid min-w-0 flex-1 gap-1">
-          <div className="flex items-center gap-2">
+        <div className="grid min-w-0 flex-1 grid-cols-1 gap-1">
+          <div className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:gap-2">
             <span className={cn('shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider', row.level === 1 ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground')}>
               {LEVEL_NAMES[row.level]}
             </span>
@@ -49,7 +49,7 @@ function Row({ row, index, isHeading, onChange, onRemove }: { row: OutlineRow; i
               value={row.title}
               onChange={(e) => onChange({ title: e.target.value })}
               placeholder={`${LEVEL_NAMES[row.level]} title`}
-              className={cn('min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground/50', row.level === 1 ? 'font-display text-[17px] font-medium' : 'text-sm font-medium')}
+              className={cn('w-full min-w-0 bg-transparent py-1 outline-none sm:w-0 sm:flex-1 pointer-coarse:py-2 placeholder:text-muted-foreground/50', row.level === 1 ? 'font-display text-[17px] font-medium' : 'text-sm font-medium pointer-coarse:text-base')}
             />
           </div>
           {isHeading ? (
@@ -60,11 +60,29 @@ function Row({ row, index, isHeading, onChange, onRemove }: { row: OutlineRow; i
               value={row.description}
               onChange={(e) => onChange({ description: e.target.value })}
               placeholder="What it should cover (optional)"
-              className="ml-0.5 bg-transparent text-[13px] text-muted-foreground outline-none placeholder:text-muted-foreground/40"
+              className="ml-0.5 w-full min-w-0 bg-transparent py-1 pointer-coarse:py-2 text-[13px] text-muted-foreground outline-none placeholder:text-muted-foreground/40 pointer-coarse:text-base"
             />
           )}
         </div>
-        <div className="flex shrink-0 items-center opacity-100 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
+        <Menu>
+          <MenuTrigger asChild>
+            <button type="button" className="grid size-10 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-muted sm:hidden" aria-label="Entry actions">
+              <Ellipsis className="size-4" />
+            </button>
+          </MenuTrigger>
+          <MenuContent>
+            <MenuItem disabled={row.level === 1} onSelect={() => onChange({ level: (row.level - 1) as OutlineLevel })}>
+              <ChevronLeft /> Move up a level
+            </MenuItem>
+            <MenuItem disabled={row.level === 3} onSelect={() => onChange({ level: (row.level + 1) as OutlineLevel })}>
+              <ChevronRight /> Move down a level
+            </MenuItem>
+            <MenuItem danger onSelect={onRemove}>
+              <Trash2 /> Remove
+            </MenuItem>
+          </MenuContent>
+        </Menu>
+        <div className="hidden shrink-0 items-center opacity-100 transition-opacity sm:flex pointer-fine:opacity-0 pointer-fine:group-focus-within:opacity-100 pointer-fine:group-hover:opacity-100 [&_button]:pointer-coarse:p-3">
           <Tooltip content="Move up a level">
             <button type="button" disabled={row.level === 1} onClick={() => onChange({ level: (row.level - 1) as OutlineLevel })} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30" aria-label="Outdent">
               <ChevronLeft className="size-4" />
@@ -133,7 +151,7 @@ export function OutlineEditor({ book }: { book: Book }) {
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-foreground">Review the outline</p>
         <p className="mt-1 text-sm text-muted-foreground">Nothing is written yet. Rename, reorder (drag the handle), change levels, add or remove entries. Then start writing.</p>
       </div>
-      <div className="grid gap-5 p-5 sm:p-6">
+      <div className="grid grid-cols-1 gap-5 p-5 sm:p-6">
         <label className="grid gap-1.5">
           <span className="text-[13px] font-medium">Book title</span>
           <Input value={title} onChange={(e) => setTitle(e.target.value)} className="h-12 font-display text-lg" />
@@ -141,7 +159,7 @@ export function OutlineEditor({ book }: { book: Book }) {
 
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={rows.map((r) => r.id)} strategy={verticalListSortingStrategy}>
-            <ul className="grid gap-0.5">
+            <ul className="grid grid-cols-1 gap-0.5">
               <AnimatePresence initial={false}>
                 {rows.map((row, i) => (
                   <Row key={row.id} row={row} index={i} isHeading={Boolean(rows[i + 1] && rows[i + 1].level > row.level)} onChange={(patch) => update(row.id, patch)} onRemove={() => setRows((rs) => rs.filter((r) => r.id !== row.id))} />
@@ -162,7 +180,7 @@ export function OutlineEditor({ book }: { book: Book }) {
       </div>
       <div className="flex flex-col gap-3 border-t border-border px-5 py-4 sm:flex-row sm:items-center sm:px-6">
         <p className={cn('text-sm', summary.ok ? 'text-muted-foreground' : 'text-danger')}>{summary.text}</p>
-        <div className="flex gap-2 sm:ml-auto">
+        <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row">
           <Button variant="ghost" onClick={() => void redraft()}>
             <RefreshCw /> Draft a new outline
           </Button>

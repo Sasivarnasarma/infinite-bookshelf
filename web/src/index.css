@@ -124,6 +124,19 @@
 @keyframes pop-out {
   to { opacity: 0; transform: scale(0.97); }
 }
+/* Touch: no grey flash on tap, and iOS keeps text at the size we set when rotating to landscape */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@keyframes sheet-in {
+  from { transform: translateY(100%); }
+}
+@keyframes sheet-out {
+  to { transform: translateY(100%); }
+}
 @keyframes dialog-in {
   from { opacity: 0; transform: translateY(8px) scale(0.96); }
 }

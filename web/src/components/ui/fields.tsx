@@ -3,11 +3,12 @@ import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
+// 16px text on touch screens: iOS Safari zooms the whole page into a focused field with smaller text
 const fieldBase =
-  'w-full rounded-xl border border-input bg-card px-3.5 text-sm text-foreground placeholder:text-muted-foreground/70 shadow-[inset_0_1px_2px_oklch(0_0_0/0.04)] transition-colors outline-none focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/15 disabled:opacity-60'
+  'w-full rounded-xl border border-input bg-card px-3.5 text-sm pointer-coarse:text-base text-foreground placeholder:text-muted-foreground/70 shadow-[inset_0_1px_2px_oklch(0_0_0/0.04)] transition-colors outline-none focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/15 disabled:opacity-60'
 
 export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(({ className, ...props }, ref) => (
-  <input ref={ref} className={cn(fieldBase, 'h-10', className)} {...props} />
+  <input ref={ref} className={cn(fieldBase, 'h-10 pointer-coarse:h-11', className)} {...props} />
 ))
 Input.displayName = 'Input'
 
@@ -38,7 +39,8 @@ export function Switch({ className, ...props }: React.ComponentProps<typeof Swit
   return (
     <SwitchPrimitive.Root
       className={cn(
-        'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border border-transparent bg-input transition-colors data-[state=checked]:bg-primary disabled:cursor-not-allowed disabled:opacity-50',
+        // after: widens the tap area to about 44px without changing how the switch looks
+        "peer relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border border-transparent bg-input transition-colors after:absolute after:-inset-x-1 after:-inset-y-2.5 after:content-[''] data-[state=checked]:bg-primary disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       {...props}
@@ -53,7 +55,7 @@ export const NativeSelect = React.forwardRef<HTMLSelectElement, React.SelectHTML
     ref={ref}
     className={cn(
       fieldBase,
-      "h-10 cursor-pointer appearance-none bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23888' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")] bg-[right_0.75rem_center] bg-no-repeat pr-9",
+      "h-10 pointer-coarse:h-11 cursor-pointer appearance-none bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23888' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")] bg-[right_0.75rem_center] bg-no-repeat pr-9",
       className,
     )}
     {...props}
@@ -76,7 +78,7 @@ export function Segmented<T extends string>({
   size?: 'sm' | 'md'
 }) {
   return (
-    <div role="radiogroup" className={cn('inline-flex rounded-full border border-border bg-muted/70 p-1', className)}>
+    <div role="radiogroup" className={cn('inline-flex max-w-full rounded-full border border-border bg-muted/70 p-1', className)}>
       {options.map((o) => (
         <button
           key={o.value}
@@ -86,8 +88,8 @@ export function Segmented<T extends string>({
           title={o.hint}
           onClick={() => onChange(o.value)}
           className={cn(
-            'relative flex-1 whitespace-nowrap rounded-full px-3.5 font-medium transition-all',
-            size === 'sm' ? 'h-7 text-xs' : 'h-8 text-[13px]',
+            'relative flex-1 whitespace-nowrap rounded-full px-3.5 font-medium transition-all max-[359px]:px-2.5',
+            size === 'sm' ? 'h-7 text-xs pointer-coarse:h-9' : 'h-8 text-[13px] pointer-coarse:h-10 pointer-coarse:text-sm',
             value === o.value ? 'bg-card text-foreground shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground',
           )}
         >

@@ -5,13 +5,13 @@ import './index.css'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { createBrowserRouter, RouterProvider } from 'react-router'
+import { createBrowserRouter, redirect, RouterProvider } from 'react-router'
 
 import { App } from './App'
 import { LogoLoader } from './components/Logo'
 import { HomePage } from './pages/HomePage'
 
-// The home page ships in the main bundle; other pages load on first visit
+// The landing page ships in the main bundle; other pages load on first visit
 const router = createBrowserRouter([
   {
     element: <App />,
@@ -19,10 +19,12 @@ const router = createBrowserRouter([
     hydrateFallbackElement: <LogoLoader className="min-h-dvh bg-background" />,
     children: [
       { path: '/', element: <HomePage /> },
+      { path: '/new', lazy: async () => ({ Component: (await import('./pages/CreatePage')).CreatePage }) },
       { path: '/books', lazy: async () => ({ Component: (await import('./pages/BooksPage')).BooksPage }) },
       { path: '/books/:id', lazy: async () => ({ Component: (await import('./pages/BookPage')).BookPage }) },
       { path: '/settings', lazy: async () => ({ Component: (await import('./pages/SettingsPage')).SettingsPage }) },
-      { path: '/about', lazy: async () => ({ Component: (await import('./pages/AboutPage')).AboutPage }) },
+      // The old About page is now a section of the landing page
+      { path: '/about', loader: () => redirect('/#privacy') },
       { path: '*', lazy: async () => ({ Component: (await import('./pages/NotFoundPage')).NotFoundPage }) },
     ],
   },

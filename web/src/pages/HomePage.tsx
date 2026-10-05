@@ -1,22 +1,36 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ArrowRight, Download, FileUp, KeyRound, ListTree, PenLine, SlidersHorizontal, Sparkles, Wand2 } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router'
-import { toast } from 'sonner'
+import {
+  ArrowRight,
+  Braces,
+  Check,
+  Copy,
+  Database,
+  Download,
+  FolderGit2,
+  KeyRound,
+  ListChecks,
+  ListTree,
+  Monitor,
+  PenLine,
+  Plus,
+  Server,
+  ShieldCheck,
+  Sparkles,
+  Terminal,
+} from 'lucide-react'
+import { AnimatePresence, motion, useInView, useReducedMotion } from 'motion/react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createSearchParams, Link, useLocation, useNavigate } from 'react-router'
 
-import { BookCard } from '@/components/BookCard'
 import { DotWave } from '@/components/DotWave'
+import { LogoMark } from '@/components/Logo'
 import { ProviderIcon } from '@/components/ProviderIcon'
-import { ModelSelect } from '@/components/ModelSelect'
 import { Button } from '@/components/ui/button'
-import { Field, Hint, Label, NativeSelect, Segmented, Switch, Textarea } from '@/components/ui/fields'
-import { Kbd } from '@/components/ui/misc'
-import { createBook } from '@/lib/create-book'
+import { Badge, ProgressBar } from '@/components/ui/misc'
 import { db } from '@/lib/db'
-import { modelOptions, sameRef, useProviderList, usePreferences, useServer } from '@/lib/settings'
-import type { ModelRef, SectionLength, Step } from '@/lib/types'
 import { cn } from '@/lib/utils'
+
+const REPO_URL = 'https://github.com/Sasivarnasarma/infinite-bookshelf'
 
 const EXAMPLES = [
   'Quantum computing for curious beginners',
@@ -27,253 +41,273 @@ const EXAMPLES = [
   'Stoicism for modern life',
 ]
 
-const STYLES = ['', 'Casual', 'Formal', 'Academic', 'Creative', 'Technical', 'Storytelling']
-const DEPTHS = ['', 'Beginner', 'Intermediate', 'Advanced', 'Expert']
-const STEP_LABELS: Record<Step, string> = { outline: 'Outline', title: 'Title', section: 'Chapters' }
+function createUrl(topic: string) {
+  return topic ? `/new?${createSearchParams({ topic })}` : '/new'
+}
 
-function useRotatingPlaceholder(active: boolean) {
+function useRotating<T>(items: T[], active: boolean, ms = 3200) {
   const [index, setIndex] = useState(0)
   useEffect(() => {
     if (!active) return
-    const timer = setInterval(() => setIndex((i) => (i + 1) % EXAMPLES.length), 3200)
+    const timer = setInterval(() => setIndex((i) => (i + 1) % items.length), ms)
     return () => clearInterval(timer)
-  }, [active])
-  return EXAMPLES[index]
+  }, [active, items.length, ms])
+  return items[index]
 }
 
-function Composer() {
-  const navigate = useNavigate()
-  const prefs = usePreferences()
-  const config = useServer((s) => s.config)
-  const providers = useProviderList()
-  const options = useMemo(() => modelOptions(providers), [providers])
+/** Section heading shared by the landing page's sections. */
+function Heading({ eyebrow, title, text, className }: { eyebrow: string; title: string; text?: string; className?: string }) {
+  return (
+    <div className={cn('grid justify-items-center gap-3 text-center', className)}>
+      <p className="eyebrow">{eyebrow}</p>
+      <h2 className="max-w-2xl text-3xl font-medium [text-wrap:balance] sm:text-4xl">{title}</h2>
+      {text && <p className="max-w-xl text-muted-foreground [text-wrap:balance]">{text}</p>}
+    </div>
+  )
+}
 
-  const [topic, setTopic] = useState('')
-  const [instructions, setInstructions] = useState('')
-  const [style, setStyle] = useState('')
-  const [complexity, setComplexity] = useState('')
-  const [longOutline, setLongOutline] = useState(false)
-  const [seedContent, setSeedContent] = useState('')
-  const [sectionLength, setSectionLength] = useState<SectionLength>(prefs.sectionLength)
-  const [reviewOutline, setReviewOutline] = useState(prefs.reviewOutline)
-  const [advanced, setAdvanced] = useState(false)
-  const [perStep, setPerStep] = useState(false)
-  const [models, setModels] = useState<Partial<Record<Step, ModelRef>>>({})
-  const [busy, setBusy] = useState(false)
-  const placeholder = useRotatingPlaceholder(!topic)
-  const fileInput = useRef<HTMLInputElement>(null)
-
-  // Pick each step's model: what's chosen here, else the saved default, else the first available
-  const resolved = useMemo(() => {
-    const pick = (step: Step): ModelRef | null => {
-      const candidates = [models[step], perStep ? undefined : models.section, prefs.defaultModels[step], prefs.defaultModels.section]
-      for (const ref of candidates) if (ref && options.some((o) => sameRef(o, ref))) return ref
-      const preferred = providers.find((p) => p.status === 'ready' && p.models.includes(p.defaultModel))
-      return preferred ? { providerId: preferred.id, model: preferred.defaultModel } : (options[0] ?? null)
-    }
-    return { outline: pick('outline'), title: pick('title'), section: pick('section') }
-  }, [models, perStep, prefs.defaultModels, options, providers])
-
-  const advancedCount = [style, complexity, longOutline, seedContent.trim(), instructions.trim()].filter(Boolean).length
-  const noModels = config !== null && options.length === 0
-  const canSubmit = topic.trim().length >= 3 && resolved.section && resolved.outline && resolved.title && !busy
-
-  async function submit() {
-    if (!canSubmit || !resolved.section || !resolved.outline || !resolved.title) return
-    setBusy(true)
+function useCopy() {
+  const [copied, setCopied] = useState(false)
+  async function copy(text: string) {
     try {
-      const section = resolved.section
-      const id = await createBook(
-        { topic: topic.trim(), instructions: instructions.trim(), style, complexity, seedContent: seedContent.trim(), longOutline, sectionLength },
-        perStep ? { outline: resolved.outline, title: resolved.title, section } : { outline: section, title: section, section },
-        reviewOutline,
-      )
-      navigate(`/books/${id}`)
-    } catch (e) {
-      toast.error('Could not start the book', { description: String(e) })
-      setBusy(false)
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      /* Clipboard blocked: the text is still selectable */
     }
   }
+  return { copied, copy }
+}
 
-  async function loadFile(file: File) {
-    const max = config?.max_seed_chars ?? 20000
-    const text = (await file.text()).trim()
-    setSeedContent((s) => `${s}\n\n${text}`.trim().slice(0, max))
-    if (text.length > max) toast.warning(`Only the first ${max.toLocaleString()} characters were kept.`)
-  }
+// ---- Hero ---------------------------------------------------------------------------------------
+
+function TopicBox() {
+  const navigate = useNavigate()
+  const [topic, setTopic] = useState('')
+  const placeholder = useRotating(EXAMPLES, !topic)
 
   return (
-    <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, type: 'spring', stiffness: 160, damping: 22 }} className="surface spotlight relative overflow-hidden p-2 shadow-[0_30px_80px_-30px_rgb(0_0_0/0.35)]">
-      <div className="bg-brand absolute inset-x-0 top-0 h-[3px]" />
-      <div className="rounded-[0.9rem] bg-muted/40 p-4 sm:p-5">
-        <label htmlFor="topic" className="mb-2 flex items-center gap-2 text-sm font-medium">
-          <Sparkles className="size-4 text-primary" /> What should your book be about?
+    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="mx-auto mt-10 grid w-full max-w-2xl gap-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          navigate(createUrl(topic.trim()))
+        }}
+        className="flex items-center gap-2 rounded-full bg-white p-1.5 pl-5 text-left shadow-[0_20px_60px_-20px_rgb(0_0_0/0.45)] ring-1 ring-black/5 max-[359px]:flex-wrap max-[359px]:rounded-3xl max-[359px]:p-2 max-[359px]:pl-4"
+      >
+        <Sparkles className="size-5 shrink-0 text-[var(--hero-to)] max-[359px]:hidden" />
+        <label htmlFor="hero-topic" className="sr-only">
+          What should your book be about?
         </label>
-        <textarea
-          id="topic"
+        <input
+          id="hero-topic"
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void submit()
-          }}
-          rows={2}
           maxLength={500}
           placeholder={placeholder}
-          className="w-full resize-none bg-transparent font-display text-xl font-medium leading-snug tracking-tight outline-none placeholder:text-muted-foreground/40 sm:text-[26px]"
+          autoComplete="off"
+          size={1}
+          className="min-w-0 flex-1 bg-transparent py-2 text-base text-neutral-900 outline-none placeholder:text-neutral-400 sm:text-lg"
         />
-        <AnimatePresence>
-          {!topic && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, height: 0 }} className="mt-2 flex flex-wrap gap-2">
-              {EXAMPLES.slice(0, 4).map((example) => (
-                <button key={example} type="button" onClick={() => setTopic(example)} className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground transition-all hover:-translate-y-px hover:border-primary/50 hover:text-foreground">
-                  {example}
-                </button>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <div className="grid gap-4 p-4 sm:p-5">
-        {noModels ? (
-          <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-primary/40 bg-accent/40 p-4 sm:flex-row sm:items-center">
-            <KeyRound className="size-5 shrink-0 text-primary" />
-            <div className="grid gap-0.5">
-              <p className="text-sm font-medium">Add an API key to start writing</p>
-              <p className="text-xs text-muted-foreground">Bring your own key from Gemini, OpenAI, OpenRouter and more. It's saved only in this browser.</p>
-            </div>
-            <Button asChild size="sm" className="sm:ml-auto">
-              <Link to="/settings">
-                Set up a provider <ArrowRight />
-              </Link>
-            </Button>
-          </div>
-        ) : (
-          <div className="grid gap-3">
-            <div className={cn('grid gap-3', perStep ? 'sm:grid-cols-3' : 'sm:grid-cols-[1fr_auto]')}>
-              {(perStep ? (['outline', 'title', 'section'] as Step[]) : (['section'] as Step[])).map((step) => (
-                <Field key={step} label={perStep ? `${STEP_LABELS[step]} model` : 'Model'} htmlFor={`model-${step}`}>
-                  <ModelSelect id={`model-${step}`} value={resolved[step]} options={options} onChange={(ref) => setModels((m) => ({ ...m, [step]: ref }))} />
-                </Field>
-              ))}
-              {!perStep && (
-                <Field label="Section length">
-                  <Segmented<SectionLength>
-                    value={sectionLength}
-                    onChange={setSectionLength}
-                    options={(['short', 'medium', 'long'] as SectionLength[]).map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1), hint: `About ${config?.section_lengths[v] ?? ''} words per section` }))}
-                  />
-                </Field>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-              <label className="flex cursor-pointer items-center gap-2.5 text-sm">
-                <Switch checked={perStep} onCheckedChange={setPerStep} /> Different model per step
-              </label>
-              <label className="flex cursor-pointer items-center gap-2.5 text-sm">
-                <Switch checked={reviewOutline} onCheckedChange={setReviewOutline} /> Review outline first
-              </label>
-              {perStep && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">Length</span>
-                  <Segmented<SectionLength> size="sm" value={sectionLength} onChange={setSectionLength} options={(['short', 'medium', 'long'] as SectionLength[]).map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) }))} />
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        <div className="rounded-2xl border border-border/80">
-          <button type="button" onClick={() => setAdvanced((a) => !a)} className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium" aria-expanded={advanced}>
-            <SlidersHorizontal className="size-4 text-muted-foreground" />
-            Advanced options
-            {advancedCount > 0 && <span className="rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground">{advancedCount} set</span>}
-            <motion.span animate={{ rotate: advanced ? 90 : 0 }} className="ml-auto text-muted-foreground">
-              <ArrowRight className="size-4" />
-            </motion.span>
-          </button>
-          <AnimatePresence initial={false}>
-            {advanced && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
-                <div className="grid gap-4 border-t border-border/80 p-4">
-                  <Field label="Guidelines" hint="Tone, audience, focus areas, things to include or avoid." htmlFor="guidelines">
-                    <Textarea id="guidelines" value={instructions} onChange={(e) => setInstructions(e.target.value)} maxLength={5000} placeholder="e.g. Practical and friendly. Include a worked example in every chapter." />
-                  </Field>
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <Field label="Writing style" htmlFor="style">
-                      <NativeSelect id="style" value={style} onChange={(e) => setStyle(e.target.value)}>
-                        {STYLES.map((s) => (
-                          <option key={s} value={s}>
-                            {s || 'Default'}
-                          </option>
-                        ))}
-                      </NativeSelect>
-                    </Field>
-                    <Field label="Depth" htmlFor="depth">
-                      <NativeSelect id="depth" value={complexity} onChange={(e) => setComplexity(e.target.value)}>
-                        {DEPTHS.map((d) => (
-                          <option key={d} value={d}>
-                            {d || 'Default'}
-                          </option>
-                        ))}
-                      </NativeSelect>
-                    </Field>
-                    <Field label="Outline detail">
-                      <Segmented<'standard' | 'in-depth'> value={longOutline ? 'in-depth' : 'standard'} onChange={(v) => setLongOutline(v === 'in-depth')} options={[{ value: 'standard', label: 'Standard' }, { value: 'in-depth', label: 'In-depth' }]} />
-                    </Field>
-                  </div>
-                  <div className="grid gap-1.5">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="seed">Your notes (optional)</Label>
-                      <button type="button" onClick={() => fileInput.current?.click()} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
-                        <FileUp className="size-3.5" /> Add from a .txt or .md file
-                      </button>
-                      <input ref={fileInput} type="file" accept=".txt,.md,text/plain,text/markdown" hidden onChange={(e) => e.target.files?.[0] && void loadFile(e.target.files[0])} />
-                    </div>
-                    <Textarea id="seed" value={seedContent} onChange={(e) => setSeedContent(e.target.value)} maxLength={config?.max_seed_chars ?? 20000} className="min-h-28" placeholder="Paste notes, an outline, or facts the book should build on." />
-                    <Hint>Sent with every request, so long notes use more tokens.</Hint>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        <div className="flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center">
-          <p className="text-xs text-muted-foreground sm:mr-auto">
-            {reviewOutline ? "You'll review the outline before any chapter is written." : 'Writing starts as soon as the outline is ready.'}
-            <span className="ml-2 hidden sm:inline">
-              <Kbd>Ctrl</Kbd> + <Kbd>Enter</Kbd>
-            </span>
-          </p>
-          <Button variant="brand" size="lg" disabled={!canSubmit} onClick={() => void submit()} className="sm:min-w-48">
-            <Wand2 /> {busy ? 'Starting…' : 'Write my book'} <ArrowRight data-nudge />
-          </Button>
-        </div>
+        <Button type="submit" size="lg" className="shrink-0 bg-neutral-900 text-white shadow-none hover:bg-black max-[359px]:w-full">
+          <span className="hidden sm:inline">Start writing</span>
+          <span className="sm:hidden">Start</span>
+          <ArrowRight data-nudge />
+        </Button>
+      </form>
+      <div className="flex flex-wrap justify-center gap-2">
+        {EXAMPLES.slice(0, 3).map((example) => (
+          <Link key={example} to={createUrl(example)} className="rounded-full border border-white/35 bg-white/10 px-3 py-1 text-xs text-white/90 backdrop-blur-sm transition-all hover:-translate-y-px hover:bg-white/20 pointer-coarse:px-3.5 pointer-coarse:py-3">
+            {example}
+          </Link>
+        ))}
       </div>
     </motion.div>
   )
 }
 
-function RecentBooks() {
-  const books = useLiveQuery(() => db.books.orderBy('updatedAt').reverse().limit(4).toArray(), [])
-  if (!books?.length) return null
+function Hero() {
+  const hasBooks = useLiveQuery(async () => (await db.books.count()) > 0, [])
   return (
-    <section className="grid gap-5">
-      <div className="flex items-end justify-between">
-        <h2 className="font-display text-2xl font-medium">Continue where you left off</h2>
-        <Link to="/books" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-          All books <ArrowRight className="size-4" />
+    <section className="relative isolate overflow-hidden rounded-[1.75rem] bg-[linear-gradient(160deg,var(--hero-from),var(--hero-to))] px-5 pb-52 pt-14 text-center text-white sm:px-6 sm:pb-60 sm:pt-20">
+      <DotWave className="-z-10 opacity-70" />
+      {/* Sunrise glow, gently breathing */}
+      <div className="animate-sunrise absolute -bottom-40 left-1/2 -z-10 h-80 w-[46rem] max-w-[140%] rounded-[50%] bg-[radial-gradient(closest-side,#fff7d6,#ffd27a_35%,rgba(255,170,80,0.55)_60%,transparent)] blur-xl" />
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex justify-center">
+        <Link to="/#privacy" className="group inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 py-1 pl-4 pr-1 text-left text-sm font-medium backdrop-blur-sm transition-colors hover:bg-white/20 max-sm:text-xs">
+          Open source · Bring your own key · Self-hostable
+          <span className="grid size-7 place-items-center rounded-full bg-white text-[var(--hero-to)] transition-transform group-hover:translate-x-0.5">
+            <ArrowRight className="size-4" />
+          </span>
         </Link>
-      </div>
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {books.map((book, i) => (
-          <BookCard key={book.id} book={book} index={i} />
-        ))}
-      </div>
+      </motion.div>
+      <motion.h1 initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }} className="mx-auto max-w-4xl text-4xl font-medium leading-[1.04] [text-wrap:balance] sm:text-6xl lg:text-7xl">
+        Write a whole book from a single idea
+      </motion.h1>
+      <motion.p initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-white/85 [text-wrap:balance] sm:text-lg">
+        Pick a topic and a model. Infinite Bookshelf plans the chapters, then writes each one live while you watch.
+      </motion.p>
+      <TopicBox />
+      {hasBooks && (
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-6 text-sm text-white/80">
+          Already writing?{' '}
+          <Link to="/books" className="font-medium text-white underline underline-offset-4 hover:no-underline">
+            Open your books
+          </Link>
+        </motion.p>
+      )}
     </section>
   )
 }
+
+// ---- Live demo ----------------------------------------------------------------------------------
+
+const DEMO_OUTLINE = ['Origins', 'The Tea Road', 'Tea and Empire', 'The Ceremony', 'The Modern Cup']
+const DEMO_ACTIVE = 1
+
+const DEMO_TEXT = `## The Tea Road
+
+Long before tea reached Europe, it travelled by horse. Caravans left the misty hills of Yunnan carrying bricks of pressed leaves, packed tight enough to survive months on the road. The route climbed through gorges and over passes higher than the Alps, trading tea for Tibetan horses at markets along the way.
+
+Pressed tea was practical: it kept for years, and pieces could be broken off and used as money. By the time a brick reached Lhasa, it had changed hands a dozen times, and every trader along the road had taken a small share of the journey.`
+
+/**
+ * The demo's text as page elements. Its text is fixed, so a full Markdown parser (which would
+ * nearly double this page's bundle) isn't needed: "## " starts the heading, blank lines split
+ * paragraphs.
+ */
+function DemoPage({ text, writing }: { text: string; writing: boolean }) {
+  const blocks = text.split(/\n{2,}/).filter(Boolean)
+  return (
+    <div className={cn('reading prose max-w-none text-[15px] sm:text-base [&_h2]:mt-0', writing && '[&>*:last-child]:stream-caret')}>
+      {blocks.map((block, i) => (block.startsWith('## ') ? <h2 key={i}>{block.slice(3)}</h2> : <p key={i}>{block}</p>))}
+    </div>
+  )
+}
+
+/** A make-believe book being written, to show what "live" means before anyone signs up for a key. */
+function LiveDemo() {
+  const ref = useRef<HTMLDivElement>(null)
+  const inView = useInView(ref, { margin: '-60px' })
+  const reduced = useReducedMotion()
+  const tokens = useMemo(() => DEMO_TEXT.split(/(\s+)/), [])
+  const [typed, setTyped] = useState(0)
+  // With reduced motion the finished page is shown, and nothing animates
+  const count = reduced ? tokens.length : typed
+
+  useEffect(() => {
+    if (reduced || !inView) return
+    // Finished: hold the page for a moment, then write it again
+    const delay = count >= tokens.length ? 3600 : 28 + Math.random() * 46
+    const timer = setTimeout(() => setTyped((c) => (c >= tokens.length ? 0 : Math.min(c + 2, tokens.length))), delay)
+    return () => clearTimeout(timer)
+  }, [inView, count, reduced, tokens.length])
+
+  const writing = count < tokens.length
+  const text = tokens.slice(0, count).join('')
+  const words = text.split(/\s+/).filter((w) => w && !w.startsWith('#')).length
+  const progress = (DEMO_ACTIVE + count / tokens.length) / DEMO_OUTLINE.length
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 28 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.25, type: 'spring', stiffness: 140, damping: 22 }}
+      className="surface overflow-hidden shadow-[0_40px_100px_-40px_rgb(0_0_0/0.45)]"
+      aria-label="Example: a book being written live"
+    >
+      {/* Window bar */}
+      <div className="flex items-center gap-3 border-b border-border bg-muted/40 px-4 py-2.5">
+        <div className="flex gap-1.5" aria-hidden>
+          <span className="size-2.5 rounded-full bg-border" />
+          <span className="size-2.5 rounded-full bg-border" />
+          <span className="size-2.5 rounded-full bg-border" />
+        </div>
+        <LogoMark live={writing} className="w-7" />
+        <p className="min-w-0 truncate text-sm font-medium">Steeped: A Short History of Tea</p>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="hidden items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 font-mono text-[11px] text-muted-foreground sm:inline-flex">
+            <ProviderIcon id="gemini" className="text-sm" /> gemini-2.5-flash
+          </span>
+          {writing ? (
+            <Badge tone="primary" pulse>
+              Writing
+            </Badge>
+          ) : (
+            <Badge tone="success">Section done</Badge>
+          )}
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-[220px_1fr]">
+        {/* Outline */}
+        <ol className="hidden gap-0.5 border-r border-border p-3 text-sm md:grid md:content-start">
+          {DEMO_OUTLINE.map((title, i) => {
+            const done = i < DEMO_ACTIVE || (i === DEMO_ACTIVE && !writing)
+            const active = i === DEMO_ACTIVE && writing
+            return (
+              <li key={title} className={cn('flex items-center gap-2.5 rounded-lg px-2.5 py-2', active && 'bg-accent text-accent-foreground', !done && !active && 'text-muted-foreground')}>
+                <span className={cn('grid size-5 shrink-0 place-items-center rounded-full border text-[10px] font-medium', done ? 'border-transparent bg-success text-white' : active ? 'border-primary text-primary' : 'border-border')}>
+                  {done ? <Check className="size-3" strokeWidth={3} /> : active ? <span className="size-1.5 animate-pulse rounded-full bg-primary" /> : i + 1}
+                </span>
+                <span className="truncate">{title}</span>
+              </li>
+            )
+          })}
+        </ol>
+
+        {/* Page */}
+        <div className="grid min-h-[22rem] content-start gap-4 p-5 sm:p-8">
+          <DemoPage text={text} writing={writing} />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4 border-t border-border px-4 py-3 text-xs text-muted-foreground">
+        <span className="shrink-0">Section 2 of 5</span>
+        <ProgressBar value={progress} className="h-1" />
+        <span className="shrink-0 font-mono tabular-nums">{words} words</span>
+      </div>
+    </motion.div>
+  )
+}
+
+// ---- How it works ---------------------------------------------------------------------------------
+
+const STEPS = [
+  { icon: ListTree, title: 'Outline', text: 'Your model drafts the chapters and a title from a single topic.' },
+  { icon: ListChecks, title: 'Review', text: 'Rename, reorder, and approve the outline before a word is written.' },
+  { icon: PenLine, title: 'Write', text: 'Each section streams in live and builds on the ones before it. Pause any time.' },
+  { icon: Download, title: 'Export', text: 'Rewrite any section with a note, then export Markdown, PDF, or a backup.' },
+]
+
+function HowItWorks() {
+  return (
+    <section className="grid gap-10">
+      <Heading eyebrow="How it works" title="From one idea to a finished book" text="You stay in charge of the shape of the book. The model does the writing." />
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-40px' }}
+        className="frame-corners grid gap-px overflow-hidden border-y border-border bg-border sm:grid-cols-2 lg:grid-cols-4"
+      >
+        {STEPS.map((step, i) => (
+          <div key={step.title} className="spotlight group grid content-start gap-3 bg-background p-7">
+            <div className="flex items-center justify-between">
+              <step.icon className="size-6 text-foreground transition-colors group-hover:text-primary" strokeWidth={1.6} />
+              <span className="font-mono text-xs text-muted-foreground">0{i + 1}</span>
+            </div>
+            <h3 className="mt-2 text-lg font-medium">{step.title}</h3>
+            <p className="text-sm leading-relaxed text-muted-foreground">{step.text}</p>
+          </div>
+        ))}
+      </motion.div>
+    </section>
+  )
+}
+
+// ---- Providers ----------------------------------------------------------------------------------
 
 const PROVIDERS = [
   { id: 'gemini', name: 'Google Gemini' },
@@ -290,11 +324,11 @@ const PROVIDERS = [
 ]
 
 /** Endless scrolling strip of the providers it works with. */
-function ProviderMarquee() {
+function Providers() {
   const items = [...PROVIDERS, ...PROVIDERS]
   return (
-    <section className="grid gap-4">
-      <p className="eyebrow text-center">Bring your own model</p>
+    <section className="grid gap-8">
+      <Heading eyebrow="Bring your own model" title="Use the models you already pay for" text="Mix and match: a fast model for the outline, a stronger one for the chapters, even from different providers." />
       <div className="relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
         <div className="animate-marquee flex w-max gap-3 hover:[animation-play-state:paused]">
           {items.map((p, i) => (
@@ -309,41 +343,99 @@ function ProviderMarquee() {
   )
 }
 
-const STEPS = [
-  { icon: ListTree, title: 'Outline', text: 'Your model drafts a table of contents and a title. Rename, reorder, and approve it before anything is written.' },
-  { icon: PenLine, title: 'Write', text: 'Every section streams in live, word by word, and builds on the ones before it. Pause any time.' },
-  { icon: Download, title: 'Export', text: 'Rewrite any section with a note, then export Markdown, PDF, or a JSON backup.' },
+// ---- Privacy ------------------------------------------------------------------------------------
+
+const FACTS = [
+  {
+    icon: KeyRound,
+    title: 'Your API keys',
+    text: "Saved only in this browser (or just for this tab, if you turn off “Remember my keys”). Each request carries the key it needs; the server uses it, then forgets it. It's never stored or logged.",
+  },
+  {
+    icon: Database,
+    title: 'Your books',
+    text: "Kept in this browser's database, not on a server. Writing a section sends the outline and earlier sections for context. Back up or move your books from Settings.",
+  },
+  {
+    icon: Server,
+    title: 'The server',
+    text: "Stateless: no database, no accounts. It turns each request into calls to your provider and streams the result back. Public servers can't be used to reach private networks.",
+  },
+  {
+    icon: ShieldCheck,
+    title: 'This page',
+    text: 'Loads no third-party scripts, fonts, or trackers, so nothing else can read your keys. Text from models is shown without running any HTML it contains.',
+  },
 ]
 
-const FEATURES = [
-  { icon: KeyRound, title: 'Your keys stay with you', text: 'Saved only in your browser. Sent with each request, never stored on the server.' },
-  { icon: Sparkles, title: 'Mix and match models', text: 'Use a fast model for the outline and a stronger one for chapters, across providers.' },
-  { icon: Wand2, title: 'Open source', text: 'Read every line, run your own copy, and use local models like Ollama.' },
-]
-
-function Grid({ eyebrow, title, items }: { eyebrow: string; title: string; items: { icon: typeof ListTree; title: string; text: string }[] }) {
+/** A dashed line with a dot travelling along it: data moving between two boxes. */
+function Flow({ label, reverse }: { label: string; reverse?: boolean }) {
+  const reduced = useReducedMotion()
   return (
-    <section className="grid gap-8">
-      <div className="grid justify-items-center gap-2 text-center">
-        <p className="eyebrow">{eyebrow}</p>
-        <h2 className="max-w-xl text-3xl font-medium [text-wrap:balance] sm:text-4xl">{title}</h2>
+    <div className="relative flex items-center justify-center py-3 md:py-0" aria-hidden>
+      <div className="absolute inset-y-0 left-1/2 w-px bg-[repeating-linear-gradient(to_bottom,var(--border)_0_5px,transparent_5px_9px)] md:inset-x-0 md:inset-y-auto md:top-1/2 md:h-px md:w-auto md:bg-[repeating-linear-gradient(to_right,var(--border)_0_5px,transparent_5px_9px)]" />
+      {!reduced && (
+        <motion.span
+          className="absolute hidden size-2 rounded-full bg-primary shadow-[0_0_12px_var(--primary)] md:block"
+          style={{ top: 'calc(50% - 4px)' }}
+          animate={{ left: reverse ? ['100%', '0%'] : ['0%', '100%'], opacity: [0, 1, 1, 0] }}
+          transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      )}
+      <span className="relative rounded-full border border-border bg-background px-2.5 py-1 font-mono text-[11px] text-muted-foreground">{label}</span>
+    </div>
+  )
+}
+
+function Node({ icon: Icon, title, text, children }: { icon: typeof Monitor; title: string; text: string; children?: ReactNode }) {
+  return (
+    <div className="surface spotlight grid content-start gap-2 p-5">
+      <div className="flex items-center gap-2.5">
+        <span className="grid size-9 place-items-center rounded-xl bg-accent text-accent-foreground">
+          <Icon className="size-[18px]" />
+        </span>
+        <h3 className="font-medium">{title}</h3>
       </div>
-      <div className="frame-corners grid border-y border-border md:grid-cols-3">
-        {items.map((item, i) => (
+      <p className="text-sm leading-relaxed text-muted-foreground">{text}</p>
+      {children}
+    </div>
+  )
+}
+
+function Privacy() {
+  return (
+    <section id="privacy" className="grid scroll-mt-24 gap-10">
+      <Heading eyebrow="Privacy by design" title="Your keys and books never leave your hands" text="No accounts and no database. Here's exactly where your data goes." />
+
+      <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} className="grid md:grid-cols-[1fr_9rem_1fr_9rem_1fr] md:items-stretch">
+        <Node icon={Monitor} title="Your browser" text="Keeps your API keys and every book you write. Nothing is uploaded to an account." />
+        <Flow label="request + key" />
+        <Node icon={Server} title="This app's server" text="Uses your key for one request, streams the answer back, and forgets it." />
+        <Flow label="your prompt" />
+        <Node icon={Sparkles} title="Your AI provider" text="The provider you chose, billed to your own account. Or a local model.">
+          <div className="mt-1 flex gap-2 text-lg">
+            {['gemini', 'openai', 'groq', 'ollama'].map((id) => (
+              <ProviderIcon key={id} id={id} />
+            ))}
+          </div>
+        </Node>
+      </motion.div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {FACTS.map((fact, i) => (
           <motion.div
-            key={item.title}
-            initial={{ opacity: 0, y: 14 }}
+            key={fact.title}
+            initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-40px' }}
-            transition={{ delay: i * 0.08 }}
-            className={cn('spotlight group grid content-start gap-3 p-7', i > 0 && 'border-t border-border md:border-l md:border-t-0')}
+            transition={{ delay: i * 0.05 }}
+            className="flex gap-4 rounded-2xl border border-border p-5"
           >
-            <div className="flex items-center justify-between">
-              <item.icon className="size-6 text-foreground transition-colors group-hover:text-primary" strokeWidth={1.6} />
-              <span className="font-mono text-xs text-muted-foreground">0{i + 1}</span>
+            <fact.icon className="mt-0.5 size-5 shrink-0 text-primary" />
+            <div className="grid gap-1">
+              <h3 className="font-medium">{fact.title}</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">{fact.text}</p>
             </div>
-            <h3 className="mt-2 text-lg font-medium">{item.title}</h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">{item.text}</p>
           </motion.div>
         ))}
       </div>
@@ -351,44 +443,161 @@ function Grid({ eyebrow, title, items }: { eyebrow: string; title: string; items
   )
 }
 
-function Hero() {
+// ---- Self-hosting -------------------------------------------------------------------------------
+
+const SELF_HOST = `git clone ${REPO_URL}
+cd infinite-bookshelf
+docker compose up -d`
+
+function SelfHost() {
+  const { copied, copy } = useCopy()
   return (
-    <section className="relative isolate overflow-hidden rounded-[1.75rem] bg-[linear-gradient(160deg,var(--hero-from),var(--hero-to))] px-6 pb-44 pt-16 text-center text-white sm:pt-24">
-      <DotWave className="-z-10 opacity-70" />
-      {/* Sunrise glow, gently breathing */}
-      <div className="animate-sunrise absolute -bottom-40 left-1/2 -z-10 h-80 w-[46rem] max-w-[140%] rounded-[50%] bg-[radial-gradient(closest-side,#fff7d6,#ffd27a_35%,rgba(255,170,80,0.55)_60%,transparent)] blur-xl" />
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex justify-center">
-        <Link to="/about" className="group inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 py-1 pl-4 pr-1 text-sm font-medium backdrop-blur-sm transition-colors hover:bg-white/20">
-          Open source · Bring your own key · Self-hostable
-          <span className="grid size-7 place-items-center rounded-full bg-white text-[var(--hero-to)] transition-transform group-hover:translate-x-0.5">
-            <ArrowRight className="size-4" />
-          </span>
-        </Link>
-      </motion.div>
-      <motion.h1 initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }} className="mx-auto max-w-4xl text-4xl font-medium leading-[1.04] [text-wrap:balance] sm:text-6xl lg:text-7xl">
-        Write a whole book from a single idea
-      </motion.h1>
-      <motion.p initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-white/85 [text-wrap:balance] sm:text-lg">
-        Pick a topic and a model. Infinite Bookshelf plans the chapters, then writes each one live while you watch.
-      </motion.p>
+    <section id="self-host" className="frame-corners grid scroll-mt-24 items-center gap-10 border-y border-border py-14 lg:grid-cols-[1fr_1.1fr]">
+      <div className="grid gap-4">
+        <p className="eyebrow">Open source</p>
+        <h2 className="text-3xl font-medium [text-wrap:balance] sm:text-4xl">Run your own copy in a minute</h2>
+        <p className="text-muted-foreground">
+          Self-hosting means your keys only pass through a server you control, and lets you write with local models like Ollama or LM Studio. One Docker image, no database to set up.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <a href={`${REPO_URL}/blob/main/docs/self-hosting.md`} target="_blank" rel="noreferrer">
+              <FolderGit2 /> Self-hosting guide
+            </a>
+          </Button>
+          <Button asChild variant="ghost">
+            <a href="/api/docs" target="_blank" rel="noreferrer">
+              <Braces /> API docs
+            </a>
+          </Button>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-border bg-[#141414] text-[#e7e5e4] shadow-[0_30px_80px_-40px_rgb(0_0_0/0.5)]">
+        <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2.5 text-xs text-white/60">
+          <Terminal className="size-4" /> Terminal
+          <button type="button" onClick={() => void copy(SELF_HOST)} className="ml-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white pointer-coarse:px-3.5 pointer-coarse:py-3" aria-label="Copy commands">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span key={copied ? 'done' : 'copy'} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.6, opacity: 0 }} className="inline-flex">
+                {copied ? <Check className="size-3.5 text-[#4ade80]" /> : <Copy className="size-3.5" />}
+              </motion.span>
+            </AnimatePresence>
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+        </div>
+        <pre className="overflow-x-auto p-5 font-mono text-[13px] leading-7">
+          {SELF_HOST.split('\n').map((line) => (
+            <div key={line}>
+              <span className="select-none text-[#f86522]">$ </span>
+              {line}
+            </div>
+          ))}
+          <div className="text-white/45"># then open http://localhost:8000</div>
+        </pre>
+      </div>
     </section>
   )
 }
 
-export function HomePage() {
+// ---- FAQ ----------------------------------------------------------------------------------------
+
+const FAQ = [
+  {
+    q: 'Is it free?',
+    a: "The app is free and open source. You pay your AI provider for what you use, and many have free tiers. Local models through Ollama or LM Studio cost nothing.",
+  },
+  {
+    q: 'Which models can I use?',
+    a: 'Google Gemini, OpenAI, OpenRouter, DeepSeek, Groq, and any OpenAI-compatible API, including local servers when you run your own copy. You can pick a different model for the outline, the title, and the chapters.',
+  },
+  {
+    q: 'Where are my books saved?',
+    a: "In this browser's database. There are no accounts, so nothing is uploaded. Export a backup from Settings to keep a copy or move your books to another device.",
+  },
+  {
+    q: 'Can I change what the AI writes?',
+    a: 'Yes. Review and reorder the outline before writing starts, then rewrite any section with a note like “add a worked example”. Export to Markdown to edit the text freely.',
+  },
+  {
+    q: 'How long does a book take?',
+    a: 'A short book with a fast model takes a few minutes; longer sections and larger models take longer. You can pause at any point and carry on later.',
+  },
+]
+
+function Faq() {
   return (
-    <div className="mx-auto grid max-w-6xl gap-20 px-3 pb-24 pt-3 sm:px-4 sm:pt-4">
-      <div className="grid">
+    <section className="grid gap-10">
+      <Heading eyebrow="Questions" title="Good to know" />
+      <div className="mx-auto grid w-full max-w-3xl divide-y divide-border border-y border-border">
+        {FAQ.map((item) => (
+          <details key={item.q} className="group py-1">
+            <summary className="flex cursor-pointer list-none items-center gap-4 py-4 text-left font-medium transition-colors hover:text-primary [&::-webkit-details-marker]:hidden">
+              {item.q}
+              <Plus className="ml-auto size-5 shrink-0 text-muted-foreground transition-transform duration-300 group-open:rotate-45" />
+            </summary>
+            <p className="pb-5 pr-9 leading-relaxed text-muted-foreground">{item.a}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// ---- Closing call to action --------------------------------------------------------------------
+
+function FinalCta() {
+  return (
+    <section className="relative isolate overflow-hidden rounded-[1.75rem] bg-[linear-gradient(160deg,var(--hero-from),var(--hero-to))] px-6 py-16 text-center text-white">
+      <DotWave className="-z-10 opacity-50" />
+      <div className="mx-auto mb-6 grid size-20 place-items-center rounded-3xl bg-white shadow-[0_12px_30px_-10px_rgb(0_0_0/0.35)]">
+        <LogoMark animated live className="w-14" />
+      </div>
+      <h2 className="mx-auto max-w-2xl text-3xl font-medium [text-wrap:balance] sm:text-5xl">Your next book is one idea away</h2>
+      <p className="mx-auto mt-4 max-w-md text-white/85 [text-wrap:balance]">Bring a topic and a key. The first chapter starts in under a minute.</p>
+      <Button asChild variant="inverse" size="lg" className="mt-8">
+        <Link to="/new">
+          Start writing <ArrowRight data-nudge />
+        </Link>
+      </Button>
+    </section>
+  )
+}
+
+// ---- Page ---------------------------------------------------------------------------------------
+
+/** Scrolls to #privacy etc. when the page is opened with a hash, or the hash changes. */
+function useHashScroll() {
+  const { hash } = useLocation()
+  useEffect(() => {
+    if (!hash) return
+    // Wait a frame so the page (and its entrance animation) has laid out
+    const frame = requestAnimationFrame(() => document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+    return () => cancelAnimationFrame(frame)
+  }, [hash])
+}
+
+export function HomePage() {
+  useHashScroll()
+  return (
+    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-24 px-3 pb-24 pt-3 sm:px-4 sm:pt-4">
+      <div className="grid grid-cols-1">
         <Hero />
-        <div className="relative z-10 mx-auto -mt-32 w-full max-w-4xl px-2 sm:px-6">
-          <Composer />
+        <div className="relative z-10 mx-auto -mt-44 w-full max-w-5xl px-2 sm:-mt-48 sm:px-6">
+          <LiveDemo />
         </div>
       </div>
-      <div className="grid gap-20 px-1 sm:px-6">
-        <RecentBooks />
-        <ProviderMarquee />
-        <Grid eyebrow="How it works" title="From one idea to a finished book in three steps" items={STEPS} />
-        <Grid eyebrow="Why Infinite Bookshelf" title="Private by design, flexible by default" items={FEATURES} />
+      <div className="grid grid-cols-1 gap-24 px-1 sm:px-6">
+        <HowItWorks />
+        <Providers />
+        <Privacy />
+        <SelfHost />
+        <Faq />
+        <FinalCta />
+        <p className="-mt-12 text-center text-xs leading-relaxed text-muted-foreground">
+          Inspired by the original Infinite Bookshelf by Benjamin Klieger · MIT licence
+          <br />
+          Provider names and logos are trademarks of their owners, shown only to indicate compatibility. Icons by LobeHub (MIT).
+        </p>
       </div>
     </div>
   )

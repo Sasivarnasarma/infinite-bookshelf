@@ -27,7 +27,7 @@ type TabId = (typeof TABS)[number]['id']
 
 function Section({ title, description, children }: { title: string; description?: ReactNode; children: ReactNode }) {
   return (
-    <section className="grid gap-4">
+    <section className="grid grid-cols-1 gap-4">
       <div>
         <h2 className="font-display text-xl font-medium">{title}</h2>
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
@@ -47,14 +47,14 @@ function ProvidersTab() {
   const customs = providers.filter((p) => p.custom)
 
   return (
-    <div className="grid gap-10">
+    <div className="grid grid-cols-1 gap-10">
       <div className="surface flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
         <ShieldCheck className="size-8 shrink-0 text-success" />
-        <div className="grid gap-1 text-sm">
+        <div className="grid grid-cols-1 gap-1 text-sm">
           <p className="font-medium">Your keys stay with you</p>
           <p className="text-muted-foreground">
             Keys are saved only in this browser and sent to this app's server with each request, where they're used and immediately forgotten.{' '}
-            <Link to="/about" className="text-primary hover:underline">
+            <Link to="/#privacy" className="text-primary hover:underline">
               How it works
             </Link>
           </p>
@@ -68,13 +68,13 @@ function ProvidersTab() {
 
       <Section title="Providers" description="Switch on the services you have keys for. Their models appear in the model picker.">
         {!config ? (
-          <div className="grid gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {[0, 1, 2].map((i) => (
               <div key={i} className="skeleton h-[72px] rounded-2xl" />
             ))}
           </div>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {presets.map((p) => (
               <ProviderCard key={p.id} provider={p} />
             ))}
@@ -90,7 +90,7 @@ function ProvidersTab() {
 
       {config?.allow_custom_endpoints && (
         <Section title="Custom endpoints" description="Any OpenAI-compatible API: a company proxy, Together, Fireworks, vLLM, and more.">
-          <div className="grid gap-3">
+          <div className="grid grid-cols-1 gap-3">
             <AnimatePresence initial={false}>
               {customs.map((p) => (
                 <motion.div key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }}>
@@ -120,12 +120,12 @@ function DefaultsTab() {
   ]
 
   return (
-    <div className="grid gap-10">
+    <div className="grid grid-cols-1 gap-10">
       <Section title="Default models" description="Preselected when you start a new book. You can still change them per book.">
         {options.length === 0 ? (
           <p className="text-sm text-muted-foreground">Set up a provider first.</p>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {steps.map(({ step, label, hint }) => (
               <Field key={step} label={label} hint={hint}>
                 <ModelSelect value={prefs.defaultModels[step] ?? null} options={options} onChange={(ref) => prefs.set({ defaultModels: { ...prefs.defaultModels, [step]: ref } })} />
@@ -135,7 +135,7 @@ function DefaultsTab() {
         )}
       </Section>
       <Section title="Writing">
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <Field label="Section length" hint={`About ${config?.section_lengths[prefs.sectionLength] ?? '…'} words per section.`}>
             <Segmented<SectionLength>
               value={prefs.sectionLength}
@@ -166,7 +166,7 @@ const SAMPLE = `Every discipline begins with a handful of ideas that everything 
 function AppearanceTab() {
   const prefs = usePreferences()
   return (
-    <div className="grid gap-10">
+    <div className="grid grid-cols-1 gap-10">
       <Section title="Theme">
         <Segmented<Theme>
           value={prefs.theme}
@@ -204,7 +204,7 @@ function DataTab() {
   const fileInput = useRef<HTMLInputElement>(null)
 
   return (
-    <div className="grid gap-10">
+    <div className="grid grid-cols-1 gap-10">
       <Section title="Backups" description="Books are stored only in this browser. Back them up to keep them safe or move them to another device.">
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" disabled={!books.length} onClick={() => downloadBackup(books)}>
@@ -275,17 +275,17 @@ export function SettingsPage() {
   const tab = (TABS.find((t) => t.id === params.get('tab'))?.id ?? 'providers') as TabId
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-8 px-4 pb-24 pt-10 sm:px-6">
+    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 pb-24 pt-10 sm:px-6">
       <div>
-        <h1 className="font-display text-4xl font-medium tracking-tight">Settings</h1>
+        <h1 className="font-display text-3xl font-medium tracking-tight sm:text-4xl">Settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">Saved in this browser.</p>
       </div>
-      <div className="grid gap-8 lg:grid-cols-[14rem_1fr]">
-        <nav className="flex gap-1 overflow-x-auto lg:sticky lg:top-24 lg:flex-col lg:self-start" aria-label="Settings sections">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[14rem_1fr]">
+        <nav className="grid grid-cols-2 gap-1 sm:flex lg:sticky lg:top-24 lg:flex-col lg:self-start" aria-label="Settings sections">
           {TABS.map((t) => (
             <button key={t.id} type="button" onClick={() => setParams({ tab: t.id }, { replace: true })} className="relative shrink-0">
               {tab === t.id && <motion.span layoutId="settings-tab" className="absolute inset-0 rounded-xl bg-muted ring-1 ring-border" transition={{ type: 'spring', stiffness: 400, damping: 32 }} />}
-              <span className={cn('relative flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-medium', tab === t.id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+              <span className={cn('relative flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-medium max-sm:px-3', tab === t.id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}>
                 <t.icon className="size-4" /> {t.label}
               </span>
             </button>

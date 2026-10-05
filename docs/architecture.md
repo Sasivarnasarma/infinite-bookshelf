@@ -74,7 +74,7 @@ request retried.
 
 ```
 web/src/
-├── pages/       Write (home), My books, Book, Settings, About, 404 (lazy-loaded except home)
+├── pages/       Landing (/), Write (/new), My books, Book, Settings, 404 (lazy-loaded except the landing page)
 ├── components/
 │   ├── ui/      buttons, fields, dialogs, menus, tooltips (Radix + Tailwind)
 │   ├── book/    Reader (live streaming view), OutlineEditor (drag and drop)
