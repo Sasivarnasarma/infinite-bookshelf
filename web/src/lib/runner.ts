@@ -6,14 +6,19 @@
  * the current request; Resume starts again at the first unfinished section (a half-written
  * section is simply rewritten). Runs live outside React, so navigating between pages doesn't
  * stop them. Closing the tab does; the book then waits for Resume.
+ *
+ * Each request picks an API key for its service (see keyOrder): the first key, or the next in
+ * turn when rotating. If a key fails in a way another key could fix (rejected key, rate limit or
+ * quota, model not available), the same request is retried with the service's next key.
  */
+import { toast } from 'sonner'
 import { create } from 'zustand'
 
 import { ApiRequestError, streamOutline, streamSection, type ServerStats } from './api'
 import { db, updateBook } from './db'
 import { outlineNodes, pendingSections, sectionKey } from './outline'
-import { usePreferences } from './settings'
-import type { ApiError, Book, Outline, Stats } from './types'
+import { KEY_FAILOVER_CODES, keyOrder, noteKeyFailure, usePreferences, type KeyChoice } from './settings'
+import type { ApiError, Book, ModelRef, Outline, Stats } from './types'
 import { isAbort, sleep } from './utils'
 
 // ---- Live state (what's streaming right now) --------------------------------------------------
@@ -27,6 +32,8 @@ export interface LiveRun {
   rewriting: boolean
   draftOutline: Outline | null
   draftTitle: string | null
+  /** Label of the API key the current request uses (when the service has several). */
+  keyLabel: string | null
 }
 
 interface LiveState {
@@ -35,7 +42,7 @@ interface LiveState {
   end: (bookId: string) => void
 }
 
-const NEW_RUN: LiveRun = { phase: 'sections', sectionKey: null, text: '', rewriting: false, draftOutline: null, draftTitle: null }
+const NEW_RUN: LiveRun = { phase: 'sections', sectionKey: null, text: '', rewriting: false, draftOutline: null, draftTitle: null, keyLabel: null }
 
 export const useLive = create<LiveState>()((set) => ({
   runs: {},
@@ -104,10 +111,43 @@ function textBuffer(bookId: string) {
     get text() {
       return text
     },
+    /** Drops what was received so far (a retry with another key starts the section again). */
+    reset() {
+      text = ''
+      if (timer) clearTimeout(timer)
+      timer = null
+      useLive.getState().set(bookId, { text: '' })
+    },
     stop() {
       if (timer) clearTimeout(timer)
       timer = null
     },
+  }
+}
+
+// ---- API keys: failover and rotation -----------------------------------------------------------
+
+function canTryAnotherKey(e: unknown): e is ApiRequestError {
+  return e instanceof ApiRequestError && KEY_FAILOVER_CODES.has(e.error.code)
+}
+
+function announceSwitch(failed: KeyChoice, next: KeyChoice, error: ApiError) {
+  toast.warning(`${failed.label || 'Key'}: ${error.title}`, { description: `Trying ${next.label || 'the next key'} instead.` })
+}
+
+/** Runs one request with the service's keys in order until one succeeds (or none are left). */
+async function withKeys<T>(bookId: string, ref: ModelRef, run: (key: KeyChoice) => Promise<T>): Promise<T> {
+  const order = keyOrder(ref)
+  for (let i = 0; ; i++) {
+    useLive.getState().set(bookId, { keyLabel: order[i].label || null })
+    try {
+      return await run(order[i])
+    } catch (e) {
+      if (!canTryAnotherKey(e)) throw e
+      noteKeyFailure(ref, order[i].keyId, e.error.code)
+      if (i + 1 >= order.length) throw e
+      announceSwitch(order[i], order[i + 1], e.error)
+    }
   }
 }
 
@@ -126,22 +166,49 @@ export async function draftOutline(bookId: string): Promise<void> {
   let title = null as string | null
   let stats = book.stats
   try {
-    await streamOutline(
-      book,
-      {
-        onStage: (stage) => live.set(bookId, { phase: stage }),
-        onOutline: (structure) => {
-          outline = structure as Outline
-          live.set(bookId, { draftOutline: outline })
-        },
-        onTitle: (t) => {
-          title = t
-          live.set(bookId, { draftTitle: t })
-        },
-        onStats: (s) => (stats = addStats(stats, s)),
-      },
-      controller.signal,
-    )
+    // One request covers both steps; a key failure retries it with the next key of the step that failed
+    const outlineKeys = keyOrder(book.models.outline)
+    const titleKeys = keyOrder(book.models.title)
+    let o = 0
+    let t = 0
+    for (;;) {
+      let stage = 'outline' as 'outline' | 'title' // Updated by onStage as the stream moves on
+      live.set(bookId, { keyLabel: outlineKeys[o].label || null })
+      try {
+        await streamOutline(
+          book,
+          { outline: outlineKeys[o].keyId, title: titleKeys[t].keyId },
+          {
+            onStage: (next) => {
+              stage = next
+              live.set(bookId, { phase: next, keyLabel: (next === 'title' ? titleKeys[t] : outlineKeys[o]).label || null })
+            },
+            onOutline: (structure) => {
+              outline = structure as Outline
+              live.set(bookId, { draftOutline: outline })
+            },
+            onTitle: (value) => {
+              title = value
+              live.set(bookId, { draftTitle: value })
+            },
+            onStats: (s) => (stats = addStats(stats, s)),
+          },
+          controller.signal,
+        )
+        break
+      } catch (e) {
+        if (!canTryAnotherKey(e)) throw e
+        if (stage === 'title') noteKeyFailure(book.models.title, titleKeys[t].keyId, e.error.code)
+        else noteKeyFailure(book.models.outline, outlineKeys[o].keyId, e.error.code)
+        if (stage === 'title' && t + 1 < titleKeys.length) {
+          announceSwitch(titleKeys[t], titleKeys[t + 1], e.error)
+          t++
+        } else if (stage === 'outline' && o + 1 < outlineKeys.length) {
+          announceSwitch(outlineKeys[o], outlineKeys[o + 1], e.error)
+          o++
+        } else throw e
+      }
+    }
     await updateBook(bookId, {
       outline,
       title: title ?? book.title,
@@ -198,14 +265,19 @@ export async function writeBook(bookId: string): Promise<void> {
       const buffer = textBuffer(bookId)
       let stats = book.stats
       try {
-        await streamSection(
-          book,
-          next.path,
-          writtenSections(book),
-          null,
-          { onDelta: (t) => buffer.append(t), onStats: (s) => (stats = addStats(stats, s)) },
-          signal,
-        )
+        await withKeys(bookId, book.models.section, (key) => {
+          buffer.reset()
+          stats = book.stats
+          return streamSection(
+            book,
+            key.keyId,
+            next.path,
+            writtenSections(book),
+            null,
+            { onDelta: (t) => buffer.append(t), onStats: (s) => (stats = addStats(stats, s)) },
+            signal,
+          )
+        })
       } finally {
         buffer.stop()
       }
@@ -242,14 +314,19 @@ export async function rewriteSection(bookId: string, path: string[], note: strin
   // Context: everything written except the section being rewritten
   const written = writtenSections(book).filter((w) => sectionKey(w.path) !== key)
   try {
-    await streamSection(
-      book,
-      path,
-      written,
-      { note, previous },
-      { onDelta: (t) => buffer.append(t), onStats: (s) => (stats = addStats(stats, s)) },
-      controller.signal,
-    )
+    await withKeys(bookId, book.models.section, (key) => {
+      buffer.reset()
+      stats = book.stats
+      return streamSection(
+        book,
+        key.keyId,
+        path,
+        written,
+        { note, previous },
+        { onDelta: (t) => buffer.append(t), onStats: (s) => (stats = addStats(stats, s)) },
+        controller.signal,
+      )
+    })
     buffer.stop()
     await updateBook(bookId, (b) => ({
       sections: { ...b.sections, [key]: { text: buffer.text, updatedAt: Date.now() } },

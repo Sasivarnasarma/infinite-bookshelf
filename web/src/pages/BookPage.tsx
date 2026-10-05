@@ -26,9 +26,13 @@ function ModelLabels({ book }: { book: Book }) {
   const name = (id: string) => providers.find((p) => p.id === id)?.name ?? id
   const { outline, title, section } = book.models
   const same = outline.model === section.model && outline.providerId === section.providerId && title.model === section.model && title.providerId === section.providerId
+  // While writing with a service that has several keys, show which key is in use
+  const keyLabel = useLive((s) => s.runs[book.id]?.keyLabel)
+  const severalKeys = providers.some((p) => p.usableKeys > 1 && Object.values(book.models).some((m) => m.providerId === p.id))
   return (
     <span className="text-xs text-muted-foreground">
       {same ? `${name(section.providerId)} · ${section.model}` : `Chapters: ${name(section.providerId)} · ${section.model} · Outline: ${outline.model} · Title: ${title.model}`}
+      {keyLabel && severalKeys && <span className="text-foreground/70"> · {keyLabel}</span>}
     </span>
   )
 }

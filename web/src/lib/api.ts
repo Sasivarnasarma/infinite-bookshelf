@@ -43,9 +43,9 @@ export async function fetchConfig(): Promise<ServerConfig> {
   return response.json()
 }
 
-/** Lists a provider's models. Also the "Test connection" check for a key. */
-export async function listModels(providerId: string, overrides?: Record<string, string>): Promise<string[]> {
-  const data = await postJson<{ models: string[] }>('/api/models', { provider: { ...providerAuth(providerId), ...overrides } })
+/** Lists a service's models with one of its keys. Also the "Test" check for that key. */
+export async function listModels(serviceId: string, keyId: string | null): Promise<string[]> {
+  const data = await postJson<{ models: string[] }>('/api/models', { provider: providerAuth(serviceId, keyId) })
   return data.models
 }
 
@@ -110,7 +110,7 @@ async function stream(path: string, body: unknown, handlers: Handlers, signal: A
   }
 }
 
-const choice = (ref: ModelRef) => ({ provider: providerAuth(ref.providerId), model: ref.model })
+const choice = (ref: ModelRef, keyId: string | null) => ({ provider: providerAuth(ref.providerId, keyId), model: ref.model })
 
 function optionsBody(o: BookOptions) {
   return {
@@ -137,10 +137,11 @@ export interface ServerStats {
   total_time: number
 }
 
-export function streamOutline(book: Book, handlers: OutlineHandlers, signal: AbortSignal) {
+/** `keys`: the API key to use for each step (see keyOrder in settings). */
+export function streamOutline(book: Book, keys: { outline: string | null; title: string | null }, handlers: OutlineHandlers, signal: AbortSignal) {
   return stream(
     '/api/outline',
-    { outline_model: choice(book.models.outline), title_model: choice(book.models.title), options: optionsBody(book.options) },
+    { outline_model: choice(book.models.outline, keys.outline), title_model: choice(book.models.title, keys.title), options: optionsBody(book.options) },
     {
       stage: (d) => handlers.onStage?.(d.stage),
       outline: (d) => handlers.onOutline?.(d.structure),
@@ -158,6 +159,7 @@ export interface SectionHandlers {
 
 export function streamSection(
   book: Book,
+  keyId: string | null,
   path: string[],
   written: { path: string[]; text: string }[],
   revision: { note: string; previous: string } | null,
@@ -167,7 +169,7 @@ export function streamSection(
   return stream(
     '/api/sections/stream',
     {
-      model: choice(book.models.section),
+      model: choice(book.models.section, keyId),
       options: optionsBody(book.options),
       book: { title: book.title, structure: book.outline, written },
       path,

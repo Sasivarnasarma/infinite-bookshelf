@@ -20,6 +20,11 @@ Browser (web/, React)                          Server (api/, FastAPI)
 - **The browser drives generation.** It decides which section to write next and calls the API once
   per section. Pause simply aborts the current request; Resume continues with the first unfinished
   section. A half-written section is discarded and rewritten.
+- **The browser picks the API key.** A service can hold several labelled keys. Books store only
+  service + model; each request uses the first key, or the next in turn with "Rotate keys" on. If a
+  key is rejected, rate-limited or out of quota, or can't use the model, the same request is retried
+  with the next key ("Switch keys when one fails"), and the failing key is tried last for a while.
+  The server just uses whichever key arrives with the request.
 
 ## The API (`api/`)
 
