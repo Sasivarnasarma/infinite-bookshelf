@@ -10,6 +10,8 @@ progress as Server-Sent Events:
     (any of them may end with an `error` event instead)
 """
 
+import html
+import re
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Annotated, Any
@@ -17,7 +19,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Body, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from sse_starlette import EventSourceResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -450,6 +452,19 @@ def _has_web_app(dist: Path | None) -> bool:
     return bool(dist) and (Path(dist) / "index.html").is_file()
 
 
+# Link previews and the canonical link need absolute URLs; index.html has root-relative ones
+# (unless VITE_SITE_URL made them absolute). Matches web/src/lib/site-links.ts.
+_RELATIVE_LINKS = re.compile(
+    r'(<meta\s+property="og:(?:url|image)"\s+content="|<meta\s+name="twitter:image"\s+content="|<link\s+rel="canonical"\s+href=")/'
+)
+
+
+def _absolute_links(page: str, origin: str) -> str:
+    """The page with its preview and canonical links made absolute on `origin`."""
+    origin = html.escape(origin.rstrip("/"))  # From the Host header: never trusted as markup
+    return _RELATIVE_LINKS.sub(lambda m: f"{m.group(1)}{origin}/", page)
+
+
 def _mount_web_app(app: FastAPI, dist: Path) -> None:
     """Serves the built web app, with client-side routes falling back to index.html."""
     dist = dist.resolve()
@@ -457,10 +472,11 @@ def _mount_web_app(app: FastAPI, dist: Path) -> None:
         app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
 
     @app.get("/{full_path:path}", include_in_schema=False)
-    def web_app(full_path: str) -> FileResponse:
+    def web_app(full_path: str, request: Request) -> Response:
         if full_path.startswith("api/"):
             return JSONResponse(_error("not_found", "Not found", ""), status_code=404)
         candidate = (dist / full_path).resolve()
-        if full_path and candidate.is_file() and candidate.is_relative_to(dist):
+        if full_path and candidate.is_file() and candidate.is_relative_to(dist) and candidate != dist / "index.html":
             return FileResponse(candidate)
-        return FileResponse(dist / "index.html", headers={"Cache-Control": "no-cache"})
+        page = _absolute_links((dist / "index.html").read_text(encoding="utf-8"), str(request.base_url))
+        return HTMLResponse(page, headers={"Cache-Control": "no-cache"})

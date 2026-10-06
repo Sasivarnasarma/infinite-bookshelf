@@ -1,5 +1,6 @@
 import { createParser } from 'eventsource-parser'
 
+import { apiUrl } from './api-url'
 import { providerAuth, providerAuthWithSecret } from './settings'
 import type { ApiError, Book, BookOptions, ModelRef, ServerConfig } from './types'
 
@@ -20,7 +21,7 @@ function toApiError(body: unknown, fallback: string): ApiError {
 async function postJson<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
   let response: Response
   try {
-    response = await fetch(path, {
+    response = await fetch(apiUrl(path), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -38,7 +39,7 @@ async function postJson<T>(path: string, body: unknown, signal?: AbortSignal): P
 }
 
 export async function fetchConfig(): Promise<ServerConfig> {
-  const response = await fetch('/api/config')
+  const response = await fetch(apiUrl('/api/config'))
   if (!response.ok) throw new Error(`Server returned ${response.status}`)
   return response.json()
 }
@@ -56,7 +57,7 @@ export async function listModelsWithSecret(serviceId: string, secret: string): P
 }
 
 export async function exportPdf(title: string, markdown: string): Promise<Blob> {
-  const response = await fetch('/api/export/pdf', {
+  const response = await fetch(apiUrl('/api/export/pdf'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title, markdown }),
@@ -75,7 +76,7 @@ type Handlers = Record<string, (data: any) => void> // eslint-disable-line @type
  * AbortError when `signal` is aborted (Pause).
  */
 async function stream(path: string, body: unknown, handlers: Handlers, signal: AbortSignal): Promise<void> {
-  const response = await fetch(path, {
+  const response = await fetch(apiUrl(path), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
     body: JSON.stringify(body),

@@ -6,6 +6,7 @@ import { Link, NavLink, useLocation, useOutlet } from 'react-router'
 import { Wordmark } from '@/components/Logo'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/overlays'
+import { apiUrl } from '@/lib/api-url'
 import { useLive } from '@/lib/runner'
 import { usePreferences, useServer, type Theme } from '@/lib/settings'
 import { cn } from '@/lib/utils'
@@ -192,7 +193,7 @@ export function AppShell() {
           <Link to="/#self-host" className="hover:text-foreground">
             Self-host
           </Link>
-          <a href="/api/docs" target="_blank" rel="noreferrer" className="hover:text-foreground">
+          <a href={apiUrl('/api/docs')} target="_blank" rel="noreferrer" className="hover:text-foreground">
             API docs
           </a>
           <a href="https://github.com/Sasivarnasarma/infinite-bookshelf" target="_blank" rel="noreferrer" className="hover:text-foreground">

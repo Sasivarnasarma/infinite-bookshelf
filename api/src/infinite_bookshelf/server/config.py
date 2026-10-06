@@ -53,6 +53,14 @@ def env_files(cwd: Path | None = None) -> tuple[Path, ...]:
     return tuple(files)
 
 
+def checkout_web_dist(cwd: Path | None = None) -> Path | None:
+    """Where `pnpm build` puts the web app, when the API runs from api/ in a checkout."""
+    cwd = cwd or Path.cwd()
+    if (cwd.parent / "pnpm-workspace.yaml").is_file():
+        return cwd.parent / "web" / "dist"
+    return None
+
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings(_env_file=env_files())
