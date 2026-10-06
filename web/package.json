@@ -25,8 +25,8 @@
     "dexie-react-hooks": "^4.4.0",
     "eventsource-parser": "^4.1.1",
     "katex": "^0.19.0",
-    "lucide-react": "^1.49.0",
-    "motion": "^13.5.0",
+    "lucide-react": "^1.51.0",
+    "motion": "^14.0.0",
     "radix-ui": "^1.6.7",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -43,13 +43,13 @@
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/node": "^24.13.3",
+    "@types/node": "^26.6.4",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "^1.81.0",
     "tailwindcss": "^4.3.3",
-    "typescript": "~6.0.2",
+    "typescript": "~7.0.2",
     "vite": "^8.3.0",
     "vitest": "^5.0.3"
   }
