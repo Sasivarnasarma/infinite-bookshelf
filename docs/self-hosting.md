@@ -20,6 +20,14 @@ docker run -p 8000:8000 -e IB_ALLOW_PRIVATE_ENDPOINTS=true ghcr.io/sasivarnasarm
 
 To build the image yourself: `docker build -t infinite-bookshelf .`
 
+## PDF export
+
+The image includes everything PDF export needs: WeasyPrint with Pango and HarfBuzz, and DejaVu
+fonts for characters the bundled book fonts (Literata and Geist, Latin only) don't cover. Running
+from source instead, install Pango with your package manager (`apt install libpango-1.0-0
+libpangoft2-1.0-0 libharfbuzz-subset0`, `brew install pango`). If it's missing, exports still
+work through a simpler fallback writer, with maths as plain text.
+
 ## Configuration
 
 All settings are environment variables prefixed with `IB_`:
@@ -50,4 +58,4 @@ If people other than you will use the instance:
    nginx honours).
 
 Users' API keys pass through your server on each request but are never stored or logged. Tell
-your users that, and link them to the in-app **Privacy & how it works** page.
+your users that, and link them to the **Privacy** section of the home page (`/#privacy`).

@@ -15,7 +15,8 @@ Especially interesting:
 
 - Ways API keys could be stored, logged, leaked in errors, or read by another origin
 - Bypasses of the private-address (SSRF) protection on public instances
-- Script injection through model output, book imports, or PDF export
+- Script injection through model output (including maths), book imports, or PDF export
+- Ways a book's text could make the PDF renderer read files or reach other addresses
 - Ways one user could affect another user's requests on a shared instance
 
 ## How keys are handled

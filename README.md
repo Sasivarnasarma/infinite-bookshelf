@@ -22,15 +22,20 @@
 1. **Outline.** Your model drafts a table of contents and a title. Review it first: rename,
    reorder by drag and drop, change levels, add or remove entries.
 2. **Write.** Every section streams in live, word by word. Each one sees the outline and a summary
-   of what earlier sections covered, so chapters build on each other instead of repeating.
-3. **Refine and export.** Rewrite any section with a note ("add a worked example"), then export to
-   Markdown, PDF, or a JSON backup.
+   of what earlier sections covered, so chapters build on each other instead of repeating. Let it
+   write the whole book, or **one chapter at a time**: it stops after each chapter so you can read
+   it, rewrite a section, or switch to another model before the next.
+3. **Refine and export.** Rewrite any section with a note ("add a worked example"), with the same
+   model or a different one, then export to Markdown, a typeset PDF (title page, contents with page
+   numbers, maths), or a JSON backup.
 
 **Also:** works with OpenAI, Anthropic Claude, Google Gemini, xAI Grok, DeepSeek, Mistral, Kimi,
 Qwen, GLM, OpenRouter, Groq, Together, Fireworks, Cerebras, Ollama, LM Studio, and any
-OpenAI-compatible API · a different model per step, even across providers · several keys per
-provider, with automatic switching when one fails and optional rotation · pause and resume any
-time · section length, style, depth, and your own notes · light and dark themes.
+OpenAI-compatible API · a different model per step, even across providers · change the model
+whenever the book is paused, and see which model wrote each section · several keys per provider,
+with automatic switching when one fails and optional rotation · maths ($a^2 + b^2 = c^2$),
+tables, and highlighted code, in the reader and the PDF · pause and resume any time · section
+length, style, depth, and your own notes · light and dark themes · works on phones and tablets.
 
 ## Your data stays yours
 
@@ -58,7 +63,12 @@ cp api/.env.example api/.env      # allow local models while developing
 pnpm dev                          # API on :8000, web app on http://localhost:5173
 ```
 
-Then open **Settings**, switch on a provider, and paste your API key.
+Then open **Settings**, add a provider, and paste your API key.
+
+PDF export uses [WeasyPrint](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html),
+which needs the Pango libraries (included in the Docker image; on Linux and macOS install them
+with your package manager). Without them, for example on Windows, a simpler built-in PDF writer is
+used: lists, headings, and tables still work, and maths is written as plain text (a² + b² = c²).
 
 ## Repository layout
 
@@ -73,9 +83,9 @@ Then open **Settings**, switch on a provider, and paste your API key.
 | Command | What it does |
 |---|---|
 | `pnpm dev` | Run the API and web app with live reload |
-| `pnpm check` | Web typecheck and lint, API tests |
+| `pnpm check` | Web typecheck, lint and tests, then API tests |
 | `pnpm build` | Production build of the web app |
-| `pnpm test` | API tests |
+| `pnpm test` | Web tests (Vitest), then API tests (pytest) |
 
 ## Documentation
 
@@ -90,7 +100,11 @@ Benjamin Klieger. Provider icons from [LobeHub Icons](https://github.com/lobehub
 provider names and logos are trademarks of their owners, shown only to indicate compatibility.
 API docs use [Swagger UI](https://github.com/swagger-api/swagger-ui) (Apache-2.0), bundled by
 [fastapi-offline](https://github.com/turettn/fastapi_offline) (MIT), set in
-[Geist](https://github.com/vercel/geist-font) (SIL OFL 1.1).
+[Geist](https://github.com/vercel/geist-font) (SIL OFL 1.1). Maths is rendered with
+[KaTeX](https://katex.org) (MIT) in the browser and [ziamath](https://github.com/cdelker/ziamath)
+(MIT, STIX Two Math font under SIL OFL 1.1) in PDFs; code with
+[highlight.js](https://highlightjs.org) (BSD-3-Clause). PDFs are set in
+[Literata](https://github.com/googlefonts/literata) and Geist (SIL OFL 1.1).
 
 ## Licence
 

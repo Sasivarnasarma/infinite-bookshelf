@@ -25,7 +25,11 @@ offline and under the strict Content-Security-Policy. Turn both off with `IB_DOC
 | POST | `/api/models` | Lists a provider's models (also tests the key) |
 | POST | `/api/outline` | Streams the outline and title (SSE) |
 | POST | `/api/sections/stream` | Streams one section, with the book so far as context (SSE) |
-| POST | `/api/export/pdf` | Renders Markdown to PDF |
+| POST | `/api/export/pdf` | Renders a book's Markdown to a typeset PDF |
+
+**PDF export** uses WeasyPrint, which needs the Pango libraries (in the Docker image already).
+Without them (often on Windows) it falls back to fpdf2: lists, headings and tables still work,
+maths is written as Unicode text. See [docs/architecture.md](../docs/architecture.md#pdf-export).
 
 Configuration (`IB_*` environment variables, or `api/.env`) is documented in
 [docs/self-hosting.md](../docs/self-hosting.md); the design in
