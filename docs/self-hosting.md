@@ -15,6 +15,7 @@ books and keys live in each user's browser.
 - [Local models: Ollama and LM Studio](#-local-models-ollama-and-lm-studio)
 - [Configuration](#-configuration)
 - [Behind a reverse proxy](#-behind-a-reverse-proxy)
+- [Hosting the web app separately](#-hosting-the-web-app-separately)
 - [Running a public instance](#-running-a-public-instance)
 - [Updating](#-updating)
 - [PDF export](#-pdf-export)
@@ -24,12 +25,13 @@ books and keys live in each user's browser.
 
 ## 🧭 Choose how to run it
 
-| Setup                                    | Best for                                       | Address                 |
-| ---------------------------------------- | ---------------------------------------------- | ----------------------- |
-| [Docker Compose](#-docker-compose)       | Most people: a home server, a VPS, your laptop | `http://localhost:9752` |
-| [Docker](#-docker)                       | A one-line start, or your own orchestration    | `http://localhost:9752` |
-| [Without Docker](#-without-docker)       | A server without Docker, run with systemd      | `http://localhost:9752` |
-| [From source](#-from-source-development) | Development, with live reload                  | `http://localhost:5173` |
+| Setup                                                  | Best for                                               | Address                 |
+| ------------------------------------------------------ | ------------------------------------------------------ | ----------------------- |
+| [Docker Compose](#-docker-compose)                     | Most people: a home server, a VPS, your laptop         | `http://localhost:9752` |
+| [Docker](#-docker)                                     | A one-line start, or your own orchestration            | `http://localhost:9752` |
+| [Without Docker](#-without-docker)                     | A server without Docker, run with systemd              | `http://localhost:9752` |
+| [From source](#-from-source-development)               | Development, with live reload                          | `http://localhost:5173` |
+| [Web app separately](#-hosting-the-web-app-separately) | The web app on a static host or CDN, the API elsewhere | your static host        |
 
 ## 🐳 Docker Compose
 
@@ -270,6 +272,70 @@ server, a custom Docker network such as `10.x`), add its address.
 > [!TIP]
 > When a proxy is in front, publish the container only on localhost so the proxy is the only way
 > in: `'127.0.0.1:9752:9752'` in `docker-compose.yml`.
+
+## 🌐 Hosting the web app separately
+
+Normally one server serves both the web app and the API. You can also put the built web app on any
+static host (a CDN, object storage, another domain) and point it at an API running somewhere else.
+
+**1. Point the web app at the API.** Either edit `config.js` in the build, which works for any
+build including a downloaded one, or set the address when building:
+
+```js
+// dist/config.js
+window.IB_CONFIG = { apiUrl: 'https://api.example.com' }
+```
+
+```bash
+VITE_API_URL=https://api.example.com pnpm build
+```
+
+`config.js` wins when both are set. The address may include a path (`https://example.com/bookshelf`);
+the app adds `/api/...` to it.
+
+**2. Let the API accept the web app's address** in the API's `.env`:
+
+```bash
+IB_CORS_ORIGINS=["https://books.example.com"]
+```
+
+**3. Configure the static host:**
+
+- **Single-page fallback:** serve `index.html` for any path that isn't a file, so links like
+  `/books/123` work.
+- **Don't cache `config.js`** (`Cache-Control: no-cache`), so edits take effect at once.
+- **Send the security headers.** The API sends them for the pages it serves, but a separate host
+  must send them itself. Without them, an injected script could read the API keys kept in the page's
+  storage. Allow the API's address in `connect-src`:
+
+```text
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.example.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+X-Content-Type-Options: nosniff
+Referrer-Policy: no-referrer
+```
+
+<details>
+<summary><b>Example: Caddy serving the web app</b></summary>
+
+```caddy
+books.example.com {
+    root * /srv/infinite-bookshelf/dist
+    try_files {path} /index.html
+    file_server
+    header /config.js Cache-Control no-cache
+    header {
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.example.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer
+    }
+}
+```
+
+</details>
+
+> [!NOTE]
+> Books and keys are stored per web address. Moving the web app to a new domain starts users with an
+> empty bookshelf there; they can move their books with a backup from **Settings → Your data**.
 
 ## 🌍 Running a public instance
 

@@ -43,6 +43,24 @@ $env:IB_API_URL = "http://127.0.0.1:9000"; pnpm dev  # PowerShell
 > `IB_API_URL` is read from the shell's environment when the dev server starts, **not** from a
 > `.env` file. It's used only in development; the built app always calls `/api` on its own address.
 
+## 🌐 Using an API on another address
+
+The built app calls `/api` on the server it came from. To host it somewhere else and use an API on a
+different address, set the address in either place:
+
+| Where                          | When it's read      | Example                                                    |
+| ------------------------------ | ------------------- | ---------------------------------------------------------- |
+| `apiUrl` in `public/config.js` | When the page loads | `window.IB_CONFIG = { apiUrl: 'https://api.example.com' }` |
+| `VITE_API_URL`                 | When building       | `VITE_API_URL=https://api.example.com pnpm build`          |
+
+`config.js` wins, so one build can be pointed at any API by editing `dist/config.js` after
+deploying. Leave both empty for the usual setup. `lib/api-url.ts` works out the address, and every
+API call goes through it.
+
+Not to be confused with `IB_API_URL` above, which only tells the **dev server** where to forward
+`/api`. The API also has to allow the web app's address, and the static host has to send the security
+headers: see [Self-hosting → Hosting the web app separately](../docs/self-hosting.md#-hosting-the-web-app-separately).
+
 ## 📂 Inside `src/`
 
 ```text
