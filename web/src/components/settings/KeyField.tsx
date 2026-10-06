@@ -7,8 +7,7 @@ import { cleanKey, detectProvider, explainKeyError } from '@/lib/key-format'
 import type { ApiError } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
-export type KeyCheck =
-  { state: 'idle' } | { state: 'checking' } | { state: 'ok'; models?: number } | { state: 'error'; error: Pick<ApiError, 'code' | 'message'> }
+type KeyCheck = { state: 'idle' } | { state: 'checking' } | { state: 'ok'; models?: number } | { state: 'error'; error: Pick<ApiError, 'code' | 'message'> }
 
 interface Props {
   id?: string

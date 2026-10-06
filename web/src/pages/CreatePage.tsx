@@ -376,7 +376,7 @@ export function CreatePage() {
     <div className="mx-auto grid max-w-4xl grid-cols-1 gap-10 px-4 pt-10 pb-24 sm:px-6 sm:pt-14">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid gap-2">
         <p className="eyebrow">New book</p>
-        <h1 className="text-3xl font-medium tracking-tight text-balance sm:text-4xl">What will you write today?</h1>
+        <h1 className="font-display text-3xl font-medium text-balance sm:text-4xl">What will you write today?</h1>
         <p className="max-w-2xl text-muted-foreground">
           Describe a topic and pick a model. You'll get an outline to review, then every chapter is written live.
         </p>

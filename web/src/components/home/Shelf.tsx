@@ -56,7 +56,7 @@ function Spine({ title, topic, copy }: { title: string; topic: string; copy: boo
     >
       <span
         className={cn(
-          'absolute inset-0 flex flex-col items-center overflow-hidden rounded-t-[3px] rounded-b-[2px] py-3 text-white',
+          'absolute inset-0 flex flex-col items-center overflow-hidden rounded-t-[3px] rounded-b-xs py-3 text-white',
           'shadow-[inset_-6px_0_10px_-6px_rgb(0_0_0/0.45),inset_3px_0_0_rgb(255_255_255/0.12),0_10px_18px_-12px_rgb(0_0_0/0.6)]',
           'transition-transform duration-300 ease-out group-hover:-translate-y-5 group-focus-visible:-translate-y-5',
           'group-focus-visible:ring-2 group-focus-visible:ring-ring',

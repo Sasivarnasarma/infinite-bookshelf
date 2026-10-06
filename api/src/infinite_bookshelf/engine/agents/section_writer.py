@@ -8,7 +8,7 @@ from typing import Any
 
 from ..client import chat_completion
 from ..errors import classify_api_error
-from ..inference import GenerationStatistics
+from ..stats import GenerationStatistics
 
 # The previous version is only a reference for a rewrite; cap it to keep the prompt bounded
 MAX_PREVIOUS_CHARS = 12_000

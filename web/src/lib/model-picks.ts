@@ -26,7 +26,7 @@ export function recommendedFor(step: Step, options: ModelOption[], limit = 3): M
     .slice(0, limit)
 }
 
-export interface Combination {
+interface Combination {
   id: 'best' | 'balanced' | 'cheap'
   label: string
   models: Record<Step, ModelRef>

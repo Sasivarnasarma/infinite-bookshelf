@@ -72,7 +72,7 @@ function TocList({ book, live, onPick }: { book: Book; live?: LiveRun; onPick?: 
 function Toc({ book, live }: { book: Book; live?: LiveRun }) {
   return (
     <nav className="sticky top-24 hidden max-h-[calc(100dvh-8rem)] overflow-y-auto pr-2 lg:block" aria-label="Contents">
-      <p className="mb-3 text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">Contents</p>
+      <p className="mb-3 font-serif text-xs tracking-[0.3em] text-muted-foreground uppercase">Contents</p>
       <TocList book={book} live={live} />
     </nav>
   )

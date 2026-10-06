@@ -110,7 +110,7 @@ export function Wordmark({ className, live }: { className?: string; live?: boole
   return (
     <span className={cn('group inline-flex items-center gap-2.5', className)}>
       <LogoMark className="w-11" live={live} />
-      <span className="font-display text-[17px] font-medium tracking-tight max-[359px]:sr-only">
+      <span className="font-sans text-[17px] font-medium tracking-tight max-[359px]:sr-only">
         Infinite <span className="text-brand">Bookshelf</span>
       </span>
     </span>

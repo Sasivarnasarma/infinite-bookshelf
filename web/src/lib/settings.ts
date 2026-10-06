@@ -64,7 +64,7 @@ export function applyTheme(theme: Theme) {
 // fails (rate limit, quota, bad key) if "failover" is on. Books store only service + model; the
 // key is picked per request.
 
-export interface ServiceSettings {
+interface ServiceSettings {
   enabled: boolean
   /** Models offered in pickers; empty means the preset's list. */
   models: string[]
@@ -77,7 +77,7 @@ export interface ServiceSettings {
   starred: string[]
 }
 
-export interface CustomEndpoint {
+interface CustomEndpoint {
   id: string
   name: string
   baseUrl: string
@@ -89,7 +89,7 @@ export interface CustomEndpoint {
 }
 
 /** A labelled API key for a service. The secret itself lives in useKeys, by key id. */
-export interface ApiKeyEntry {
+interface ApiKeyEntry {
   id: string
   serviceId: string
   label: string
@@ -288,7 +288,7 @@ export interface ProviderInfo {
   status: 'ready' | 'needs-key' | 'needs-url' | 'off'
 }
 
-export function listProviders(
+function listProviders(
   config: ServerConfig | null,
   presets: Record<string, ServiceSettings>,
   customs: CustomEndpoint[],

@@ -30,8 +30,8 @@ from ..engine.client import PROVIDER_PRESETS, create_llm_client
 from ..engine.client import list_models as fetch_model_ids
 from ..engine.errors import InfiniteBookshelfError, error_payload
 from ..engine.generation import SECTION_LENGTHS, section_inputs
-from ..engine.inference import GenerationStatistics
-from ..engine.tools import create_pdf_file
+from ..engine.pdf import create_pdf_file
+from ..engine.stats import GenerationStatistics
 from . import openapi
 from .config import Settings, get_settings
 from .docs import DOCS_URL, OPENAPI_URL, mount_docs

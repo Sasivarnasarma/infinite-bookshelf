@@ -130,7 +130,7 @@ function optionsBody(o: BookOptions) {
   }
 }
 
-export interface OutlineHandlers {
+interface OutlineHandlers {
   onStage?: (stage: 'outline' | 'title') => void
   onOutline?: (structure: Record<string, unknown>) => void
   onTitle?: (title: string) => void
@@ -158,7 +158,7 @@ export function streamOutline(book: Book, keys: { outline: string | null; title:
   )
 }
 
-export interface SectionHandlers {
+interface SectionHandlers {
   onDelta: (text: string) => void
   onStats?: (stats: ServerStats) => void
 }

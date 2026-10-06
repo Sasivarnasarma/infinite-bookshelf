@@ -13,7 +13,7 @@ from ..errors import (
     APIRequestError,
     StructureGenerationError,
 )
-from ..inference import GenerationStatistics
+from ..stats import GenerationStatistics
 
 
 def clean_json_string(raw_text: str) -> str:

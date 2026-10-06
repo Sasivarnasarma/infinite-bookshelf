@@ -43,13 +43,17 @@ api/src/infinite_bookshelf/
 │   ├── generation.py  options, length presets, inputs for writing one section
 │   ├── client.py    OpenAI-compatible client, provider presets, request adaptation
 │   ├── errors.py    error classification, key scrubbing, JSON error payloads
-│   └── tools/pdf.py Markdown → sanitized HTML → PDF (WeasyPrint, or fpdf2 as a fallback)
+│   ├── stats.py     token counts and timings for each request
+│   └── pdf.py       Markdown → sanitized HTML → PDF (WeasyPrint, or fpdf2 as a fallback)
 └── server/          HTTP layer
+    ├── __main__.py  `infinite-bookshelf-api` entry point (uvicorn)
     ├── app.py       routes, middleware (size limit, rate limit, security headers)
     ├── streaming.py runs engine generators in threads, emits Server-Sent Events
     ├── security.py  endpoint rules (SSRF protection), rate limiter
     ├── schemas.py   request/response models (keys are SecretStr)
     ├── config.py    IB_* environment settings
+    ├── docs.py      the API docs page (Swagger UI, served locally)
+    ├── openapi.py   API description and "Try it out" examples
     └── static/      API docs styling and fonts (Geist, and Literata for PDFs)
 ```
 
@@ -109,9 +113,11 @@ web/src/
 │   ├── ui/        buttons, fields, dialogs and sheets, menus, tooltips (Radix + Tailwind)
 │   ├── book/      Reader (live view, next-chapter card, rewrite), OutlineEditor (drag and drop)
 │   ├── settings/  ProvidersWorkspace, ProviderDetail, AddProviderDialog, KeyField, provider-status
+│   ├── home/      the landing page's parts: Shelf, OpenBookDemo, Steps, ModelOrbit, Flow
+│   ├── layout/    AppShell: header, navigation, page backdrop, footer
 │   ├── Markdown   model output with maths (KaTeX) and highlighted code
 │   ├── ModelSelect  searchable model picker: recommended, starred, recent; a sheet on phones
-│   └── …          Logo (animated), DotWave, BookCover, BookCard, ProviderIcon
+│   └── …          Logo (animated), BookCover, BookCard, ProviderIcon
 └── lib/
     ├── runner.ts      the book loop, live streaming state, pause/resume/rewrite, chapter stops, setup check
     ├── api.ts         fetch + SSE parsing (eventsource-parser)
@@ -124,7 +130,11 @@ web/src/
     ├── markdown.ts    tidying model Markdown (maths delimiters, stray dollar signs)
     ├── outline.ts     outline helpers, next chapter, editable rows, Markdown export
     ├── create-book.ts starting a new book
-    └── export.ts      Markdown / PDF / JSON backup and import
+    ├── export.ts      Markdown / PDF / JSON backup and import
+    ├── provider-catalog.ts  provider blurbs and the starters suggested on first run
+    ├── spotlight.ts   the cursor glow on cards
+    ├── types.ts       shared types: books, outlines, server config
+    └── utils.ts       small helpers (ids, dates, downloads)
 ```
 
 Unit tests for `lib/` sit next to the code as `*.test.ts` and run with Vitest (`pnpm test`).

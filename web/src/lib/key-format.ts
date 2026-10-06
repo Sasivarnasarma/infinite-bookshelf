@@ -35,7 +35,7 @@ export function detectProvider(key: string): string | null {
   return PREFIXES.find(([prefix]) => key.startsWith(prefix))?.[1] ?? null
 }
 
-export interface KeyAdvice {
+interface KeyAdvice {
   text: string
   /** Where to fix it, e.g. the provider's key page. */
   link?: { label: string; href: string }

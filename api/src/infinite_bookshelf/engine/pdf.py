@@ -75,7 +75,7 @@ _PLACEHOLDER = re.compile(f"{_PH_OPEN}(\\d+){_PH_CLOSE}")
 _MAX_TEX_CHARS = 2000
 _MAX_MATH_ITEMS = 4000
 
-_FONTS = Path(__file__).resolve().parent.parent.parent / "server" / "static" / "fonts"
+_FONTS = Path(__file__).resolve().parent.parent / "server" / "static" / "fonts"
 
 MathRenderer = Callable[[str, bool], str]
 
