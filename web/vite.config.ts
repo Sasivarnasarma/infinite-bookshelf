@@ -3,14 +3,21 @@ import { fileURLToPath, URL } from 'node:url'
 
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
+
+import { absoluteSiteLinks } from './src/lib/site-links.ts'
 
 // In development the API runs separately (uv run infinite-bookshelf-api); proxy /api to it so the
 // browser sees one origin, exactly like production where the API serves the built app.
 const apiTarget = process.env.IB_API_URL ?? 'http://127.0.0.1:8000'
 
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
+/** With VITE_SITE_URL set, the built page's preview and canonical links point at that address. */
+function siteLinks(site: string): Plugin {
+  return { name: 'ib-site-links', transformIndexHtml: (html) => absoluteSiteLinks(html, site) }
+}
+
+export default defineConfig(({ mode }) => ({
+  plugins: [react(), tailwindcss(), siteLinks(loadEnv(mode, fileURLToPath(new URL('.', import.meta.url)), 'VITE_').VITE_SITE_URL ?? '')],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
@@ -41,4 +48,4 @@ export default defineConfig({
     include: ['src/**/*.test.ts'],
     environment: 'node',
   },
-})
+}))

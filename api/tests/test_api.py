@@ -329,6 +329,40 @@ def test_serves_the_web_app_with_client_side_routing(tmp_path):
     assert client.get("/api").json()["name"] == "Infinite Bookshelf API"  # /api still describes the API
 
 
+PREVIEW_PAGE = """<head>
+<link rel="canonical" href="/" />
+<meta property="og:url" content="/" />
+<meta property="og:image" content="/og-image.png" />
+<meta name="twitter:image" content="/og-image.png" />
+<link rel="icon" href="/icon.svg" />
+</head>"""
+
+
+def test_link_previews_get_absolute_urls_on_the_address_requested(tmp_path):
+    (tmp_path / "index.html").write_text(PREVIEW_PAGE)
+    client = make_client(web_dist=tmp_path)
+    for path in ("/", "/books/123", "/index.html"):
+        page = client.get(path, headers={"host": "books.example.com"}).text
+        assert 'property="og:image" content="http://books.example.com/og-image.png"' in page
+        assert 'name="twitter:image" content="http://books.example.com/og-image.png"' in page
+        assert 'property="og:url" content="http://books.example.com/"' in page
+        assert 'rel="canonical" href="http://books.example.com/"' in page
+        assert 'rel="icon" href="/icon.svg"' in page  # Other links stay relative
+
+
+def test_link_previews_follow_https_from_a_trusted_proxy(tmp_path):
+    (tmp_path / "index.html").write_text(PREVIEW_PAGE)
+    client = make_client(web_dist=tmp_path, trusted_proxies="testclient")
+    page = client.get("/", headers={"host": "books.example.com", "x-forwarded-proto": "https"}).text
+    assert 'content="https://books.example.com/og-image.png"' in page
+
+
+def test_link_previews_never_take_markup_from_the_host_header(tmp_path):
+    (tmp_path / "index.html").write_text(PREVIEW_PAGE)
+    page = make_client(web_dist=tmp_path).get("/", headers={"host": 'evil"><script>x</script>'}).text
+    assert "<script>" not in page
+
+
 def test_root_and_api_describe_the_service_when_no_web_app_is_bundled():
     client = make_client()
     info = client.get("/api").json()
