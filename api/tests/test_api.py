@@ -158,6 +158,21 @@ def test_section_rewrite_sends_note_and_previous_text(clients):
     assert "Requested changes: Add an example" in user_message and "Old version" in user_message
 
 
+def test_section_without_text_is_an_error_event(monkeypatch):
+    # A reasoning model can spend its whole budget thinking and stream no text at all
+    class SilentClient(FakeClient):
+        def create(self, **kwargs):
+            usage = SimpleNamespace(prompt_tokens=10, completion_tokens=6000)
+            empty = SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=None))], usage=None)
+            return iter([empty, SimpleNamespace(choices=[], usage=usage)])
+
+    monkeypatch.setattr(app_module, "create_llm_client", lambda *a, **k: SilentClient())
+    events = sse(make_client().post("/api/sections/stream", json=section_body()))
+    names = [name for name, _ in events]
+    assert names == ["start", "error"]  # Never "done", so the browser doesn't save an empty section
+    assert events[-1][1]["code"] == "empty_response"
+
+
 def test_section_for_a_heading_is_an_error_event(clients):
     events = sse(make_client().post("/api/sections/stream", json=section_body(path=["Chapter 2"])))
     assert events[-1][0] == "error" and "No section" in events[-1][1]["message"]
