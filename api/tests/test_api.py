@@ -234,6 +234,15 @@ def test_local_preset_is_blocked_on_public_servers(clients):
     assert response.status_code == 400
 
 
+def test_local_preset_cant_reach_other_addresses_on_public_servers(clients, public_dns):
+    # Its base URL must not become a way round IB_ALLOW_CUSTOM_ENDPOINTS=false
+    response = make_client(allow_custom_endpoints=False).post(
+        "/api/models", json={"provider": {"preset": "ollama", "base_url": "https://llm.example.com/v1"}}
+    )
+    assert response.status_code == 400 and response.json()["error"]["code"] == "endpoint_not_allowed"
+    assert clients == []
+
+
 def test_custom_endpoints_can_be_disabled(clients, public_dns):
     response = make_client(allow_custom_endpoints=False).post(
         "/api/models", json={"provider": {"base_url": "https://llm.example.com/v1"}}

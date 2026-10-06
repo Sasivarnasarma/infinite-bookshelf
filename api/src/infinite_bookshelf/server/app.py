@@ -82,6 +82,10 @@ def _client_for(auth: ProviderAuth, settings: Settings) -> tuple[Any, list[str]]
             raise ValueError(f"Unknown provider '{auth.preset}'.")
         base_url = preset["base_url"]
         if preset.get("local"):
+            # Offered only where private endpoints are allowed (as GET /api/config shows); otherwise
+            # its base URL would let anyone reach any address, even with custom endpoints turned off
+            if not settings.allow_private_endpoints:
+                raise EndpointNotAllowed(f"{preset['name']} runs on your own machine, so this server can't use it.")
             base_url = auth.base_url or base_url  # Local servers may run on another host/port
             check_endpoint(base_url, settings, is_preset=True)
         requires_key = preset.get("requires_key", True)
