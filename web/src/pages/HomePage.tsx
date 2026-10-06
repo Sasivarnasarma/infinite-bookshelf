@@ -13,6 +13,7 @@ import { Steps } from '@/components/home/Steps'
 import { LogoMark } from '@/components/Logo'
 import { ProviderIcon } from '@/components/ProviderIcon'
 import { Button } from '@/components/ui/button'
+import { apiUrl } from '@/lib/api-url'
 import { db } from '@/lib/db'
 import { cn } from '@/lib/utils'
 
@@ -370,7 +371,7 @@ function SelfHost() {
             </a>
           </Button>
           <Button asChild variant="ghost">
-            <a href="/api/docs" target="_blank" rel="noreferrer">
+            <a href={apiUrl('/api/docs')} target="_blank" rel="noreferrer">
               <Braces /> API docs
             </a>
           </Button>
