@@ -113,6 +113,7 @@ class ProviderPreset(BaseModel):
     key_url: str = Field(..., description="Where to get an API key.")
     default_model: str
     models: List[str] = Field(..., description="Suggested models; `POST /api/models` lists them all.")
+    tiers: Dict[str, Literal["best", "balanced", "fast"]] = Field(default_factory=dict, description="Quality tier of suggested models: best, balanced, or fast (low cost).")
     requires_key: bool = True
     local: bool = Field(False, description="Runs on your own machine (offered only when private endpoints are allowed).")
 

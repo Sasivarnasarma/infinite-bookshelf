@@ -13,7 +13,10 @@ from openai import OpenAI
 
 from .errors import APIAuthenticationError, APIConnectionError, classify_api_error
 
-# Built-in providers, in the order the web app lists them. Every one speaks the OpenAI Chat
+# Built-in providers, in the order the web app lists them. `tiers` labels suggested models as
+# best / balanced / fast (low cost), from how each provider describes its own lineup; the web app
+# uses it to suggest models per step.
+# Every one speaks the OpenAI Chat
 # Completions API. Model IDs were checked against each provider's docs in October 2026; users can
 # load the live list with "Test", or type any model ID.
 PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
@@ -23,6 +26,7 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
         "key_url": "https://platform.openai.com/api-keys",
         "default_model": "gpt-6-luna",
         "models": ["gpt-6.1-sol", "gpt-6-astra", "gpt-6-luna"],
+        "tiers": {"gpt-6-astra": "best", "gpt-6.1-sol": "balanced", "gpt-6-luna": "fast"},
     },
     "anthropic": {
         # Anthropic's OpenAI-compatible endpoint (streaming, max_tokens, temperature supported)
@@ -31,6 +35,7 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
         "key_url": "https://platform.claude.com/settings/keys",
         "default_model": "claude-sonnet-5-5",
         "models": ["claude-sonnet-5-5", "claude-opus-5-5", "claude-fable-5-1", "claude-haiku-4-5"],
+        "tiers": {"claude-fable-5-1": "best", "claude-opus-5-5": "best", "claude-sonnet-5-5": "balanced", "claude-haiku-4-5": "fast"},
     },
     "gemini": {
         "name": "Google Gemini",
@@ -38,6 +43,7 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
         "key_url": "https://aistudio.google.com/apikey",
         "default_model": "gemini-3.8-flash",
         "models": ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash-lite", "gemini-3.1-pro-preview"],
+        "tiers": {"gemini-3.1-pro-preview": "best", "gemini-3.8-flash": "balanced", "gemini-3.7-flash": "balanced", "gemini-3.5-flash-lite": "fast"},
     },
     "xai": {
         "name": "xAI Grok",
@@ -45,6 +51,7 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
         "key_url": "https://console.x.ai",
         "default_model": "grok-4.7",
         "models": ["grok-4.7", "grok-4.3"],
+        "tiers": {"grok-4.7": "best", "grok-4.3": "fast"},
     },
     "openrouter": {
         "name": "OpenRouter",
@@ -61,6 +68,7 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
             "qwen/qwen3.8-flash",
             "z-ai/glm-5.3",
         ],
+        "tiers": {"openai/gpt-6.1-sol": "best", "anthropic/claude-sonnet-5.5": "best", "google/gemini-3.8-flash": "balanced", "x-ai/grok-4.7": "balanced", "moonshotai/kimi-k3": "balanced", "z-ai/glm-5.3": "balanced", "deepseek/deepseek-v4.1-flash": "fast", "qwen/qwen3.8-flash": "fast"},
     },
     "deepseek": {
         "name": "DeepSeek",
@@ -68,6 +76,7 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
         "key_url": "https://platform.deepseek.com/api_keys",
         "default_model": "deepseek-flash",
         "models": ["deepseek-flash", "deepseek-v4-pro"],
+        "tiers": {"deepseek-v4-pro": "best", "deepseek-flash": "fast"},
     },
     "mistral": {
         "name": "Mistral AI",
@@ -75,6 +84,7 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
         "key_url": "https://console.mistral.ai/api-keys",
         "default_model": "mistral-medium-latest",
         "models": ["mistral-large-latest", "mistral-medium-latest", "mistral-small-latest"],
+        "tiers": {"mistral-large-latest": "best", "mistral-medium-latest": "balanced", "mistral-small-latest": "fast"},
     },
     "groq": {
         "name": "Groq",
@@ -82,6 +92,7 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
         "key_url": "https://console.groq.com/keys",
         "default_model": "llama-3.3-70b-versatile",
         "models": ["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"],
+        "tiers": {"openai/gpt-oss-120b": "balanced", "llama-3.3-70b-versatile": "balanced", "openai/gpt-oss-20b": "fast", "qwen/qwen3.8-27b": "fast"},
     },
     "moonshot": {
         "name": "Moonshot Kimi",
@@ -89,6 +100,7 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
         "key_url": "https://platform.kimi.ai/console/api-keys",
         "default_model": "kimi-k3",
         "models": ["kimi-k3", "kimi-k2.6"],
+        "tiers": {"kimi-k3": "best", "kimi-k2.6": "balanced"},
     },
     "qwen": {
         # Alibaba Cloud Model Studio, international region
@@ -97,6 +109,7 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
         "key_url": "https://modelstudio.console.alibabacloud.com/",
         "default_model": "qwen3.8-flash",
         "models": ["qwen3.8-max", "qwen3.7-plus", "qwen3.8-flash"],
+        "tiers": {"qwen3.8-max": "best", "qwen3.7-plus": "balanced", "qwen3.8-flash": "fast"},
     },
     "zai": {
         "name": "Z.ai GLM",
@@ -104,6 +117,7 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
         "key_url": "https://z.ai/manage-apikey/apikey-list",
         "default_model": "glm-5.3-flash",
         "models": ["glm-5.3", "glm-5.3-flash"],
+        "tiers": {"glm-5.3": "best", "glm-5.3-flash": "fast"},
     },
     "together": {
         "name": "Together AI",
@@ -118,6 +132,7 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
             "openai/gpt-oss-120b",
             "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         ],
+        "tiers": {"moonshotai/Kimi-K3": "best", "deepseek-ai/DeepSeek-V4-Pro-0813": "best", "zai-org/GLM-5.3": "balanced", "openai/gpt-oss-120b": "balanced", "deepseek-ai/DeepSeek-V4-Flash-0731": "fast", "meta-llama/Llama-3.3-70B-Instruct-Turbo": "fast"},
     },
     "fireworks": {
         "name": "Fireworks AI",
@@ -130,6 +145,7 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
             "accounts/fireworks/models/kimi-k3",
             "accounts/fireworks/models/deepseek-v3p1",
         ],
+        "tiers": {"accounts/fireworks/models/kimi-k3": "best", "accounts/fireworks/models/glm-5p3": "balanced", "accounts/fireworks/models/deepseek-v3p1": "balanced", "accounts/fireworks/models/glm-5p3-flash": "fast"},
     },
     "cerebras": {
         "name": "Cerebras",
@@ -137,6 +153,7 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
         "key_url": "https://cloud.cerebras.ai",
         "default_model": "gpt-oss-120b",
         "models": ["gpt-oss-120b", "qwen-3.8-27b"],
+        "tiers": {"gpt-oss-120b": "balanced", "qwen-3.8-27b": "fast"},
     },
     "ollama": {
         "name": "Ollama",

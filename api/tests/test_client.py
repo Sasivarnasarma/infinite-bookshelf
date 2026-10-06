@@ -85,3 +85,6 @@ def test_presets_are_complete():
         # The default is offered in the picker (local servers list theirs with "Test")
         assert preset["default_model"] in preset["models"] or (preset.get("local") and not preset["models"]), pid
         assert len(set(preset["models"])) == len(preset["models"]), pid
+        # Tiers only label models the preset offers
+        assert set(preset.get("tiers", {})) <= set(preset["models"]), pid
+        assert set(preset.get("tiers", {}).values()) <= {"best", "balanced", "fast"}, pid
