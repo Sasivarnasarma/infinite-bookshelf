@@ -218,7 +218,6 @@ function LiveDemo() {
       className="surface overflow-hidden shadow-[0_40px_100px_-40px_rgb(0_0_0/0.45)]"
       aria-label="Example: a book being written live"
     >
-      {/* Window bar */}
       <div className="flex items-center gap-3 border-b border-border bg-muted/40 px-4 py-2.5">
         <div className="flex gap-1.5" aria-hidden>
           <span className="size-2.5 rounded-full bg-border" />
@@ -242,7 +241,6 @@ function LiveDemo() {
       </div>
 
       <div className="grid md:grid-cols-[220px_1fr]">
-        {/* Outline */}
         <ol className="hidden gap-0.5 border-r border-border p-3 text-sm md:grid md:content-start">
           {DEMO_OUTLINE.map((title, i) => {
             const done = i < DEMO_ACTIVE || (i === DEMO_ACTIVE && !writing)
@@ -258,7 +256,6 @@ function LiveDemo() {
           })}
         </ol>
 
-        {/* Page */}
         <div className="grid min-h-[22rem] content-start gap-4 p-5 sm:p-8">
           <DemoPage text={text} writing={writing} />
         </div>

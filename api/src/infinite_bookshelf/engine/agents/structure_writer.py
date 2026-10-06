@@ -33,7 +33,6 @@ def clean_json_string(raw_text: str) -> str:
         else:
             cleaned = cleaned.replace("```json", "").replace("```", "").strip()
 
-    # Find first '{' and last '}'
     start_idx = cleaned.find("{")
     end_idx = cleaned.rfind("}")
     if start_idx != -1 and end_idx != -1 and end_idx > start_idx:

@@ -13,12 +13,11 @@ from openai import OpenAI
 
 from .errors import APIAuthenticationError, APIConnectionError, classify_api_error
 
-# Built-in providers, in the order the web app lists them. `tiers` labels suggested models as
-# best / balanced / fast (low cost), from how each provider describes its own lineup; the web app
-# uses it to suggest models per step.
-# Every one speaks the OpenAI Chat
+# Built-in providers, in the order the web app lists them. Every one speaks the OpenAI Chat
 # Completions API. Model IDs were checked against each provider's docs in October 2026; users can
-# load the live list with "Test", or type any model ID.
+# load the live list with "Test", or type any model ID. `tiers` labels suggested models as best /
+# balanced / fast (low cost), from how each provider describes its own lineup; the web app uses it
+# to suggest models per step.
 PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
     "openai": {
         "name": "OpenAI",

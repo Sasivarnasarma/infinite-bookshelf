@@ -5,7 +5,7 @@ import './index.css'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { createBrowserRouter, redirect, RouterProvider } from 'react-router'
+import { createBrowserRouter, RouterProvider } from 'react-router'
 
 import { App } from './App'
 import { LogoLoader } from './components/Logo'
@@ -23,8 +23,6 @@ const router = createBrowserRouter([
       { path: '/books', lazy: async () => ({ Component: (await import('./pages/BooksPage')).BooksPage }) },
       { path: '/books/:id', lazy: async () => ({ Component: (await import('./pages/BookPage')).BookPage }) },
       { path: '/settings', lazy: async () => ({ Component: (await import('./pages/SettingsPage')).SettingsPage }) },
-      // The old About page is now a section of the landing page
-      { path: '/about', loader: () => redirect('/#privacy') },
       { path: '*', lazy: async () => ({ Component: (await import('./pages/NotFoundPage')).NotFoundPage }) },
     ],
   },

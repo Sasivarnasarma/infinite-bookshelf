@@ -11,7 +11,6 @@ MARKDOWN = (
 
 
 def test_fpdf_fallback_renders_rich_markdown():
-    # Regression: multi_cell left the cursor at the right margin, so the 2nd line always failed
     data = _create_pdf_with_fpdf(MARKDOWN).getvalue()
     assert data.startswith(b"%PDF-")
     assert len(data) > 1000
