@@ -151,8 +151,7 @@ def generate_book_structure(
                 hint=f"Model '{model}' returned invalid JSON after {max_retries + 1} attempts. Try a different model.",
             )
         except (APIAuthenticationError, APIRateLimitError, ModelUnavailableError, APIRequestError):
-            # Retrying won't fix a bad key, a used-up limit, a missing model or an invalid request.
-            # Failing at once lets the web app move straight on to the provider's next key.
+            # A retry can't fix these; failing now lets the web app try the provider's next key
             raise
         except Exception as e:
             last_exception = e

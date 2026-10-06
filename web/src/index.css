@@ -348,7 +348,6 @@ html {
     border-radius: 0.5rem;
   }
 
-  /* Uppercase mono label, used for small section eyebrows */
   /* Small label above a heading, in the home page's chapter style: italic serif with a rule */
   .eyebrow {
     display: inline-flex;
