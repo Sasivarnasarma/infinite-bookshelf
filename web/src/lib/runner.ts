@@ -168,7 +168,12 @@ export const NEEDS_SETUP = 'needs_setup'
 async function blockedBySetup(book: Book, refs: ModelRef[] = modelsInUse(book)): Promise<boolean> {
   const problem = currentSetupProblems(refs)[0]
   if (!problem) return false
-  const title = problem.reason === 'needs-key' ? `No API key for ${problem.name}` : problem.reason === 'needs-url' ? `${problem.name} has no address` : `${problem.name} isn't set up`
+  const title =
+    problem.reason === 'needs-key'
+      ? `No API key for ${problem.name}`
+      : problem.reason === 'needs-url'
+        ? `${problem.name} has no address`
+        : `${problem.name} isn't set up`
   await updateBook(book.id, {
     error: { code: NEEDS_SETUP, title, message: `This book writes with ${problem.model}.`, hint: 'Add a key, or switch the book to a model you have set up.' },
   })

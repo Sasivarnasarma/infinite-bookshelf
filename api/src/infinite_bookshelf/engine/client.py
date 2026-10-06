@@ -6,7 +6,7 @@ browser) and can add custom endpoints; the API never stores either.
 """
 
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 import openai
 from openai import OpenAI
@@ -18,7 +18,7 @@ from .errors import APIAuthenticationError, APIConnectionError, classify_api_err
 # load the live list with "Test", or type any model ID. `tiers` labels suggested models as best /
 # balanced / fast (low cost), from how each provider describes its own lineup; the web app uses it
 # to suggest models per step.
-PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
+PROVIDER_PRESETS: dict[str, dict[str, Any]] = {
     "openai": {
         "name": "OpenAI",
         "base_url": "https://api.openai.com/v1",
@@ -34,7 +34,12 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
         "key_url": "https://platform.claude.com/settings/keys",
         "default_model": "claude-sonnet-5-5",
         "models": ["claude-sonnet-5-5", "claude-opus-5-5", "claude-fable-5-1", "claude-haiku-4-5"],
-        "tiers": {"claude-fable-5-1": "best", "claude-opus-5-5": "best", "claude-sonnet-5-5": "balanced", "claude-haiku-4-5": "fast"},
+        "tiers": {
+            "claude-fable-5-1": "best",
+            "claude-opus-5-5": "best",
+            "claude-sonnet-5-5": "balanced",
+            "claude-haiku-4-5": "fast",
+        },
     },
     "gemini": {
         "name": "Google Gemini",
@@ -42,7 +47,12 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
         "key_url": "https://aistudio.google.com/apikey",
         "default_model": "gemini-3.8-flash",
         "models": ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash-lite", "gemini-3.1-pro-preview"],
-        "tiers": {"gemini-3.1-pro-preview": "best", "gemini-3.8-flash": "balanced", "gemini-3.7-flash": "balanced", "gemini-3.5-flash-lite": "fast"},
+        "tiers": {
+            "gemini-3.1-pro-preview": "best",
+            "gemini-3.8-flash": "balanced",
+            "gemini-3.7-flash": "balanced",
+            "gemini-3.5-flash-lite": "fast",
+        },
     },
     "xai": {
         "name": "xAI Grok",
@@ -67,7 +77,16 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
             "qwen/qwen3.8-flash",
             "z-ai/glm-5.3",
         ],
-        "tiers": {"openai/gpt-6.1-sol": "best", "anthropic/claude-sonnet-5.5": "best", "google/gemini-3.8-flash": "balanced", "x-ai/grok-4.7": "balanced", "moonshotai/kimi-k3": "balanced", "z-ai/glm-5.3": "balanced", "deepseek/deepseek-v4.1-flash": "fast", "qwen/qwen3.8-flash": "fast"},
+        "tiers": {
+            "openai/gpt-6.1-sol": "best",
+            "anthropic/claude-sonnet-5.5": "best",
+            "google/gemini-3.8-flash": "balanced",
+            "x-ai/grok-4.7": "balanced",
+            "moonshotai/kimi-k3": "balanced",
+            "z-ai/glm-5.3": "balanced",
+            "deepseek/deepseek-v4.1-flash": "fast",
+            "qwen/qwen3.8-flash": "fast",
+        },
     },
     "deepseek": {
         "name": "DeepSeek",
@@ -91,7 +110,12 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
         "key_url": "https://console.groq.com/keys",
         "default_model": "llama-3.3-70b-versatile",
         "models": ["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"],
-        "tiers": {"openai/gpt-oss-120b": "balanced", "llama-3.3-70b-versatile": "balanced", "openai/gpt-oss-20b": "fast", "qwen/qwen3.8-27b": "fast"},
+        "tiers": {
+            "openai/gpt-oss-120b": "balanced",
+            "llama-3.3-70b-versatile": "balanced",
+            "openai/gpt-oss-20b": "fast",
+            "qwen/qwen3.8-27b": "fast",
+        },
     },
     "moonshot": {
         "name": "Moonshot Kimi",
@@ -131,7 +155,14 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
             "openai/gpt-oss-120b",
             "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         ],
-        "tiers": {"moonshotai/Kimi-K3": "best", "deepseek-ai/DeepSeek-V4-Pro-0813": "best", "zai-org/GLM-5.3": "balanced", "openai/gpt-oss-120b": "balanced", "deepseek-ai/DeepSeek-V4-Flash-0731": "fast", "meta-llama/Llama-3.3-70B-Instruct-Turbo": "fast"},
+        "tiers": {
+            "moonshotai/Kimi-K3": "best",
+            "deepseek-ai/DeepSeek-V4-Pro-0813": "best",
+            "zai-org/GLM-5.3": "balanced",
+            "openai/gpt-oss-120b": "balanced",
+            "deepseek-ai/DeepSeek-V4-Flash-0731": "fast",
+            "meta-llama/Llama-3.3-70B-Instruct-Turbo": "fast",
+        },
     },
     "fireworks": {
         "name": "Fireworks AI",
@@ -144,7 +175,12 @@ PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
             "accounts/fireworks/models/kimi-k3",
             "accounts/fireworks/models/deepseek-v3p1",
         ],
-        "tiers": {"accounts/fireworks/models/kimi-k3": "best", "accounts/fireworks/models/glm-5p3": "balanced", "accounts/fireworks/models/deepseek-v3p1": "balanced", "accounts/fireworks/models/glm-5p3-flash": "fast"},
+        "tiers": {
+            "accounts/fireworks/models/kimi-k3": "best",
+            "accounts/fireworks/models/glm-5p3": "balanced",
+            "accounts/fireworks/models/deepseek-v3p1": "balanced",
+            "accounts/fireworks/models/glm-5p3-flash": "fast",
+        },
     },
     "cerebras": {
         "name": "Cerebras",
@@ -199,18 +235,18 @@ def create_llm_client(api_key: str, base_url: str = None, requires_key: bool = T
     try:
         return OpenAI(**client_kwargs)
     except Exception as e:
-        raise APIConnectionError(f"Failed to initialize API client: {e}")
+        raise APIConnectionError(f"Failed to initialize API client: {e}") from None
 
 
-def list_models(llm_client: OpenAI) -> List[str]:
+def list_models(llm_client: OpenAI) -> list[str]:
     """Fetches the model IDs the provider currently offers."""
     try:
         return sorted(m.id for m in llm_client.models.list())
     except Exception as e:
-        raise classify_api_error(e, "Could not list models")
+        raise classify_api_error(e, "Could not list models") from None
 
 
-def _adjust_for_rejection(kwargs: Dict[str, Any], error_text: str) -> bool:
+def _adjust_for_rejection(kwargs: dict[str, Any], error_text: str) -> bool:
     """
     Modifies kwargs in place to work around a rejected parameter.
     Returns True if something was changed (so the request is worth retrying).
@@ -245,6 +281,6 @@ def chat_completion(llm_client: OpenAI, **kwargs: Any):
             return llm_client.chat.completions.create(**kwargs)
         except (openai.BadRequestError, openai.UnprocessableEntityError) as e:
             if not _adjust_for_rejection(kwargs, str(e)):
-                raise classify_api_error(e)
+                raise classify_api_error(e) from None
         except Exception as e:
-            raise classify_api_error(e)
+            raise classify_api_error(e) from None

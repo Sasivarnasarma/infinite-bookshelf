@@ -36,8 +36,14 @@ function ThemeToggle() {
         aria-label={`Theme: ${current.label}`}
       >
         <AnimatePresence mode="wait" initial={false}>
-          <motion.span key={current.value} initial={{ y: -16, opacity: 0, rotate: -40 }} animate={{ y: 0, opacity: 1, rotate: 0 }} exit={{ y: 16, opacity: 0, rotate: 40 }} transition={{ duration: 0.18 }}>
-            <current.icon className="size-[18px]" />
+          <motion.span
+            key={current.value}
+            initial={{ y: -16, opacity: 0, rotate: -40 }}
+            animate={{ y: 0, opacity: 1, rotate: 0 }}
+            exit={{ y: 16, opacity: 0, rotate: 40 }}
+            transition={{ duration: 0.18 }}
+          >
+            <current.icon className="size-4.5" />
           </motion.span>
         </AnimatePresence>
       </button>
@@ -51,8 +57,20 @@ function NavLinks({ onNavigate, vertical }: { onNavigate?: () => void; vertical?
       {NAV.map((item) => (
         <NavLink key={item.to} to={item.to} end={item.end} onClick={onNavigate} className="relative">
           {({ isActive }) => (
-            <span className={cn('relative z-10 flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors pointer-coarse:py-2.5', vertical && 'py-3 text-base', isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}>
-              {isActive && <motion.span layoutId={vertical ? 'nav-pill-mobile' : 'nav-pill'} className="absolute inset-0 -z-10 rounded-full border border-border bg-card shadow-sm" transition={{ type: 'spring', stiffness: 400, damping: 32 }} />}
+            <span
+              className={cn(
+                'relative z-10 flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors pointer-coarse:py-2.5',
+                vertical && 'py-3 text-base',
+                isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {isActive && (
+                <motion.span
+                  layoutId={vertical ? 'nav-pill-mobile' : 'nav-pill'}
+                  className="absolute inset-0 -z-10 rounded-full border border-border bg-card shadow-sm"
+                  transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                />
+              )}
               <item.icon className="size-4" />
               {item.label}
             </span>
@@ -70,9 +88,9 @@ function NavLinks({ onNavigate, vertical }: { onNavigate?: () => void; vertical?
 function Backdrop() {
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
-      <div className="absolute inset-x-0 top-0 h-[480px] bg-[radial-gradient(60%_100%_at_50%_0%,color-mix(in_oklab,var(--primary)_9%,transparent),transparent)]" />
-      <div className="dots absolute inset-y-0 left-0 w-[max(0px,calc(50%-37rem))] [mask-image:linear-gradient(to_right,black,transparent)] opacity-70" />
-      <div className="dots absolute inset-y-0 right-0 w-[max(0px,calc(50%-37rem))] [mask-image:linear-gradient(to_left,black,transparent)] opacity-70" />
+      <div className="absolute inset-x-0 top-0 h-120 bg-[radial-gradient(60%_100%_at_50%_0%,color-mix(in_oklab,var(--primary)_9%,transparent),transparent)]" />
+      <div className="dots absolute inset-y-0 left-0 w-[max(0px,calc(50%-37rem))] mask-[linear-gradient(to_right,black,transparent)] opacity-70" />
+      <div className="dots absolute inset-y-0 right-0 w-[max(0px,calc(50%-37rem))] mask-[linear-gradient(to_left,black,transparent)] opacity-70" />
       <div className="absolute inset-y-0 left-[max(0.75rem,calc(50%-37rem))] hidden w-px bg-[repeating-linear-gradient(to_bottom,var(--border)_0_6px,transparent_6px_10px)] xl:block" />
       <div className="absolute inset-y-0 right-[max(0.75rem,calc(50%-37rem))] hidden w-px bg-[repeating-linear-gradient(to_bottom,var(--border)_0_6px,transparent_6px_10px)] xl:block" />
     </div>
@@ -123,14 +141,25 @@ export function AppShell() {
                 New book <ArrowRight data-nudge />
               </Link>
             </Button>
-            <button type="button" className="grid size-11 place-items-center rounded-xl hover:bg-muted md:hidden" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Menu" aria-expanded={mobileOpen}>
+            <button
+              type="button"
+              className="grid size-11 place-items-center rounded-xl hover:bg-muted md:hidden"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Menu"
+              aria-expanded={mobileOpen}
+            >
               {mobileOpen ? <X className="size-5" /> : <MenuIcon className="size-5" />}
             </button>
           </div>
         </div>
         <AnimatePresence>
           {mobileOpen && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden border-t border-border/60 md:hidden">
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden border-t border-border/60 md:hidden"
+            >
               <div className="grid gap-3 p-3">
                 <NavLinks vertical onNavigate={() => setMobileOpen(false)} />
                 <Button asChild variant="brand" className="sm:hidden">

@@ -5,7 +5,7 @@ Agent to generate structured book Table of Contents
 import json
 import re
 import time
-from typing import Any, Dict, Tuple
+from typing import Any
 
 from ..client import chat_completion
 from ..errors import (
@@ -28,10 +28,7 @@ def clean_json_string(raw_text: str) -> str:
     # Strip markdown block wrappers ```json ... ``` or ``` ... ```
     if "```" in cleaned:
         match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", cleaned)
-        if match:
-            cleaned = match.group(1).strip()
-        else:
-            cleaned = cleaned.replace("```json", "").replace("```", "").strip()
+        cleaned = match.group(1).strip() if match else cleaned.replace("```json", "").replace("```", "").strip()
 
     start_idx = cleaned.find("{")
     end_idx = cleaned.rfind("}")
@@ -44,7 +41,7 @@ def clean_json_string(raw_text: str) -> str:
     return cleaned
 
 
-def normalize_structure(node: Any) -> Dict[str, Any]:
+def normalize_structure(node: Any) -> dict[str, Any]:
     """
     Coerces a parsed outline into {title: description | nested dict}.
     Lists become numbered entries and other scalars become strings; empty chapters are dropped.
@@ -52,7 +49,7 @@ def normalize_structure(node: Any) -> Dict[str, Any]:
     if not isinstance(node, dict):
         raise StructureGenerationError("The outline must be a JSON object of chapter titles.")
 
-    result: Dict[str, Any] = {}
+    result: dict[str, Any] = {}
     for title, value in node.items():
         title = str(title).strip()
         if not title:
@@ -81,7 +78,7 @@ def generate_book_structure(
     llm_client,
     long: bool = False,
     max_retries: int = 2,
-) -> Tuple[GenerationStatistics, Dict[str, Any]]:
+) -> tuple[GenerationStatistics, dict[str, Any]]:
     """
     Returns the parsed, normalized book structure as well as generation statistics.
     Includes retries and JSON repair logic.
@@ -100,15 +97,15 @@ def generate_book_structure(
         )
 
     system_prompt = (
-        'Respond ONLY with valid JSON in the following format:\n'
-        '{\n'
+        "Respond ONLY with valid JSON in the following format:\n"
+        "{\n"
         '  "Chapter 1: Introduction": "Overview of foundational principles",\n'
         '  "Chapter 2: Core Concepts": {\n'
         '    "Section 2.1: Key Terms": "Detailed breakdown",\n'
         '    "Section 2.2: In Practice": "Practical application"\n'
-        '  }\n'
-        '}\n'
-        'Values are either a short description string or an object of sub-sections.'
+        "  }\n"
+        "}\n"
+        "Values are either a short description string or an object of sub-sections."
     )
 
     last_exception = None

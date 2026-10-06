@@ -5,7 +5,8 @@ Kept apart from app.py so the routes stay readable. Everything here ends up in
 /api/openapi.json and on the Swagger page at /api/docs.
 """
 
-from typing import Any, Dict, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 from .config import Settings
 from .schemas import ErrorResponse
@@ -17,7 +18,11 @@ SUMMARY = "Turn a topic into a complete book, written live by the AI model of yo
 
 def description(settings: Settings) -> str:
     """The overview at the top of the docs, including this server's own limits."""
-    rate = f"{settings.rate_limit_per_minute} generation requests per minute per IP" if settings.rate_limit_per_minute else "no rate limit"
+    rate = (
+        f"{settings.rate_limit_per_minute} generation requests per minute per IP"
+        if settings.rate_limit_per_minute
+        else "no rate limit"
+    )
     size = f"{settings.max_request_bytes / 1_000_000:g} MB per request"
     custom = "allowed" if settings.allow_custom_endpoints else "disabled"
     private = "allowed" if settings.allow_private_endpoints else "blocked"
@@ -91,11 +96,16 @@ _ERROR_EXAMPLES = {
     413: ("too_large", "Request too large", "Request too large", "This book is larger than this server accepts."),
     422: ("invalid_input", "Invalid request", "options.topic: String should have at least 3 characters", ""),
     429: ("rate_limited", "Too many requests", "Too many requests", "Slow down a little and try again in a minute."),
-    502: ("auth", "Authentication failed", "Incorrect API key provided: [redacted]", "Check this provider's API key in Settings (use Test connection to verify it)."),
+    502: (
+        "auth",
+        "Authentication failed",
+        "Incorrect API key provided: [redacted]",
+        "Check this provider's API key in Settings (use Test connection to verify it).",
+    ),
 }
 
 
-def errors(*codes: int) -> Dict[int, Dict[str, Any]]:
+def errors(*codes: int) -> dict[int, dict[str, Any]]:
     """Error responses, each with a realistic example of that error."""
     responses = {}
     for code in codes:
@@ -109,10 +119,13 @@ def errors(*codes: int) -> Dict[int, Dict[str, Any]]:
     return responses
 
 
-def event_stream(description: str, example: str, *error_codes: int) -> Dict[int, Dict[str, Any]]:
+def event_stream(description: str, example: str, *error_codes: int) -> dict[int, dict[str, Any]]:
     """A Server-Sent Events response, plus the errors that can come before the stream starts."""
     return {
-        200: {"description": description, "content": {"text/event-stream": {"schema": {"type": "string"}, "example": example}}},
+        200: {
+            "description": description,
+            "content": {"text/event-stream": {"schema": {"type": "string"}, "example": example}},
+        },
         **errors(*error_codes),
     }
 
@@ -123,7 +136,10 @@ def _events(*events: Iterable[str]) -> str:
 
 OUTLINE_STREAM = _events(
     ("stage", '{"stage": "outline"}'),
-    ("outline", '{"structure": {"Origins": "Where tea began", "Tea and Empire": {"The Opium Wars": "Trade and conflict"}}}'),
+    (
+        "outline",
+        '{"structure": {"Origins": "Where tea began", "Tea and Empire": {"The Opium Wars": "Trade and conflict"}}}',
+    ),
     ("stage", '{"stage": "title"}'),
     ("title", '{"title": "Steeped: A Short History of Tea"}'),
     ("stats", '{"input_tokens": 120, "output_tokens": 340, "input_time": 0.2, "output_time": 1.9, "total_time": 2.1}'),
@@ -134,7 +150,10 @@ SECTION_STREAM = _events(
     ("start", '{"path": ["Origins"]}'),
     ("delta", '{"text": "Legend credits the emperor Shennong "}'),
     ("delta", '{"text": "with the first cup, around 2737 BCE..."}'),
-    ("stats", '{"input_tokens": 900, "output_tokens": 1200, "input_time": 0.4, "output_time": 13.8, "total_time": 14.2}'),
+    (
+        "stats",
+        '{"input_tokens": 900, "output_tokens": 1200, "input_time": 0.4, "output_time": 13.8, "total_time": 14.2}',
+    ),
     ("done", "{}"),
 )
 
@@ -164,8 +183,14 @@ OUTLINE_EXAMPLES = {
     "mixed": {
         "summary": "Gemini for the outline, Groq for the title",
         "value": {
-            "outline_model": {"provider": {"preset": "gemini", "api_key": "YOUR_GEMINI_KEY"}, "model": "gemini-2.5-flash"},
-            "title_model": {"provider": {"preset": "groq", "api_key": "YOUR_GROQ_KEY"}, "model": "llama-3.3-70b-versatile"},
+            "outline_model": {
+                "provider": {"preset": "gemini", "api_key": "YOUR_GEMINI_KEY"},
+                "model": "gemini-2.5-flash",
+            },
+            "title_model": {
+                "provider": {"preset": "groq", "api_key": "YOUR_GROQ_KEY"},
+                "model": "llama-3.3-70b-versatile",
+            },
             "options": {**_OPTIONS, "long_outline": True, "instructions": "Include a chapter on tea ceremonies."},
         },
     },
@@ -184,7 +209,10 @@ SECTION_EXAMPLES = {
         "summary": "Write a later section, with context",
         "value": {
             **_SECTION,
-            "book": {**_SECTION["book"], "written": [{"path": ["Origins"], "text": "Legend credits the emperor Shennong..."}]},
+            "book": {
+                **_SECTION["book"],
+                "written": [{"path": ["Origins"], "text": "Legend credits the emperor Shennong..."}],
+            },
             "path": ["Tea and Empire", "The Opium Wars"],
         },
     },
@@ -192,7 +220,10 @@ SECTION_EXAMPLES = {
         "summary": "Rewrite a section with a note",
         "value": {
             **_SECTION,
-            "revision": {"note": "Add a short timeline at the end", "previous": "Legend credits the emperor Shennong..."},
+            "revision": {
+                "note": "Add a short timeline at the end",
+                "previous": "Legend credits the emperor Shennong...",
+            },
         },
     },
 }

@@ -44,7 +44,12 @@ export const useKeyHealth = create<KeyHealthState>()(
 export type HealthTone = 'success' | 'warning' | 'danger' | 'neutral'
 
 /** A key's status for display. `now` lets callers re-render a countdown. */
-export function describeKey(key: { hasSecret: boolean; enabled: boolean }, health: KeyHealth | undefined, requiresKey: boolean, now: number): { tone: HealthTone; text: string } {
+export function describeKey(
+  key: { hasSecret: boolean; enabled: boolean },
+  health: KeyHealth | undefined,
+  requiresKey: boolean,
+  now: number,
+): { tone: HealthTone; text: string } {
   if (!key.enabled) return { tone: 'neutral', text: 'Off' }
   if (!key.hasSecret) return requiresKey ? { tone: 'neutral', text: 'Paste the key' } : { tone: 'neutral', text: 'No key needed' }
   if (!health) return { tone: 'neutral', text: 'Not tested yet' }

@@ -39,7 +39,9 @@ def test_sdk_errors_are_classified_by_type(exc, expected):
 def test_generate_is_not_mistaken_for_rate_limit():
     # Gemini's model-not-found message contains "generateContent"
     exc = status_error(
-        openai.NotFoundError, 404, "models/foo is not found for API version v1beta, or is not supported for generateContent"
+        openai.NotFoundError,
+        404,
+        "models/foo is not found for API version v1beta, or is not supported for generateContent",
     )
     assert type(classify_api_error(exc)) is ModelUnavailableError
 

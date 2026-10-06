@@ -60,8 +60,8 @@ function Heading({ eyebrow, title, text, className }: { eyebrow: string; title: 
   return (
     <div className={cn('grid justify-items-center gap-3 text-center', className)}>
       <p className="eyebrow">{eyebrow}</p>
-      <h2 className="max-w-2xl text-3xl font-medium [text-wrap:balance] sm:text-4xl">{title}</h2>
-      {text && <p className="max-w-xl text-muted-foreground [text-wrap:balance]">{text}</p>}
+      <h2 className="max-w-2xl text-3xl font-medium text-balance sm:text-4xl">{title}</h2>
+      {text && <p className="max-w-xl text-balance text-muted-foreground">{text}</p>}
     </div>
   )
 }
@@ -88,7 +88,12 @@ function TopicBox() {
   const placeholder = useRotating(EXAMPLES, !topic)
 
   return (
-    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="mx-auto mt-10 grid w-full max-w-2xl gap-4">
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.18 }}
+      className="mx-auto mt-10 grid w-full max-w-2xl gap-4"
+    >
       <form
         onSubmit={(e) => {
           e.preventDefault()
@@ -96,7 +101,7 @@ function TopicBox() {
         }}
         className="flex items-center gap-2 rounded-full bg-white p-1.5 pl-5 text-left shadow-[0_20px_60px_-20px_rgb(0_0_0/0.45)] ring-1 ring-black/5 max-[359px]:flex-wrap max-[359px]:rounded-3xl max-[359px]:p-2 max-[359px]:pl-4"
       >
-        <Sparkles className="size-5 shrink-0 text-[var(--hero-to)] max-[359px]:hidden" />
+        <Sparkles className="size-5 shrink-0 text-(--hero-to) max-[359px]:hidden" />
         <label htmlFor="hero-topic" className="sr-only">
           What should your book be about?
         </label>
@@ -118,7 +123,11 @@ function TopicBox() {
       </form>
       <div className="flex flex-wrap justify-center gap-2">
         {EXAMPLES.slice(0, 3).map((example) => (
-          <Link key={example} to={createUrl(example)} className="rounded-full border border-white/35 bg-white/10 px-3 py-1 text-xs text-white/90 backdrop-blur-sm transition-all hover:-translate-y-px hover:bg-white/20 pointer-coarse:px-3.5 pointer-coarse:py-3">
+          <Link
+            key={example}
+            to={createUrl(example)}
+            className="rounded-full border border-white/35 bg-white/10 px-3 py-1 text-xs text-white/90 backdrop-blur-sm transition-all hover:-translate-y-px hover:bg-white/20 pointer-coarse:px-3.5 pointer-coarse:py-3"
+          >
             {example}
           </Link>
         ))}
@@ -130,22 +139,35 @@ function TopicBox() {
 function Hero() {
   const hasBooks = useLiveQuery(async () => (await db.books.count()) > 0, [])
   return (
-    <section className="relative isolate overflow-hidden rounded-[1.75rem] bg-[linear-gradient(160deg,var(--hero-from),var(--hero-to))] px-5 pb-52 pt-14 text-center text-white sm:px-6 sm:pb-60 sm:pt-20">
+    <section className="relative isolate overflow-hidden rounded-3xl bg-[linear-gradient(160deg,var(--hero-from),var(--hero-to))] px-5 pt-14 pb-52 text-center text-white sm:px-6 sm:pt-20 sm:pb-60">
       <DotWave className="-z-10 opacity-70" />
       {/* Sunrise glow, gently breathing */}
-      <div className="animate-sunrise absolute -bottom-40 left-1/2 -z-10 h-80 w-[46rem] max-w-[140%] rounded-[50%] bg-[radial-gradient(closest-side,#fff7d6,#ffd27a_35%,rgba(255,170,80,0.55)_60%,transparent)] blur-xl" />
+      <div className="absolute -bottom-40 left-1/2 -z-10 h-80 w-184 max-w-[140%] animate-sunrise rounded-[50%] bg-[radial-gradient(closest-side,#fff7d6,#ffd27a_35%,rgba(255,170,80,0.55)_60%,transparent)] blur-xl" />
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex justify-center">
-        <Link to="/#privacy" className="group inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 py-1 pl-4 pr-1 text-left text-sm font-medium backdrop-blur-sm transition-colors hover:bg-white/20 max-sm:text-xs">
+        <Link
+          to="/#privacy"
+          className="group inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 py-1 pr-1 pl-4 text-left text-sm font-medium backdrop-blur-sm transition-colors hover:bg-white/20 max-sm:text-xs"
+        >
           Open source · Bring your own key · Self-hostable
-          <span className="grid size-7 place-items-center rounded-full bg-white text-[var(--hero-to)] transition-transform group-hover:translate-x-0.5">
+          <span className="grid size-7 place-items-center rounded-full bg-white text-(--hero-to) transition-transform group-hover:translate-x-0.5">
             <ArrowRight className="size-4" />
           </span>
         </Link>
       </motion.div>
-      <motion.h1 initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }} className="mx-auto max-w-4xl text-4xl font-medium leading-[1.04] [text-wrap:balance] sm:text-6xl lg:text-7xl">
+      <motion.h1
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.06 }}
+        className="mx-auto max-w-4xl text-4xl leading-[1.04] font-medium text-balance sm:text-6xl lg:text-7xl"
+      >
         Write a whole book from a single idea
       </motion.h1>
-      <motion.p initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-white/85 [text-wrap:balance] sm:text-lg">
+      <motion.p
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.12 }}
+        className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-balance text-white/85 sm:text-lg"
+      >
         Pick a topic and a model. Infinite Bookshelf plans the chapters, then writes each one live while you watch.
       </motion.p>
       <TopicBox />
@@ -246,8 +268,20 @@ function LiveDemo() {
             const done = i < DEMO_ACTIVE || (i === DEMO_ACTIVE && !writing)
             const active = i === DEMO_ACTIVE && writing
             return (
-              <li key={title} className={cn('flex items-center gap-2.5 rounded-lg px-2.5 py-2', active && 'bg-accent text-accent-foreground', !done && !active && 'text-muted-foreground')}>
-                <span className={cn('grid size-5 shrink-0 place-items-center rounded-full border text-[10px] font-medium', done ? 'border-transparent bg-success text-white' : active ? 'border-primary text-primary' : 'border-border')}>
+              <li
+                key={title}
+                className={cn(
+                  'flex items-center gap-2.5 rounded-lg px-2.5 py-2',
+                  active && 'bg-accent text-accent-foreground',
+                  !done && !active && 'text-muted-foreground',
+                )}
+              >
+                <span
+                  className={cn(
+                    'grid size-5 shrink-0 place-items-center rounded-full border text-[10px] font-medium',
+                    done ? 'border-transparent bg-success text-white' : active ? 'border-primary text-primary' : 'border-border',
+                  )}
+                >
                   {done ? <Check className="size-3" strokeWidth={3} /> : active ? <span className="size-1.5 animate-pulse rounded-full bg-primary" /> : i + 1}
                 </span>
                 <span className="truncate">{title}</span>
@@ -256,7 +290,7 @@ function LiveDemo() {
           })}
         </ol>
 
-        <div className="grid min-h-[22rem] content-start gap-4 p-5 sm:p-8">
+        <div className="grid min-h-88 content-start gap-4 p-5 sm:p-8">
           <DemoPage text={text} writing={writing} />
         </div>
       </div>
@@ -282,7 +316,11 @@ const STEPS = [
 function HowItWorks() {
   return (
     <section className="grid gap-10">
-      <Heading eyebrow="How it works" title="From one idea to a finished book" text="You stay in charge of the shape of the book. The model does the writing." />
+      <Heading
+        eyebrow="How it works"
+        title="From one idea to a finished book"
+        text="You stay in charge of the shape of the book. The model does the writing."
+      />
       <motion.div
         initial={{ opacity: 0, y: 14 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -332,11 +370,18 @@ function Providers() {
   const items = [...PROVIDERS, ...PROVIDERS]
   return (
     <section className="grid gap-8">
-      <Heading eyebrow="Bring your own model" title="Use the models you already pay for" text="Mix and match: a fast model for the outline, a stronger one for the chapters, even from different providers." />
-      <div className="relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
-        <div className="animate-marquee flex w-max gap-3 hover:[animation-play-state:paused]">
+      <Heading
+        eyebrow="Bring your own model"
+        title="Use the models you already pay for"
+        text="Mix and match: a fast model for the outline, a stronger one for the chapters, even from different providers."
+      />
+      <div className="relative overflow-hidden mask-[linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
+        <div className="flex w-max animate-marquee gap-3 hover:[animation-play-state:paused]">
           {items.map((p, i) => (
-            <span key={i} className="inline-flex items-center gap-2.5 whitespace-nowrap rounded-full border border-border bg-card py-2 pl-3 pr-4 text-sm text-foreground/80 transition-colors hover:border-primary/40 hover:text-foreground">
+            <span
+              key={i}
+              className="inline-flex items-center gap-2.5 rounded-full border border-border bg-card py-2 pr-4 pl-3 text-sm whitespace-nowrap text-foreground/80 transition-colors hover:border-primary/40 hover:text-foreground"
+            >
               <ProviderIcon id={p.id} className="text-lg" />
               {p.name}
             </span>
@@ -396,7 +441,7 @@ function Node({ icon: Icon, title, text, children }: { icon: typeof Monitor; tit
     <div className="surface spotlight grid content-start gap-2 p-5">
       <div className="flex items-center gap-2.5">
         <span className="grid size-9 place-items-center rounded-xl bg-accent text-accent-foreground">
-          <Icon className="size-[18px]" />
+          <Icon className="size-4.5" />
         </span>
         <h3 className="font-medium">{title}</h3>
       </div>
@@ -409,9 +454,18 @@ function Node({ icon: Icon, title, text, children }: { icon: typeof Monitor; tit
 function Privacy() {
   return (
     <section id="privacy" className="grid scroll-mt-24 gap-10">
-      <Heading eyebrow="Privacy by design" title="Your keys and books never leave your hands" text="No accounts and no database. Here's exactly where your data goes." />
+      <Heading
+        eyebrow="Privacy by design"
+        title="Your keys and books never leave your hands"
+        text="No accounts and no database. Here's exactly where your data goes."
+      />
 
-      <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} className="grid md:grid-cols-[1fr_9rem_1fr_9rem_1fr] md:items-stretch">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-60px' }}
+        className="grid md:grid-cols-[1fr_9rem_1fr_9rem_1fr] md:items-stretch"
+      >
         <Node icon={Monitor} title="Your browser" text="Keeps your API keys and every book you write. Nothing is uploaded to an account." />
         <Flow label="request + key" />
         <Node icon={Server} title="This app's server" text="Uses your key for one request, streams the answer back, and forgets it." />
@@ -459,9 +513,10 @@ function SelfHost() {
     <section id="self-host" className="frame-corners grid scroll-mt-24 items-center gap-10 border-y border-border py-14 lg:grid-cols-[1fr_1.1fr]">
       <div className="grid gap-4">
         <p className="eyebrow">Open source</p>
-        <h2 className="text-3xl font-medium [text-wrap:balance] sm:text-4xl">Run your own copy in a minute</h2>
+        <h2 className="text-3xl font-medium text-balance sm:text-4xl">Run your own copy in a minute</h2>
         <p className="text-muted-foreground">
-          Self-hosting means your keys only pass through a server you control, and lets you write with local models like Ollama or LM Studio. One Docker image, no database to set up.
+          Self-hosting means your keys only pass through a server you control, and lets you write with local models like Ollama or LM Studio. One Docker image,
+          no database to set up.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline">
@@ -480,9 +535,20 @@ function SelfHost() {
       <div className="overflow-hidden rounded-2xl border border-border bg-[#141414] text-[#e7e5e4] shadow-[0_30px_80px_-40px_rgb(0_0_0/0.5)]">
         <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2.5 text-xs text-white/60">
           <Terminal className="size-4" /> Terminal
-          <button type="button" onClick={() => void copy(SELF_HOST)} className="ml-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white pointer-coarse:px-3.5 pointer-coarse:py-3" aria-label="Copy commands">
+          <button
+            type="button"
+            onClick={() => void copy(SELF_HOST)}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white pointer-coarse:px-3.5 pointer-coarse:py-3"
+            aria-label="Copy commands"
+          >
             <AnimatePresence mode="wait" initial={false}>
-              <motion.span key={copied ? 'done' : 'copy'} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.6, opacity: 0 }} className="inline-flex">
+              <motion.span
+                key={copied ? 'done' : 'copy'}
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.6, opacity: 0 }}
+                className="inline-flex"
+              >
                 {copied ? <Check className="size-3.5 text-[#4ade80]" /> : <Copy className="size-3.5" />}
               </motion.span>
             </AnimatePresence>
@@ -492,7 +558,7 @@ function SelfHost() {
         <pre className="overflow-x-auto p-5 font-mono text-[13px] leading-7">
           {SELF_HOST.split('\n').map((line) => (
             <div key={line}>
-              <span className="select-none text-[#f86522]">$ </span>
+              <span className="text-[#f86522] select-none">$ </span>
               {line}
             </div>
           ))}
@@ -508,7 +574,7 @@ function SelfHost() {
 const FAQ = [
   {
     q: 'Is it free?',
-    a: "The app is free and open source. You pay your AI provider for what you use, and many have free tiers. Local models through Ollama or LM Studio cost nothing.",
+    a: 'The app is free and open source. You pay your AI provider for what you use, and many have free tiers. Local models through Ollama or LM Studio cost nothing.',
   },
   {
     q: 'Which models can I use?',
@@ -539,7 +605,7 @@ function Faq() {
               {item.q}
               <Plus className="ml-auto size-5 shrink-0 text-muted-foreground transition-transform duration-300 group-open:rotate-45" />
             </summary>
-            <p className="pb-5 pr-9 leading-relaxed text-muted-foreground">{item.a}</p>
+            <p className="pr-9 pb-5 leading-relaxed text-muted-foreground">{item.a}</p>
           </details>
         ))}
       </div>
@@ -551,13 +617,13 @@ function Faq() {
 
 function FinalCta() {
   return (
-    <section className="relative isolate overflow-hidden rounded-[1.75rem] bg-[linear-gradient(160deg,var(--hero-from),var(--hero-to))] px-6 py-16 text-center text-white">
+    <section className="relative isolate overflow-hidden rounded-3xl bg-[linear-gradient(160deg,var(--hero-from),var(--hero-to))] px-6 py-16 text-center text-white">
       <DotWave className="-z-10 opacity-50" />
       <div className="mx-auto mb-6 grid size-20 place-items-center rounded-3xl bg-white shadow-[0_12px_30px_-10px_rgb(0_0_0/0.35)]">
         <LogoMark animated live className="w-14" />
       </div>
-      <h2 className="mx-auto max-w-2xl text-3xl font-medium [text-wrap:balance] sm:text-5xl">Your next book is one idea away</h2>
-      <p className="mx-auto mt-4 max-w-md text-white/85 [text-wrap:balance]">Bring a topic and a key. The first chapter starts in under a minute.</p>
+      <h2 className="mx-auto max-w-2xl text-3xl font-medium text-balance sm:text-5xl">Your next book is one idea away</h2>
+      <p className="mx-auto mt-4 max-w-md text-balance text-white/85">Bring a topic and a key. The first chapter starts in under a minute.</p>
       <Button asChild variant="inverse" size="lg" className="mt-8">
         <Link to="/new">
           Start writing <ArrowRight data-nudge />
@@ -583,7 +649,7 @@ function useHashScroll() {
 export function HomePage() {
   useHashScroll()
   return (
-    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-24 px-3 pb-24 pt-3 sm:px-4 sm:pt-4">
+    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-24 px-3 pt-3 pb-24 sm:px-4 sm:pt-4">
       <div className="grid grid-cols-1">
         <Hero />
         <div className="relative z-10 mx-auto -mt-44 w-full max-w-5xl px-2 sm:-mt-48 sm:px-6">

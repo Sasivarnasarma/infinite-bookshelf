@@ -67,7 +67,9 @@ def test_context_digest_respects_the_size_cap():
     structure = {f"Chapter {i}": f"Topic {i}" for i in range(1, 40)}
     sections = list(structure)
     book = Book.from_written(
-        "T", structure, [((t,), "A reasonably long opening sentence about this chapter's topic. " * 3) for t in sections[:-1]]
+        "T",
+        structure,
+        [((t,), "A reasonably long opening sentence about this chapter's topic. " * 3) for t in sections[:-1]],
     )
     digest = book.context_digest(section_key((sections[-1],)), max_chars=1500)
     assert len(digest) <= 1700

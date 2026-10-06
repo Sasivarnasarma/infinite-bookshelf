@@ -57,12 +57,30 @@ describe('chapter by chapter', () => {
   it('names the next chapter and whether it has begun', () => {
     expect(nextChapter(book([]))).toEqual({ title: 'Right Triangles', number: 1, started: false })
     expect(nextChapter(book([['Right Triangles', 'Triples']]))).toEqual({ title: 'Right Triangles', number: 1, started: true })
-    expect(nextChapter(book([['Right Triangles', 'Triples'], ['Right Triangles', 'Euclid']]))).toEqual({ title: 'Computing', number: 2, started: false })
-    expect(nextChapter(book([['Right Triangles', 'Triples'], ['Right Triangles', 'Euclid'], ['Computing', 'In Python']]))?.title).toBe('Summary')
+    expect(
+      nextChapter(
+        book([
+          ['Right Triangles', 'Triples'],
+          ['Right Triangles', 'Euclid'],
+        ]),
+      ),
+    ).toEqual({ title: 'Computing', number: 2, started: false })
+    expect(
+      nextChapter(
+        book([
+          ['Right Triangles', 'Triples'],
+          ['Right Triangles', 'Euclid'],
+          ['Computing', 'In Python'],
+        ]),
+      )?.title,
+    ).toBe('Summary')
   })
 
   it('waits between chapters only', () => {
-    const chapterOne = [['Right Triangles', 'Triples'], ['Right Triangles', 'Euclid']]
+    const chapterOne = [
+      ['Right Triangles', 'Triples'],
+      ['Right Triangles', 'Euclid'],
+    ]
     expect(awaitingNextChapter(book(chapterOne))).toBe(true)
     // Not before anything is written, not mid-chapter, not when the mode is off or something failed
     expect(awaitingNextChapter(book([]))).toBe(false)

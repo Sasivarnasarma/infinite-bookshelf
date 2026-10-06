@@ -10,11 +10,11 @@ progress as Server-Sent Events:
     (any of them may end with an `error` event instead)
 """
 
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Annotated, Any, Dict, Iterator, List, Optional, Tuple
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, FastAPI, Request
-from fastapi.routing import APIRoute
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
@@ -32,8 +32,8 @@ from ..engine.errors import InfiniteBookshelfError, error_payload
 from ..engine.generation import SECTION_LENGTHS, section_inputs
 from ..engine.inference import GenerationStatistics
 from ..engine.tools import create_pdf_file
-from .config import Settings, get_settings
 from . import openapi
+from .config import Settings, get_settings
 from .docs import DOCS_URL, OPENAPI_URL, mount_docs
 from .schemas import (
     HealthStatus,
@@ -41,11 +41,11 @@ from .schemas import (
     ModelsResponse,
     OutlineRequest,
     PdfRequest,
-    ServiceInfo,
     ProviderAuth,
     ProviderPreset,
     SectionRequest,
     ServerConfig,
+    ServiceInfo,
 )
 from .security import EndpointNotAllowed, RateLimiter, check_endpoint
 from .streaming import Event, sse_events
@@ -72,7 +72,7 @@ SECURITY_HEADERS = {
 # --- Provider access -------------------------------------------------------------------------
 
 
-def _client_for(auth: ProviderAuth, settings: Settings) -> Tuple[Any, List[str]]:
+def _client_for(auth: ProviderAuth, settings: Settings) -> tuple[Any, list[str]]:
     """Returns (client, secrets) for a request's provider, enforcing the endpoint rules."""
     key = auth.api_key.get_secret_value().strip()
     if auth.preset:
@@ -93,7 +93,7 @@ def _client_for(auth: ProviderAuth, settings: Settings) -> Tuple[Any, List[str]]
     return create_llm_client(key, base_url, requires_key=requires_key), [key]
 
 
-def _stats(stats: GenerationStatistics) -> Dict[str, Any]:
+def _stats(stats: GenerationStatistics) -> dict[str, Any]:
     return {
         "input_tokens": stats.input_tokens,
         "output_tokens": stats.output_tokens,
@@ -107,7 +107,7 @@ def _stats(stats: GenerationStatistics) -> Dict[str, Any]:
 
 
 def _outline_events(req: OutlineRequest, settings: Settings) -> Iterator[Event]:
-    secrets: List[str] = []
+    secrets: list[str] = []
     try:
         options = req.options.to_engine()
         yield "stage", {"stage": "outline"}
@@ -134,7 +134,7 @@ def _outline_events(req: OutlineRequest, settings: Settings) -> Iterator[Event]:
 
 
 def _section_events(req: SectionRequest, settings: Settings) -> Iterator[Event]:
-    secrets: List[str] = []
+    secrets: list[str] = []
     try:
         structure = normalize_structure(req.book.structure)
         if len(outline_nodes(structure)) > MAX_OUTLINE_NODES:
@@ -182,12 +182,18 @@ class RequestGuard:
         if scope.get("method") == "POST" and path in RATE_LIMITED_PATHS:
             client_ip = (scope.get("client") or ("unknown", 0))[0]
             if not self.limiter.allow(client_ip):
-                return await _json(send, 429, _error("rate_limited", "Too many requests", "Slow down a little and try again in a minute."))
+                return await _json(
+                    send,
+                    429,
+                    _error("rate_limited", "Too many requests", "Slow down a little and try again in a minute."),
+                )
 
         headers = dict(scope.get("headers") or [])
         declared = headers.get(b"content-length")
         if declared and declared.isdigit() and int(declared) > self.max_bytes:
-            return await _json(send, 413, _error("too_large", "Request too large", "This book is larger than this server accepts."))
+            return await _json(
+                send, 413, _error("too_large", "Request too large", "This book is larger than this server accepts.")
+            )
 
         received = 0
 
@@ -214,18 +220,22 @@ class SecurityHeaders:
         async def send_with_headers(message: Message) -> None:
             if message["type"] == "http.response.start":
                 existing = {k.lower() for k, _ in message.get("headers", [])}
-                extra = [(k.lower().encode(), v.encode()) for k, v in SECURITY_HEADERS.items() if k.lower().encode() not in existing]
+                extra = [
+                    (k.lower().encode(), v.encode())
+                    for k, v in SECURITY_HEADERS.items()
+                    if k.lower().encode() not in existing
+                ]
                 message["headers"] = list(message.get("headers", [])) + extra
             await send(message)
 
         await self.app(scope, receive, send_with_headers)
 
 
-def _error(code: str, title: str, hint: str, message: str = "") -> Dict[str, Any]:
+def _error(code: str, title: str, hint: str, message: str = "") -> dict[str, Any]:
     return {"error": {"code": code, "title": title, "message": message or title, "hint": hint}}
 
 
-async def _json(send: Send, status: int, body: Dict[str, Any]) -> None:
+async def _json(send: Send, status: int, body: dict[str, Any]) -> None:
     response = JSONResponse(body, status_code=status)
     await response({"type": "http"}, None, send)  # type: ignore[arg-type]
 
@@ -324,10 +334,14 @@ def create_app(settings: Settings = None) -> FastAPI:
         responses=openapi.event_stream(
             "A stream of events: `stage`, `outline`, `stage`, `title`, `stats`, then `done`, or `error` at any point.",
             openapi.OUTLINE_STREAM,
-            413, 422, 429,
+            413,
+            422,
+            429,
         ),
     )
-    async def stream_outline(req: Annotated[OutlineRequest, Body(openapi_examples=openapi.OUTLINE_EXAMPLES)]) -> EventSourceResponse:
+    async def stream_outline(
+        req: Annotated[OutlineRequest, Body(openapi_examples=openapi.OUTLINE_EXAMPLES)],
+    ) -> EventSourceResponse:
         """
         Drafts the book's outline with `outline_model`, then its title with `title_model`. The two
         can use different providers.
@@ -345,10 +359,14 @@ def create_app(settings: Settings = None) -> FastAPI:
         responses=openapi.event_stream(
             "A stream of events: `start`, a `delta` for each piece of text, `stats`, then `done`, or `error` at any point.",
             openapi.SECTION_STREAM,
-            413, 422, 429,
+            413,
+            422,
+            429,
         ),
     )
-    async def stream_section(req: Annotated[SectionRequest, Body(openapi_examples=openapi.SECTION_EXAMPLES)]) -> EventSourceResponse:
+    async def stream_section(
+        req: Annotated[SectionRequest, Body(openapi_examples=openapi.SECTION_EXAMPLES)],
+    ) -> EventSourceResponse:
         """
         Writes the section at `path`, streaming its text as the model generates it. Append each
         `delta` to build the section.
@@ -367,7 +385,10 @@ def create_app(settings: Settings = None) -> FastAPI:
         summary="Export to PDF",
         response_class=Response,
         responses={
-            200: {"description": "The book as a PDF.", "content": {"application/pdf": {"schema": {"type": "string", "format": "binary"}}}},
+            200: {
+                "description": "The book as a PDF.",
+                "content": {"application/pdf": {"schema": {"type": "string", "format": "binary"}}},
+            },
             **openapi.errors(413, 422, 429),
         },
     )
@@ -417,7 +438,7 @@ def _add_service_root(app: FastAPI, settings: Settings) -> None:
         return _service_info(app.title, settings)
 
 
-def _has_web_app(dist: Optional[Path]) -> bool:
+def _has_web_app(dist: Path | None) -> bool:
     return bool(dist) and (Path(dist) / "index.html").is_file()
 
 

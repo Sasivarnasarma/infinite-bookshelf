@@ -81,7 +81,16 @@ function WritingTab() {
           </Field>
           <Field label="Delay between sections" hint="A pause between requests helps stay under free-tier rate limits.">
             <div className="flex items-center gap-3">
-              <input type="range" min={0} max={10} step={0.5} value={prefs.delaySeconds} onChange={(e) => prefs.set({ delaySeconds: Number(e.target.value) })} className="h-6 w-full accent-[var(--primary)] pointer-coarse:h-11" aria-label="Delay between sections" />
+              <input
+                type="range"
+                min={0}
+                max={10}
+                step={0.5}
+                value={prefs.delaySeconds}
+                onChange={(e) => prefs.set({ delaySeconds: Number(e.target.value) })}
+                className="h-6 w-full accent-primary pointer-coarse:h-11"
+                aria-label="Delay between sections"
+              />
               <span className="w-12 text-right font-mono text-sm tabular-nums">{prefs.delaySeconds.toFixed(1)}s</span>
             </div>
           </Field>
@@ -113,9 +122,30 @@ function AppearanceTab() {
           onChange={(theme) => prefs.set({ theme })}
           className="w-fit"
           options={[
-            { value: 'system', label: <span className="flex items-center gap-1.5"><Monitor className="size-3.5" /> System</span> },
-            { value: 'light', label: <span className="flex items-center gap-1.5"><Sun className="size-3.5" /> Light</span> },
-            { value: 'dark', label: <span className="flex items-center gap-1.5"><Moon className="size-3.5" /> Dark</span> },
+            {
+              value: 'system',
+              label: (
+                <span className="flex items-center gap-1.5">
+                  <Monitor className="size-3.5" /> System
+                </span>
+              ),
+            },
+            {
+              value: 'light',
+              label: (
+                <span className="flex items-center gap-1.5">
+                  <Sun className="size-3.5" /> Light
+                </span>
+              ),
+            },
+            {
+              value: 'dark',
+              label: (
+                <span className="flex items-center gap-1.5">
+                  <Moon className="size-3.5" /> Dark
+                </span>
+              ),
+            },
           ]}
         />
       </Section>
@@ -185,7 +215,10 @@ function DataTab() {
                 <Trash2 /> Delete all books
               </Button>
             </DialogTrigger>
-            <DialogContent title="Delete all books?" description={`All ${books.length} books will be removed from this browser. Back them up first if you want to keep them.`}>
+            <DialogContent
+              title="Delete all books?"
+              description={`All ${books.length} books will be removed from this browser. Back them up first if you want to keep them.`}
+            >
               <div className="flex justify-end gap-2">
                 <DialogClose asChild>
                   <Button variant="ghost">Cancel</Button>
@@ -215,7 +248,7 @@ export function SettingsPage() {
   const tab = (TABS.find((t) => t.id === params.get('tab'))?.id ?? 'providers') as TabId
 
   return (
-    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 pb-24 pt-10 sm:px-6">
+    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 pt-10 pb-24 sm:px-6">
       <div>
         <h1 className="font-display text-3xl font-medium tracking-tight sm:text-4xl">Settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">Saved in this browser.</p>
@@ -224,15 +257,33 @@ export function SettingsPage() {
         <nav className="grid grid-cols-2 gap-1 sm:flex lg:sticky lg:top-24 lg:flex-col lg:self-start" aria-label="Settings sections">
           {TABS.map((t) => (
             <button key={t.id} type="button" onClick={() => setParams({ tab: t.id }, { replace: true })} className="relative shrink-0">
-              {tab === t.id && <motion.span layoutId="settings-tab" className="absolute inset-0 rounded-xl bg-muted ring-1 ring-border" transition={{ type: 'spring', stiffness: 400, damping: 32 }} />}
-              <span className={cn('relative flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-medium max-sm:px-3', tab === t.id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+              {tab === t.id && (
+                <motion.span
+                  layoutId="settings-tab"
+                  className="absolute inset-0 rounded-xl bg-muted ring-1 ring-border"
+                  transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                />
+              )}
+              <span
+                className={cn(
+                  'relative flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-medium max-sm:px-3',
+                  tab === t.id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
                 <t.icon className="size-4" /> {t.label}
               </span>
             </button>
           ))}
         </nav>
         <AnimatePresence mode="wait">
-          <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.18 }} className="min-w-0">
+          <motion.div
+            key={tab}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.18 }}
+            className="min-w-0"
+          >
             {tab === 'providers' && <ProvidersTab />}
             {tab === 'writing' && <WritingTab />}
             {tab === 'appearance' && <AppearanceTab />}

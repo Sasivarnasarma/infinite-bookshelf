@@ -3,28 +3,77 @@ name: CI
 on:
   push:
     branches: [main]
-    tags: ["v*"]
+    tags: ['v*']
   pull_request:
 
 permissions:
   contents: read
 
+# Every gate runs even when an earlier one fails (`!cancelled()`), so the report shows all results.
+# Each job hands its gate outcomes and test counts to the `report` job, which writes the summary.
+
 jobs:
   api:
-    name: API tests
+    name: API format, lint, tests & audit
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: api
+    outputs:
+      format: ${{ steps.format.outcome }}
+      lint: ${{ steps.lint.outcome }}
+      tests: ${{ steps.tests.outcome }}
+      audit: ${{ steps.audit.outcome }}
+      tests_total: ${{ steps.counts.outputs.total }}
+      tests_passed: ${{ steps.counts.outputs.passed }}
+      tests_failed: ${{ steps.counts.outputs.failed }}
+      tests_skipped: ${{ steps.counts.outputs.skipped }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - run: uv sync --frozen
-      - run: uv run pytest
+      - id: deps
+        run: uv sync --frozen
+      - id: format
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: uv run ruff format --check
+      - id: lint
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: uv run ruff check --output-format github
+      - id: tests
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: uv run pytest --junitxml=pytest.xml
+      - id: counts
+        if: ${{ !cancelled() && hashFiles('api/pytest.xml') != '' }}
+        run: |
+          python3 - >> "$GITHUB_OUTPUT" <<'EOF'
+          import xml.etree.ElementTree as ET
+          root = ET.parse("pytest.xml").getroot()
+          suite = root if root.tag == "testsuite" else root.find("testsuite")
+          total, failed = int(suite.get("tests")), int(suite.get("failures")) + int(suite.get("errors"))
+          skipped = int(suite.get("skipped"))
+          print(f"total={total}\npassed={total - failed - skipped}\nfailed={failed}\nskipped={skipped}")
+          EOF
+      - id: audit
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        # Runtime dependencies only: what the server actually runs
+        run: |
+          uv export --frozen --no-dev --no-hashes --no-emit-project -o "$RUNNER_TEMP/requirements.txt"
+          uvx pip-audit --requirement "$RUNNER_TEMP/requirements.txt" --no-deps --disable-pip
 
   web:
-    name: Web typecheck, lint & build
+    name: Web format, lint, typecheck, tests, build & audit
     runs-on: ubuntu-latest
+    outputs:
+      format: ${{ steps.format.outcome }}
+      lint: ${{ steps.lint.outcome }}
+      typecheck: ${{ steps.typecheck.outcome }}
+      tests: ${{ steps.tests.outcome }}
+      build: ${{ steps.build.outcome }}
+      audit: ${{ steps.audit.outcome }}
+      tests_total: ${{ steps.counts.outputs.total }}
+      tests_passed: ${{ steps.counts.outputs.passed }}
+      tests_failed: ${{ steps.counts.outputs.failed }}
+      tests_skipped: ${{ steps.counts.outputs.skipped }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -32,10 +81,43 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @infinite-bookshelf/web typecheck
-      - run: pnpm --filter @infinite-bookshelf/web lint
-      - run: pnpm build
+      - id: deps
+        run: pnpm install --frozen-lockfile
+      - id: format
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: pnpm exec prettier --check .
+      - id: lint
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: pnpm --filter @infinite-bookshelf/web lint
+      - id: typecheck
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: pnpm --filter @infinite-bookshelf/web typecheck
+      - id: tests
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        working-directory: web
+        run: pnpm exec vitest run --reporter=default --reporter=json --outputFile.json=vitest.json
+      - id: counts
+        if: ${{ !cancelled() && hashFiles('web/vitest.json') != '' }}
+        working-directory: web
+        run: |
+          node -e '
+            const r = require("./vitest.json")
+            const skipped = r.numPendingTests + r.numTodoTests
+            console.log(`total=${r.numTotalTests}\npassed=${r.numPassedTests}\nfailed=${r.numFailedTests}\nskipped=${skipped}`)
+          ' >> "$GITHUB_OUTPUT"
+      - id: build
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: pnpm build
+      - if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+          retention-days: 14
+      - id: audit
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        # Production dependencies only: what ships to the browser
+        run: pnpm audit --prod
 
   image:
     name: Docker image
@@ -44,6 +126,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      pushed: ${{ github.event_name != 'pull_request' }}
+      name: ghcr.io/${{ github.repository_owner }}/infinite-bookshelf
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -69,3 +154,40 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  report:
+    name: CI report
+    needs: [api, web, image]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+      - name: Write the summary
+        env:
+          SHA: ${{ github.sha }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          API_FORMAT: ${{ needs.api.outputs.format }}
+          API_LINT: ${{ needs.api.outputs.lint }}
+          API_TESTS: ${{ needs.api.outputs.tests }}
+          API_AUDIT: ${{ needs.api.outputs.audit }}
+          API_TESTS_TOTAL: ${{ needs.api.outputs.tests_total }}
+          API_TESTS_PASSED: ${{ needs.api.outputs.tests_passed }}
+          API_TESTS_FAILED: ${{ needs.api.outputs.tests_failed }}
+          API_TESTS_SKIPPED: ${{ needs.api.outputs.tests_skipped }}
+          WEB_FORMAT: ${{ needs.web.outputs.format }}
+          WEB_LINT: ${{ needs.web.outputs.lint }}
+          WEB_TYPECHECK: ${{ needs.web.outputs.typecheck }}
+          WEB_TESTS: ${{ needs.web.outputs.tests }}
+          WEB_BUILD: ${{ needs.web.outputs.build }}
+          WEB_AUDIT: ${{ needs.web.outputs.audit }}
+          WEB_TESTS_TOTAL: ${{ needs.web.outputs.tests_total }}
+          WEB_TESTS_PASSED: ${{ needs.web.outputs.tests_passed }}
+          WEB_TESTS_FAILED: ${{ needs.web.outputs.tests_failed }}
+          WEB_TESTS_SKIPPED: ${{ needs.web.outputs.tests_skipped }}
+          IMAGE: ${{ needs.image.result }}
+          IMAGE_PUSHED: ${{ needs.image.outputs.pushed }}
+          IMAGE_NAME: ${{ needs.image.outputs.name }}
+        run: python3 .github/scripts/ci_summary.py >> "$GITHUB_STEP_SUMMARY"

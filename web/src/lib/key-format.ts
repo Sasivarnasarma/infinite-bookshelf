@@ -53,7 +53,11 @@ export function explainKeyError(error: Pick<ApiError, 'code' | 'message'>, provi
       return { text: 'This key is out of quota or rate-limited right now. Check your plan or billing, or try again later.', link: keyPage, mayStillWork: true }
     case 'connection':
     case 'offline':
-      return { text: provider.custom ? `Couldn't reach ${provider.name}. Check the base URL and your connection.` : `Couldn't reach ${provider.name}. Check your connection and try again.` }
+      return {
+        text: provider.custom
+          ? `Couldn't reach ${provider.name}. Check the base URL and your connection.`
+          : `Couldn't reach ${provider.name}. Check your connection and try again.`,
+      }
     case 'endpoint_not_allowed':
       return { text: error.message || 'This server doesn’t allow that address.' }
     case 'rate_limited':

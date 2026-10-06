@@ -3,7 +3,8 @@ Agent to stream detailed chapter section content with rate limit throttling
 """
 
 import time
-from typing import Any, Dict, Generator, List, Optional
+from collections.abc import Generator
+from typing import Any
 
 from ..client import chat_completion
 from ..errors import classify_api_error
@@ -19,10 +20,10 @@ def build_section_messages(
     book_title: str = "",
     outline: str = "",
     context: str = "",
-    target_words: Optional[int] = None,
-    revision_note: Optional[str] = None,
+    target_words: int | None = None,
+    revision_note: str | None = None,
     previous_text: str = "",
-) -> List[Dict[str, str]]:
+) -> list[dict[str, str]]:
     """Builds the chat messages for one section. `revision_note` (even "") marks a rewrite."""
     book = f'the book "{book_title}"' if book_title else "a book"
     system = [
@@ -104,7 +105,7 @@ def generate_section(
             if getattr(chunk, "usage", None):
                 usage = chunk.usage
     except Exception as e:
-        raise classify_api_error(e, f"Error streaming section '{prompt}'")
+        raise classify_api_error(e, f"Error streaming section '{prompt}'") from None
 
     end_time = time.time()
     first_token_time = first_token_time or end_time

@@ -415,7 +415,17 @@ export interface ModelOption extends ModelRef {
 export function modelOptions(providers: ProviderInfo[]): ModelOption[] {
   return providers
     .filter((p) => p.status === 'ready')
-    .flatMap((p) => p.models.map((model) => ({ providerId: p.id, model, providerName: p.name, baseUrl: p.baseUrl, label: `${p.name} · ${model}`, starred: p.starred.includes(model), tier: p.tiers[model] })))
+    .flatMap((p) =>
+      p.models.map((model) => ({
+        providerId: p.id,
+        model,
+        providerName: p.name,
+        baseUrl: p.baseUrl,
+        label: `${p.name} · ${model}`,
+        starred: p.starred.includes(model),
+        tier: p.tiers[model],
+      })),
+    )
 }
 
 export function sameRef(a?: ModelRef | null, b?: ModelRef | null): boolean {

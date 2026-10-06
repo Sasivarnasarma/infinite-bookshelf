@@ -29,42 +29,42 @@ function scrollToNode(key: string) {
 function TocList({ book, live, onPick }: { book: Book; live?: LiveRun; onPick?: () => void }) {
   const nodes = outlineNodes(book.outline)
   return (
-      <ol className="grid gap-0.5">
-        {nodes.map((node) => {
-          const done = Boolean(book.sections[node.key])
-          const current = live?.sectionKey === node.key
-          return (
-            <li key={node.key} style={{ paddingLeft: `${(node.depth - 1) * 0.85}rem` }}>
-              <a
-                href={`#${anchor(node.key)}`}
-                onClick={(e) => {
-                  e.preventDefault()
-                  onPick?.()
-                  // After the sheet (if any) has closed, so the page can scroll
-                  requestAnimationFrame(() => scrollToNode(node.key))
-                }}
-                className={cn(
-                  'flex items-start gap-2 rounded-lg px-2 py-1.5 text-[13px] leading-snug transition-colors hover:bg-muted pointer-coarse:py-2.5 pointer-coarse:text-[15px]',
-                  !node.isSection && 'mt-2 font-semibold text-foreground',
-                  node.isSection && (done ? 'text-muted-foreground' : 'text-foreground/80'),
-                  current && 'bg-accent text-accent-foreground',
-                )}
-              >
-                {node.isSection && (
-                  <span
-                    className={cn(
-                      'mt-1.5 size-2 shrink-0 rounded-full border-[1.5px]',
-                      done ? 'border-success bg-success' : 'border-muted-foreground/40',
-                      current && 'animate-pulse-soft border-primary bg-primary',
-                    )}
-                  />
-                )}
-                <span>{node.title}</span>
-              </a>
-            </li>
-          )
-        })}
-      </ol>
+    <ol className="grid gap-0.5">
+      {nodes.map((node) => {
+        const done = Boolean(book.sections[node.key])
+        const current = live?.sectionKey === node.key
+        return (
+          <li key={node.key} style={{ paddingLeft: `${(node.depth - 1) * 0.85}rem` }}>
+            <a
+              href={`#${anchor(node.key)}`}
+              onClick={(e) => {
+                e.preventDefault()
+                onPick?.()
+                // After the sheet (if any) has closed, so the page can scroll
+                requestAnimationFrame(() => scrollToNode(node.key))
+              }}
+              className={cn(
+                'flex items-start gap-2 rounded-lg px-2 py-1.5 text-[13px] leading-snug transition-colors hover:bg-muted pointer-coarse:py-2.5 pointer-coarse:text-[15px]',
+                !node.isSection && 'mt-2 font-semibold text-foreground',
+                node.isSection && (done ? 'text-muted-foreground' : 'text-foreground/80'),
+                current && 'bg-accent text-accent-foreground',
+              )}
+            >
+              {node.isSection && (
+                <span
+                  className={cn(
+                    'mt-1.5 size-2 shrink-0 rounded-full border-[1.5px]',
+                    done ? 'border-success bg-success' : 'border-muted-foreground/40',
+                    current && 'animate-pulse-soft border-primary bg-primary',
+                  )}
+                />
+              )}
+              <span>{node.title}</span>
+            </a>
+          </li>
+        )
+      })}
+    </ol>
   )
 }
 
@@ -72,7 +72,7 @@ function TocList({ book, live, onPick }: { book: Book; live?: LiveRun; onPick?: 
 function Toc({ book, live }: { book: Book; live?: LiveRun }) {
   return (
     <nav className="sticky top-24 hidden max-h-[calc(100dvh-8rem)] overflow-y-auto pr-2 lg:block" aria-label="Contents">
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Contents</p>
+      <p className="mb-3 text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">Contents</p>
       <TocList book={book} live={live} />
     </nav>
   )
@@ -129,9 +129,15 @@ function RewriteButton({ book, node }: { book: Book; node: OutlineNode }) {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-96">
         <p className="font-display text-base font-medium">Rewrite “{node.title}”</p>
-        <p className="mb-3 mt-1 text-xs text-muted-foreground">The current version is kept until the new one is finished.</p>
-        <Textarea autoFocus value={note} onChange={(e) => setNote(e.target.value)} placeholder="What should change? e.g. Add a worked example, make it shorter…" className="min-h-20" />
-        <label htmlFor={`rewrite-model-${node.key}`} className="mb-1.5 mt-3 block text-xs font-medium text-muted-foreground">
+        <p className="mt-1 mb-3 text-xs text-muted-foreground">The current version is kept until the new one is finished.</p>
+        <Textarea
+          autoFocus
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="What should change? e.g. Add a worked example, make it shorter…"
+          className="min-h-20"
+        />
+        <label htmlFor={`rewrite-model-${node.key}`} className="mt-3 mb-1.5 block text-xs font-medium text-muted-foreground">
           Model
         </label>
         <ModelSelect id={`rewrite-model-${node.key}`} step="section" value={chosen} options={options} onChange={(ref) => ref && setModel(ref)} />
@@ -171,7 +177,23 @@ function CopyButton({ text }: { text: string }) {
 
 const HEADING_SPACE = { 1: 'mt-4', 2: 'mt-12', 3: 'mt-10' } as const
 
-const Section = memo(function Section({ book, node, liveText, isLive, rewriting, canEdit, textSize }: { book: Book; node: OutlineNode; liveText?: string; isLive: boolean; rewriting: boolean; canEdit: boolean; textSize: string }) {
+const Section = memo(function Section({
+  book,
+  node,
+  liveText,
+  isLive,
+  rewriting,
+  canEdit,
+  textSize,
+}: {
+  book: Book
+  node: OutlineNode
+  liveText?: string
+  isLive: boolean
+  rewriting: boolean
+  canEdit: boolean
+  textSize: string
+}) {
   const saved = book.sections[node.key]?.text
   const writtenBy = book.sections[node.key]?.model
   const heading = HEADING_SPACE[Math.min(node.depth, 3) as 1 | 2 | 3]
@@ -181,7 +203,14 @@ const Section = memo(function Section({ book, node, liveText, isLive, rewriting,
     <section id={anchor(node.key)} className="group scroll-mt-24">
       {node.depth === 1 && <div className="bg-brand mt-16 h-px w-16 opacity-60" />}
       <div className={cn('flex items-baseline gap-3', heading)}>
-        <h2 className={cn('font-display font-medium tracking-tight [text-wrap:balance]', node.depth === 1 ? 'text-2xl sm:text-3xl' : node.depth === 2 ? 'text-xl sm:text-2xl' : 'text-lg sm:text-xl')}>{node.title}</h2>
+        <h2
+          className={cn(
+            'font-display font-medium tracking-tight text-balance',
+            node.depth === 1 ? 'text-2xl sm:text-3xl' : node.depth === 2 ? 'text-xl sm:text-2xl' : 'text-lg sm:text-xl',
+          )}
+        >
+          {node.title}
+        </h2>
         {isLive && (
           <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
             <Loader2 className="size-3 animate-spin" /> {rewriting ? 'Rewriting' : 'Writing'}
@@ -204,14 +233,18 @@ const Section = memo(function Section({ book, node, liveText, isLive, rewriting,
             <Markdown text={saved} className={textSize} />
             {canEdit && (
               <div className="mt-2 flex items-center justify-end gap-1 opacity-100 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:focus-within:opacity-100">
-                {writtenBy && <span className="mr-auto truncate text-xs text-muted-foreground" title="The model that wrote this section">Written by {writtenBy.model}</span>}
+                {writtenBy && (
+                  <span className="mr-auto truncate text-xs text-muted-foreground" title="The model that wrote this section">
+                    Written by {writtenBy.model}
+                  </span>
+                )}
                 <CopyButton text={saved} />
                 <RewriteButton book={book} node={node} />
               </div>
             )}
           </>
         ) : (
-          <p className="text-sm italic text-muted-foreground/70">{node.description ? `Not written yet: ${node.description}` : 'Not written yet'}</p>
+          <p className="text-sm text-muted-foreground/70 italic">{node.description ? `Not written yet: ${node.description}` : 'Not written yet'}</p>
         )}
       </div>
     </section>
@@ -236,8 +269,10 @@ function NextChapterCard({ book }: { book: Book }) {
           <BookOpenCheck className="size-5" />
         </span>
         <div className="grid min-w-0 gap-1">
-          <p className="font-display text-lg font-medium leading-snug">Read it over before the next chapter</p>
-          <p className="text-sm text-muted-foreground">Rewrite any section, or pick a different model. Up next: chapter {next.number}, “{next.title}”.</p>
+          <p className="font-display text-lg leading-snug font-medium">Read it over before the next chapter</p>
+          <p className="text-sm text-muted-foreground">
+            Rewrite any section, or pick a different model. Up next: chapter {next.number}, “{next.title}”.
+          </p>
         </div>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
@@ -245,7 +280,13 @@ function NextChapterCard({ book }: { book: Book }) {
           <label htmlFor="next-chapter-model" className="text-xs font-medium text-muted-foreground">
             Model for chapter {next.number}
           </label>
-          <ModelSelect id="next-chapter-model" step="section" value={book.models.section} options={options} onChange={(ref) => ref && void updateBook(book.id, (b) => ({ models: { ...b.models, section: ref } }))} />
+          <ModelSelect
+            id="next-chapter-model"
+            step="section"
+            value={book.models.section}
+            options={options}
+            onChange={(ref) => ref && void updateBook(book.id, (b) => ({ models: { ...b.models, section: ref } }))}
+          />
         </div>
         <Button disabled={unavailable} onClick={() => void writeBook(book.id)}>
           <Play /> Write chapter {next.number}
@@ -300,21 +341,36 @@ export function Reader({ book }: { book: Book }) {
   return (
     <div className="grid gap-10 lg:grid-cols-[15rem_1fr]">
       <Toc book={book} live={live} />
-      <article className="min-w-0 max-w-[44rem]">
+      <article className="max-w-176 min-w-0">
         {nodes.map((node) => (
           <Fragment key={node.key}>
             {waitingFor && node.depth === 1 && node.title === waitingFor && <NextChapterCard book={book} />}
             {node.isSection ? (
-              <Section book={book} node={node} isLive={live?.sectionKey === node.key} liveText={live?.sectionKey === node.key ? live.text : undefined} rewriting={Boolean(live?.rewriting)} canEdit={canEdit} textSize={READING_SIZE[size]} />
+              <Section
+                book={book}
+                node={node}
+                isLive={live?.sectionKey === node.key}
+                liveText={live?.sectionKey === node.key ? live.text : undefined}
+                rewriting={Boolean(live?.rewriting)}
+                canEdit={canEdit}
+                textSize={READING_SIZE[size]}
+              />
             ) : (
               <div id={anchor(node.key)} className="scroll-mt-24">
                 {node.depth === 1 && <div className="bg-brand mt-16 h-px w-16 opacity-60" />}
-                <h2 className={cn('font-display font-medium tracking-tight [text-wrap:balance]', node.depth === 1 ? 'mt-4 text-2xl sm:text-3xl' : 'mt-10 text-xl sm:text-2xl')}>{node.title}</h2>
+                <h2
+                  className={cn(
+                    'font-display font-medium tracking-tight text-balance',
+                    node.depth === 1 ? 'mt-4 text-2xl sm:text-3xl' : 'mt-10 text-xl sm:text-2xl',
+                  )}
+                >
+                  {node.title}
+                </h2>
               </div>
             )}
           </Fragment>
         ))}
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center gap-2 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] [&>*]:pointer-events-auto">
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center gap-2 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] *:pointer-events-auto">
           <MobileToc book={book} live={live} />
           <AnimatePresence>
             {live && !follow && (

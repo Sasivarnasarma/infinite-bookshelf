@@ -47,7 +47,12 @@ def test_section_messages_include_outline_context_and_length():
     system, user = (
         m["content"]
         for m in build_section_messages(
-            "Ch 2 > Intro: two", "Be practical", book_title="My Book", outline="- outline", context="- earlier", target_words=1000
+            "Ch 2 > Intro: two",
+            "Be practical",
+            book_title="My Book",
+            outline="- outline",
+            context="- earlier",
+            target_words=1000,
         )
     )
     assert '"My Book"' in system and "about 1000 words" in system

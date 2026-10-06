@@ -57,10 +57,10 @@ api/src/infinite_bookshelf/
 
 Long operations respond with Server-Sent Events over a POST request:
 
-| Endpoint | Events |
-|---|---|
-| `/api/outline` | `stage` → `outline` → `stage` → `title` → `stats` → `done` |
-| `/api/sections/stream` | `start` → `delta`* → `stats` → `done` |
+| Endpoint               | Events                                                     |
+| ---------------------- | ---------------------------------------------------------- |
+| `/api/outline`         | `stage` → `outline` → `stage` → `title` → `stats` → `done` |
+| `/api/sections/stream` | `start` → `delta`* → `stats` → `done`                      |
 
 Either may end with an `error` event (`{code, title, message, hint}`, keys scrubbed). The engine's
 generators are synchronous; `streaming.py` runs each step in a worker thread, and when the client

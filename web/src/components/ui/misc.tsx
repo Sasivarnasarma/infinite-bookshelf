@@ -3,7 +3,17 @@ import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-export function Badge({ className, tone = 'neutral', children, pulse }: { className?: string; tone?: 'neutral' | 'primary' | 'success' | 'warning' | 'danger' | 'info'; children: React.ReactNode; pulse?: boolean }) {
+export function Badge({
+  className,
+  tone = 'neutral',
+  children,
+  pulse,
+}: {
+  className?: string
+  tone?: 'neutral' | 'primary' | 'success' | 'warning' | 'danger' | 'info'
+  children: React.ReactNode
+  pulse?: boolean
+}) {
   const tones = {
     neutral: 'bg-muted text-muted-foreground',
     primary: 'bg-accent text-accent-foreground',
@@ -23,8 +33,19 @@ export function Badge({ className, tone = 'neutral', children, pulse }: { classN
 /** Animated progress bar with the brand accent. */
 export function ProgressBar({ value, className }: { value: number; className?: string }) {
   return (
-    <div className={cn('h-1.5 w-full overflow-hidden rounded-full bg-muted', className)} role="progressbar" aria-valuenow={Math.round(value * 100)} aria-valuemin={0} aria-valuemax={100}>
-      <motion.div className="bg-brand h-full rounded-full" initial={false} animate={{ width: `${Math.max(value * 100, value > 0 ? 3 : 0)}%` }} transition={{ type: 'spring', stiffness: 120, damping: 24 }} />
+    <div
+      className={cn('h-1.5 w-full overflow-hidden rounded-full bg-muted', className)}
+      role="progressbar"
+      aria-valuenow={Math.round(value * 100)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
+      <motion.div
+        className="bg-brand h-full rounded-full"
+        initial={false}
+        animate={{ width: `${Math.max(value * 100, value > 0 ? 3 : 0)}%` }}
+        transition={{ type: 'spring', stiffness: 120, damping: 24 }}
+      />
     </div>
   )
 }

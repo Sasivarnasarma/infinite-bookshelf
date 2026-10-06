@@ -30,7 +30,9 @@ class FakeClient:
         system = kwargs["messages"][0]["content"]
         if kwargs.get("stream"):
             words = ["Hello ", "from ", "the ", "section."]
-            chunks = [SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=w))], usage=None) for w in words]
+            chunks = [
+                SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=w))], usage=None) for w in words
+            ]
             usage = SimpleNamespace(prompt_tokens=10, completion_tokens=4)
             return iter(chunks + [SimpleNamespace(choices=[], usage=usage)])
         content = json.dumps(OUTLINE) if "valid JSON" in system else "A Great Title"
@@ -108,7 +110,9 @@ def test_unknown_preset_is_a_clear_error(clients):
 
 
 def test_outline_streams_stages_outline_and_title(clients):
-    response = make_client().post("/api/outline", json={"outline_model": choice(), "title_model": choice(), "options": OPTIONS})
+    response = make_client().post(
+        "/api/outline", json={"outline_model": choice(), "title_model": choice(), "options": OPTIONS}
+    )
     events = sse(response)
     names = [name for name, _ in events]
     assert names == ["stage", "outline", "stage", "title", "stats", "done"]
@@ -123,7 +127,11 @@ def section_body(**overrides):
     body = {
         "model": choice(),
         "options": OPTIONS,
-        "book": {"title": "Book", "structure": OUTLINE, "written": [{"path": ["Chapter 1"], "text": "First chapter text."}]},
+        "book": {
+            "title": "Book",
+            "structure": OUTLINE,
+            "written": [{"path": ["Chapter 1"], "text": "First chapter text."}],
+        },
         "path": ["Chapter 2", "Intro"],
     }
     body.update(overrides)
@@ -182,7 +190,9 @@ def test_validation_errors_never_echo_the_request():
 
 @pytest.fixture
 def public_dns(monkeypatch):
-    monkeypatch.setattr(security.socket, "getaddrinfo", lambda host, *a, **k: [(None, None, None, "", ("93.184.216.34", 443))])
+    monkeypatch.setattr(
+        security.socket, "getaddrinfo", lambda host, *a, **k: [(None, None, None, "", ("93.184.216.34", 443))]
+    )
 
 
 @pytest.mark.parametrize(
@@ -213,7 +223,9 @@ def test_public_https_endpoints_are_allowed(clients, public_dns):
 def test_self_hosters_can_reach_local_servers(clients):
     client = make_client(allow_private_endpoints=True)
     assert client.post("/api/models", json={"provider": {"base_url": "http://localhost:1234/v1"}}).status_code == 200
-    ollama = client.post("/api/models", json={"provider": {"preset": "ollama", "base_url": "http://192.168.1.20:11434/v1"}})
+    ollama = client.post(
+        "/api/models", json={"provider": {"preset": "ollama", "base_url": "http://192.168.1.20:11434/v1"}}
+    )
     assert ollama.status_code == 200 and clients[-1].base_url == "http://192.168.1.20:11434/v1"
 
 
@@ -223,7 +235,9 @@ def test_local_preset_is_blocked_on_public_servers(clients):
 
 
 def test_custom_endpoints_can_be_disabled(clients, public_dns):
-    response = make_client(allow_custom_endpoints=False).post("/api/models", json={"provider": {"base_url": "https://llm.example.com/v1"}})
+    response = make_client(allow_custom_endpoints=False).post(
+        "/api/models", json={"provider": {"base_url": "https://llm.example.com/v1"}}
+    )
     assert "only allows the built-in providers" in response.json()["error"]["message"]
 
 
@@ -232,7 +246,10 @@ def test_custom_endpoints_can_be_disabled(clients, public_dns):
 
 def test_rate_limit(clients):
     client = make_client(rate_limit_per_minute=2)
-    statuses = [client.post("/api/models", json={"provider": {"preset": "openai", "api_key": "k"}}).status_code for _ in range(3)]
+    statuses = [
+        client.post("/api/models", json={"provider": {"preset": "openai", "api_key": "k"}}).status_code
+        for _ in range(3)
+    ]
     assert statuses == [200, 200, 429]
     assert client.get("/api/health").status_code == 200  # Only generation endpoints are limited
 
@@ -298,7 +315,13 @@ def test_docs_are_served_locally_under_the_strict_csp():
     # Scripts, styles, and fonts all come from this server, never a CDN
     for url in re.findall(r'<(?:script|link)[^>]+(?:src|href)="([^"]+)"', page.text):
         assert url.startswith("/api/docs/"), url
-    for asset in ("vendor/swagger-ui-bundle.js", "vendor/swagger-ui.css", "static/docs.js", "static/docs.css", "static/fonts/geist-latin-wght-normal.woff2"):
+    for asset in (
+        "vendor/swagger-ui-bundle.js",
+        "vendor/swagger-ui.css",
+        "static/docs.js",
+        "static/docs.css",
+        "static/fonts/geist-latin-wght-normal.woff2",
+    ):
         assert client.get(f"/api/docs/{asset}").status_code == 200
 
 

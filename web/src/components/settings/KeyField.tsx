@@ -7,7 +7,8 @@ import { cleanKey, detectProvider, explainKeyError } from '@/lib/key-format'
 import type { ApiError } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
-export type KeyCheck = { state: 'idle' } | { state: 'checking' } | { state: 'ok'; models?: number } | { state: 'error'; error: Pick<ApiError, 'code' | 'message'> }
+export type KeyCheck =
+  { state: 'idle' } | { state: 'checking' } | { state: 'ok'; models?: number } | { state: 'error'; error: Pick<ApiError, 'code' | 'message'> }
 
 interface Props {
   id?: string
@@ -63,7 +64,12 @@ export function KeyField({ id, provider, value, onChange, check, providerNames, 
             aria-label={label ?? `${provider.name} API key`}
             aria-invalid={check.state === 'error' || undefined}
           />
-          <button type="button" onClick={() => setShow((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:text-foreground pointer-coarse:right-1 pointer-coarse:p-3" aria-label={show ? 'Hide key' : 'Show key'}>
+          <button
+            type="button"
+            onClick={() => setShow((s) => !s)}
+            className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:text-foreground pointer-coarse:right-1 pointer-coarse:p-3"
+            aria-label={show ? 'Hide key' : 'Show key'}
+          >
             {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </button>
         </div>
@@ -119,7 +125,12 @@ export function KeyAdviceLine({ error, provider, className }: { error: Pick<ApiE
         {advice.link && (
           <>
             {' '}
-            <a href={advice.link.href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 font-medium underline underline-offset-2 hover:no-underline">
+            <a
+              href={advice.link.href}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-0.5 font-medium underline underline-offset-2 hover:no-underline"
+            >
               {advice.link.label} <ExternalLink className="size-3" />
             </a>
           </>

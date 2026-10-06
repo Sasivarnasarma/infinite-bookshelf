@@ -65,5 +65,11 @@ export function download(filename: string, data: BlobPart, type: string) {
 }
 
 export function safeFilename(title: string): string {
-  return title.replace(/[^\p{L}\p{N} _-]/gu, '').trim().replace(/\s+/g, '_').slice(0, 80) || 'book'
+  return (
+    title
+      .replace(/[^\p{L}\p{N} _-]/gu, '')
+      .trim()
+      .replace(/\s+/g, '_')
+      .slice(0, 80) || 'book'
+  )
 }

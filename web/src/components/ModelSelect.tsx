@@ -36,7 +36,13 @@ function useGroups(options: ModelOption[], query: string, step: Step | undefined
     const matches = (o: ModelOption) => !q || o.label.toLowerCase().includes(q)
     // Rows are numbered in display order, for keyboard navigation
     let next = 0
-    const row = (group: string, option: ModelOption, showProvider: boolean): Row => ({ index: next++, kind: 'model', key: `${group}:${option.providerId}:${option.model}`, option, showProvider })
+    const row = (group: string, option: ModelOption, showProvider: boolean): Row => ({
+      index: next++,
+      kind: 'model',
+      key: `${group}:${option.providerId}:${option.model}`,
+      option,
+      showProvider,
+    })
     const groups: Group[] = []
     if (emptyLabel && !q) groups.push({ title: '', rows: [{ index: next++, kind: 'empty', key: 'empty' }] })
     if (!q && step) {
@@ -44,7 +50,8 @@ function useGroups(options: ModelOption[], query: string, step: Step | undefined
       if (picks.length) groups.push({ title: `Recommended for ${STEP_NAMES[step]}`, rows: picks.map((o) => row('rec', o, true)) })
     }
     const starred = options.filter((o) => o.starred && matches(o))
-    if (starred.length) groups.push({ title: 'Starred', icon: <Star className="size-3.5 fill-primary text-primary" />, rows: starred.map((o) => row('star', o, true)) })
+    if (starred.length)
+      groups.push({ title: 'Starred', icon: <Star className="size-3.5 fill-primary text-primary" />, rows: starred.map((o) => row('star', o, true)) })
     if (!q) {
       const used = (recent ?? []).map((r) => options.find((o) => sameRef(o, r))).filter((o): o is ModelOption => Boolean(o))
       if (used.length) groups.push({ title: 'Recently used', rows: used.map((o) => row('recent', o, true)) })
@@ -52,14 +59,33 @@ function useGroups(options: ModelOption[], query: string, step: Step | undefined
     const byProvider = new Map<string, ModelOption[]>()
     for (const o of options) if (matches(o)) byProvider.set(o.providerName, [...(byProvider.get(o.providerName) ?? []), o])
     for (const [name, items] of byProvider) {
-      groups.push({ title: name, providerId: items[0].providerId, icon: <ProviderIcon id={items[0].providerId} baseUrl={items[0].baseUrl} className="text-sm" />, rows: items.map((o) => row(name, o, false)) })
+      groups.push({
+        title: name,
+        providerId: items[0].providerId,
+        icon: <ProviderIcon id={items[0].providerId} baseUrl={items[0].baseUrl} className="text-sm" />,
+        rows: items.map((o) => row(name, o, false)),
+      })
     }
     return groups
   }, [options, query, step, emptyLabel, recent])
 }
 
 /** The searchable list, shared by the popover (desktop) and the sheet (phones). */
-function Picker({ value, options, step, emptyLabel, onPick, autoFocus }: { value: ModelRef | null; options: ModelOption[]; step?: Step; emptyLabel?: string; onPick: (ref: ModelRef | null) => void; autoFocus: boolean }) {
+function Picker({
+  value,
+  options,
+  step,
+  emptyLabel,
+  onPick,
+  autoFocus,
+}: {
+  value: ModelRef | null
+  options: ModelOption[]
+  step?: Step
+  emptyLabel?: string
+  onPick: (ref: ModelRef | null) => void
+  autoFocus: boolean
+}) {
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const list = useRef<HTMLDivElement>(null)
@@ -117,11 +143,16 @@ function Picker({ value, options, step, emptyLabel, onPick, autoFocus }: { value
         {groups.map((group) => (
           <div key={group.title || 'top'} role="group" aria-label={group.title || undefined} className="mb-1">
             {group.title && (
-              <p className="flex items-center gap-2 px-2.5 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="flex items-center gap-2 px-2.5 pt-2 pb-1 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
                 {group.icon}
                 {group.title}
                 {group.providerId && tones[group.providerId] && (tones[group.providerId].tone === 'warning' || tones[group.providerId].tone === 'danger') && (
-                  <span className={cn('ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] normal-case tracking-normal', tones[group.providerId].tone === 'danger' ? 'bg-danger/10 text-danger' : 'bg-warning/15 text-warning')}>
+                  <span
+                    className={cn(
+                      'ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] tracking-normal normal-case',
+                      tones[group.providerId].tone === 'danger' ? 'bg-danger/10 text-danger' : 'bg-warning/15 text-warning',
+                    )}
+                  >
                     <TriangleAlert className="size-3" /> {tones[group.providerId].text}
                   </span>
                 )}
@@ -132,7 +163,16 @@ function Picker({ value, options, step, emptyLabel, onPick, autoFocus }: { value
               const isActive = i === active
               if (row.kind === 'empty') {
                 return (
-                  <div key={row.key} id={`model-row-${i}`} data-index={i} role="option" aria-selected={!value} onMouseMove={() => setActive(i)} onClick={() => choose(row)} className={cn('flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm pointer-coarse:py-3', isActive && 'bg-muted')}>
+                  <div
+                    key={row.key}
+                    id={`model-row-${i}`}
+                    data-index={i}
+                    role="option"
+                    aria-selected={!value}
+                    onMouseMove={() => setActive(i)}
+                    onClick={() => choose(row)}
+                    className={cn('flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm pointer-coarse:py-3', isActive && 'bg-muted')}
+                  >
                     <span className="text-muted-foreground">{emptyLabel}</span>
                     {!value && <Check className="ml-auto size-4 text-primary" />}
                   </div>
@@ -151,7 +191,12 @@ function Picker({ value, options, step, emptyLabel, onPick, autoFocus }: { value
                   aria-selected={selected}
                   onMouseMove={() => setActive(i)}
                   onClick={() => choose(row)}
-                  className={cn('group/row flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm pointer-coarse:py-2.5', isActive && 'bg-muted', selected && 'bg-accent/60', tone?.tone === 'danger' && 'opacity-55')}
+                  className={cn(
+                    'group/row flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm pointer-coarse:py-2.5',
+                    isActive && 'bg-muted',
+                    selected && 'bg-accent/60',
+                    tone?.tone === 'danger' && 'opacity-55',
+                  )}
                 >
                   {row.showProvider && <ProviderIcon id={o.providerId} baseUrl={o.baseUrl} className="text-base" />}
                   <span className="grid min-w-0 flex-1">
@@ -163,7 +208,12 @@ function Picker({ value, options, step, emptyLabel, onPick, autoFocus }: { value
                     )}
                   </span>
                   {warn && (
-                    <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium', tone.tone === 'danger' ? 'bg-danger/10 text-danger' : 'bg-warning/15 text-warning')}>
+                    <span
+                      className={cn(
+                        'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
+                        tone.tone === 'danger' ? 'bg-danger/10 text-danger' : 'bg-warning/15 text-warning',
+                      )}
+                    >
                       <TriangleAlert className="size-3" /> {tone.text}
                     </span>
                   )}
@@ -173,7 +223,11 @@ function Picker({ value, options, step, emptyLabel, onPick, autoFocus }: { value
                       e.stopPropagation()
                       toggleStar(o.providerId, o.model)
                     }}
-                    className={cn('shrink-0 rounded p-1 text-muted-foreground transition-opacity hover:text-primary pointer-coarse:p-2.5', !o.starred && 'pointer-fine:opacity-0 pointer-fine:group-hover/row:opacity-100', isActive && 'opacity-100')}
+                    className={cn(
+                      'shrink-0 rounded p-1 text-muted-foreground transition-opacity hover:text-primary pointer-coarse:p-2.5',
+                      !o.starred && 'pointer-fine:opacity-0 pointer-fine:group-hover/row:opacity-100',
+                      isActive && 'opacity-100',
+                    )}
                     aria-label={o.starred ? `Unstar ${o.model}` : `Star ${o.model}`}
                     aria-pressed={o.starred}
                     tabIndex={-1}
@@ -236,7 +290,10 @@ export function ModelSelect({
       disabled={disabled}
       onClick={phone ? () => setOpen(true) : undefined}
       aria-haspopup="listbox"
-      className={cn('flex h-10 w-full min-w-0 items-center gap-2 rounded-xl border border-input bg-card/70 px-3 text-left text-sm transition-colors hover:bg-muted/50 focus-visible:border-ring disabled:pointer-events-none disabled:opacity-55 pointer-coarse:h-11', className)}
+      className={cn(
+        'flex h-10 w-full min-w-0 items-center gap-2 rounded-xl border border-input bg-card/70 px-3 text-left text-sm transition-colors hover:bg-muted/50 focus-visible:border-ring disabled:pointer-events-none disabled:opacity-55 pointer-coarse:h-11',
+        className,
+      )}
     >
       {selected ? (
         <>
@@ -277,7 +334,9 @@ export function ModelSelect({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent align="start" className="w-[max(var(--radix-popover-trigger-width),22rem)] max-w-[calc(100vw-1.5rem)] p-0">{open && picker}</PopoverContent>
+      <PopoverContent align="start" className="w-[max(var(--radix-popover-trigger-width),22rem)] max-w-[calc(100vw-1.5rem)] p-0">
+        {open && picker}
+      </PopoverContent>
     </Popover>
   )
 }

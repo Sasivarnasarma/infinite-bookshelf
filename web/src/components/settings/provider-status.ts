@@ -48,5 +48,8 @@ export function providerTone(provider: ProviderInfo, byKey: Record<string, KeyHe
 export function summary(provider: ProviderInfo) {
   const keys = provider.keys.length
   const models = provider.models.length
-  return [keys ? `${keys} ${keys === 1 ? 'key' : 'keys'}` : provider.requiresKey ? 'No key yet' : 'No key needed', `${models} ${models === 1 ? 'model' : 'models'}`].join(' · ')
+  return [
+    keys ? `${keys} ${keys === 1 ? 'key' : 'keys'}` : provider.requiresKey ? 'No key yet' : 'No key needed',
+    `${models} ${models === 1 ? 'model' : 'models'}`,
+  ].join(' · ')
 }

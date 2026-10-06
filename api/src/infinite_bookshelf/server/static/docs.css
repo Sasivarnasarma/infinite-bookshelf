@@ -170,7 +170,9 @@ html.ib-docs .swagger-ui .wrapper,
   font: 500 13.5px/1 var(--sans);
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .ib-nav a:hover,
@@ -346,7 +348,10 @@ html[data-theme='dark'] .ib-theme [data-theme-icon='dark'] {
   background: var(--well);
   color: var(--muted);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, transform 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    transform 0.15s;
 }
 
 .ib-copy:hover {
@@ -376,7 +381,9 @@ html[data-theme='dark'] .ib-theme [data-theme-icon='dark'] {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
-  transition: border-color 0.2s, transform 0.2s;
+  transition:
+    border-color 0.2s,
+    transform 0.2s;
 }
 
 .ib-features li:hover {
@@ -642,7 +649,9 @@ html.ib-docs .swagger-ui .opblock {
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 html.ib-docs .swagger-ui .opblock:hover {
@@ -766,7 +775,10 @@ html.ib-docs .swagger-ui .btn {
   font-size: 13.5px;
   font-weight: 500;
   box-shadow: none;
-  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    transform 0.1s;
 }
 
 html.ib-docs .swagger-ui .btn:hover {
@@ -1316,7 +1328,6 @@ html.ib-docs .swagger-ui .response-col_links {
 .ib-jump:hover svg {
   transform: translateY(2px);
 }
-
 
 /* The overview's grid column may shrink below its widest line (the curl example scrolls instead) */
 html.ib-docs .swagger-ui .info .description {

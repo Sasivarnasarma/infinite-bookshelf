@@ -81,7 +81,13 @@ function KeyRow({ provider, apiKey, first, now }: { provider: ProviderInfo; apiK
   }
 
   return (
-    <motion.li layout="position" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }} className={cn('grid gap-2 px-3.5 py-3', !apiKey.enabled && 'opacity-60')}>
+    <motion.li
+      layout="position"
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, height: 0 }}
+      className={cn('grid gap-2 px-3.5 py-3', !apiKey.enabled && 'opacity-60')}
+    >
       <div className="flex items-center gap-2.5">
         <span className={cn('size-2 shrink-0 rounded-full', TONE_DOT[status.tone], status.tone === 'warning' && 'animate-pulse')} aria-hidden />
         {renaming ? (
@@ -97,7 +103,13 @@ function KeyRow({ provider, apiKey, first, now }: { provider: ProviderInfo; apiK
             <p className="truncate text-sm font-medium pointer-coarse:text-base">
               {apiKey.label}
               {hint && !editing && (
-                <button type="button" onClick={() => setEditing(true)} className="ml-2 rounded font-mono text-xs font-normal text-muted-foreground underline-offset-2 hover:text-foreground hover:underline pointer-coarse:py-3" title="Change this key" aria-label={`Change ${apiKey.label}`}>
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  className="ml-2 rounded font-mono text-xs font-normal text-muted-foreground underline-offset-2 hover:text-foreground hover:underline pointer-coarse:py-3"
+                  title="Change this key"
+                  aria-label={`Change ${apiKey.label}`}
+                >
                   {hint} · Change
                 </button>
               )}
@@ -142,7 +154,7 @@ function KeyRow({ provider, apiKey, first, now }: { provider: ProviderInfo; apiK
         </Menu>
       </div>
       {editing ? (
-        <div className="pl-[1.125rem]">
+        <div className="pl-4.5">
           <KeyField
             autoFocus={apiKey.hasSecret}
             provider={provider}
@@ -164,7 +176,9 @@ function KeyRow({ provider, apiKey, first, now }: { provider: ProviderInfo; apiK
       ) : (
         health &&
         health.state !== 'ok' &&
-        !(health.state === 'limited' && health.until && health.until <= now) && <KeyAdviceLine className="pl-[1.125rem] text-xs leading-relaxed" error={{ code: health.code ?? '', message: health.message }} provider={provider} />
+        !(health.state === 'limited' && health.until && health.until <= now) && (
+          <KeyAdviceLine className="pl-4.5 text-xs leading-relaxed" error={{ code: health.code ?? '', message: health.message }} provider={provider} />
+        )
       )}
     </motion.li>
   )
@@ -176,7 +190,8 @@ type Policy = 'next' | 'rotate' | 'stop'
 
 const POLICY_HINTS: Record<Policy, string> = {
   next: 'If a key is rejected, runs out of quota, hits a rate limit, or can’t use the model, the request is retried with your next key.',
-  rotate: 'Each request uses the next key in turn, spreading usage across your keys, and still moves on if one fails. Check that your provider’s terms allow this.',
+  rotate:
+    'Each request uses the next key in turn, spreading usage across your keys, and still moves on if one fails. Check that your provider’s terms allow this.',
   stop: 'Only the first key is used. If it fails, writing pauses with the error.',
 }
 
@@ -239,12 +254,33 @@ function Models({ provider }: { provider: ProviderInfo }) {
           {ordered.map((m) => {
             const starred = provider.starred.includes(m)
             return (
-              <motion.span key={m} layout initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.85 }} className={cn('inline-flex max-w-full items-center rounded-lg border py-0.5 pl-0.5 pr-1 font-mono text-xs', starred ? 'border-primary/40 bg-accent' : 'border-border bg-muted/60')}>
-                <button type="button" onClick={() => toggleStar(provider.id, m)} className="shrink-0 rounded p-1 text-muted-foreground hover:text-primary pointer-coarse:p-3" aria-label={starred ? `Unstar ${m}` : `Star ${m}`} aria-pressed={starred}>
+              <motion.span
+                key={m}
+                layout
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.85 }}
+                className={cn(
+                  'inline-flex max-w-full items-center rounded-lg border py-0.5 pr-1 pl-0.5 font-mono text-xs',
+                  starred ? 'border-primary/40 bg-accent' : 'border-border bg-muted/60',
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleStar(provider.id, m)}
+                  className="shrink-0 rounded p-1 text-muted-foreground hover:text-primary pointer-coarse:p-3"
+                  aria-label={starred ? `Unstar ${m}` : `Star ${m}`}
+                  aria-pressed={starred}
+                >
                   <Star className={cn('size-3.5', starred && 'fill-primary text-primary')} />
                 </button>
-                <span className="min-w-0 break-all py-0.5">{m}</span>
-                <button type="button" onClick={() => updateService(provider.id, { models: provider.models.filter((x) => x !== m) })} className="ml-0.5 shrink-0 rounded p-0.5 text-muted-foreground hover:bg-background hover:text-foreground pointer-coarse:p-3" aria-label={`Remove ${m}`}>
+                <span className="min-w-0 py-0.5 break-all">{m}</span>
+                <button
+                  type="button"
+                  onClick={() => updateService(provider.id, { models: provider.models.filter((x) => x !== m) })}
+                  className="ml-0.5 shrink-0 rounded p-0.5 text-muted-foreground hover:bg-background hover:text-foreground pointer-coarse:p-3"
+                  aria-label={`Remove ${m}`}
+                >
                   <X className="size-3" />
                 </button>
               </motion.span>
@@ -260,7 +296,14 @@ function Models({ provider }: { provider: ProviderInfo }) {
           add(draft)
         }}
       >
-        <Input value={draft} onChange={(e) => setDraft(e.target.value)} list={listId} placeholder={suggestions.length ? `Add a model (${suggestions.length} available)` : 'Add a model ID'} className="h-9 min-w-40 flex-1 font-mono text-xs pointer-coarse:h-11" aria-label="Model ID" />
+        <Input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          list={listId}
+          placeholder={suggestions.length ? `Add a model (${suggestions.length} available)` : 'Add a model ID'}
+          className="h-9 min-w-40 flex-1 font-mono text-xs pointer-coarse:h-11"
+          aria-label="Model ID"
+        />
         <datalist id={listId}>
           {suggestions.slice(0, 500).map((m) => (
             <option key={m} value={m} />
@@ -341,9 +384,15 @@ export function ProviderDetail({ provider, onBack, onRemoved }: { provider: Prov
   }
 
   return (
-    <motion.div key={provider.id} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }} className="surface grid grid-cols-1 gap-6 p-4 sm:p-6">
+    <motion.div
+      key={provider.id}
+      initial={{ opacity: 0, x: 8 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.2 }}
+      className="surface grid grid-cols-1 gap-6 p-4 sm:p-6"
+    >
       {onBack && (
-        <Button variant="ghost" size="sm" className="-ml-2 -mt-1 w-fit md:hidden" onClick={onBack}>
+        <Button variant="ghost" size="sm" className="-mt-1 -ml-2 w-fit md:hidden" onClick={onBack}>
           <ArrowLeft /> Your providers
         </Button>
       )}
@@ -378,7 +427,12 @@ export function ProviderDetail({ provider, onBack, onRemoved }: { provider: Prov
 
       {(provider.custom || provider.local) && (
         <Field label="Base URL" hint={provider.custom && !allowPrivate ? 'Must be a public https:// address on this server.' : undefined}>
-          <Input value={provider.baseUrl} onChange={(e) => updateService(provider.id, { baseUrl: e.target.value.trim() })} placeholder="https://api.example.com/v1" className="font-mono text-xs" />
+          <Input
+            value={provider.baseUrl}
+            onChange={(e) => updateService(provider.id, { baseUrl: e.target.value.trim() })}
+            placeholder="https://api.example.com/v1"
+            className="font-mono text-xs"
+          />
         </Field>
       )}
 
@@ -386,7 +440,12 @@ export function ProviderDetail({ provider, onBack, onRemoved }: { provider: Prov
         <div className="flex items-center justify-between gap-2">
           <Label>{provider.requiresKey ? (provider.keys.length > 1 ? 'API keys' : 'API key') : 'API key (optional)'}</Label>
           {provider.keyUrl && (
-            <a href={provider.keyUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg text-xs font-medium text-primary hover:underline pointer-coarse:-my-2 pointer-coarse:px-2 pointer-coarse:py-2.5">
+            <a
+              href={provider.keyUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded-lg text-xs font-medium text-primary hover:underline pointer-coarse:-my-2 pointer-coarse:px-2 pointer-coarse:py-2.5"
+            >
               Get a key <ExternalLink className="size-3" />
             </a>
           )}
@@ -398,7 +457,11 @@ export function ProviderDetail({ provider, onBack, onRemoved }: { provider: Prov
             ))}
           </AnimatePresence>
           <li>
-            <button type="button" onClick={() => addKey(provider.id)} className="flex w-full items-center gap-2 px-3.5 py-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground">
+            <button
+              type="button"
+              onClick={() => addKey(provider.id)}
+              className="flex w-full items-center gap-2 px-3.5 py-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            >
               <Plus className="size-4" /> {provider.keys.length ? 'Add another key' : 'Add a key'}
             </button>
           </li>

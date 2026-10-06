@@ -11,10 +11,11 @@ written sections, and the API rebuilds a Book to work out the context for the ne
 
 import json
 import re
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Set, Tuple
+from typing import Any
 
-Path = Tuple[str, ...]
+Path = tuple[str, ...]
 
 
 def section_key(path: Sequence[str]) -> str:
@@ -41,7 +42,7 @@ class OutlineNode:
         return len(self.path)
 
 
-def _walk(structure: Dict[str, Any], prefix: Path = ()) -> Iterator[OutlineNode]:
+def _walk(structure: dict[str, Any], prefix: Path = ()) -> Iterator[OutlineNode]:
     for title, value in structure.items():
         path = prefix + (title,)
         if isinstance(value, dict) and value:
@@ -51,7 +52,7 @@ def _walk(structure: Dict[str, Any], prefix: Path = ()) -> Iterator[OutlineNode]
             yield OutlineNode(path, value if isinstance(value, str) else "", is_leaf=True)
 
 
-def outline_nodes(structure: Dict[str, Any]) -> List[OutlineNode]:
+def outline_nodes(structure: dict[str, Any]) -> list[OutlineNode]:
     return list(_walk(structure))
 
 
@@ -59,29 +60,31 @@ class Book:
     def __init__(
         self,
         book_title: str,
-        structure: Dict[str, Any],
-        contents: Optional[Dict[str, str]] = None,
-        completed: Optional[Set[str]] = None,
+        structure: dict[str, Any],
+        contents: dict[str, str] | None = None,
+        completed: set[str] | None = None,
     ):
         self.book_title = book_title
         self.structure = structure
-        self.nodes: List[OutlineNode] = outline_nodes(structure)
-        self.sections: List[OutlineNode] = [n for n in self.nodes if n.is_leaf]
+        self.nodes: list[OutlineNode] = outline_nodes(structure)
+        self.sections: list[OutlineNode] = [n for n in self.nodes if n.is_leaf]
 
         keys = {n.key for n in self.sections}
-        self.contents: Dict[str, str] = {k: "" for k in keys}
+        self.contents: dict[str, str] = {k: "" for k in keys}
         for k, text in (contents or {}).items():
             if k in keys:
                 self.contents[k] = text
-        self.completed: Set[str] = {k for k in (completed or set()) if k in keys}
+        self.completed: set[str] = {k for k in (completed or set()) if k in keys}
 
     @classmethod
-    def from_written(cls, book_title: str, structure: Dict[str, Any], written: Iterable[Tuple[Sequence[str], str]]) -> "Book":
+    def from_written(
+        cls, book_title: str, structure: dict[str, Any], written: Iterable[tuple[Sequence[str], str]]
+    ) -> "Book":
         """Builds a book from (path, text) pairs of finished sections; unknown paths are ignored."""
         contents = {section_key(path): text for path, text in written}
         return cls(book_title, structure, contents=contents, completed=set(contents))
 
-    def outline_text(self, current_key: Optional[str] = None) -> str:
+    def outline_text(self, current_key: str | None = None) -> str:
         """The outline as an indented list, with the section being written marked."""
         lines = []
         for node in self.nodes:
@@ -111,7 +114,9 @@ class Book:
 
         digests = [_digest(n.path, self.contents[n.key]) for n in earlier[:-1]]
         last = earlier[-1]
-        last_entry = f"Previous section, {' > '.join(last.path)}, ended with:\n{_tail(self.contents[last.key], tail_chars)}"
+        last_entry = (
+            f"Previous section, {' > '.join(last.path)}, ended with:\n{_tail(self.contents[last.key], tail_chars)}"
+        )
 
         while digests and len("\n".join(digests)) + len(last_entry) > max_chars:
             digests.pop(0)

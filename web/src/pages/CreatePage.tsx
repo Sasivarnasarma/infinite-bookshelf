@@ -104,8 +104,13 @@ function Composer({ initialTopic }: { initialTopic: string }) {
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, type: 'spring', stiffness: 160, damping: 22 }} className="surface spotlight relative overflow-hidden p-2 shadow-[0_30px_80px_-30px_rgb(0_0_0/0.35)]">
-      <div className="bg-brand absolute inset-x-0 top-0 h-[3px]" />
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.15, type: 'spring', stiffness: 160, damping: 22 }}
+      className="surface spotlight relative overflow-hidden p-2 shadow-[0_30px_80px_-30px_rgb(0_0_0/0.35)]"
+    >
+      <div className="bg-brand absolute inset-x-0 top-0 h-0.75" />
       <div className="rounded-[0.9rem] bg-muted/40 p-4 sm:p-5">
         <label htmlFor="topic" className="mb-2 flex items-center gap-2 text-sm font-medium">
           <Sparkles className="size-4 text-primary" /> What should your book be about?
@@ -120,13 +125,18 @@ function Composer({ initialTopic }: { initialTopic: string }) {
           rows={2}
           maxLength={500}
           placeholder={placeholder}
-          className="w-full resize-none bg-transparent font-display text-xl font-medium leading-snug tracking-tight outline-none placeholder:text-muted-foreground/40 sm:text-[26px]"
+          className="w-full resize-none bg-transparent font-display text-xl leading-snug font-medium tracking-tight outline-none placeholder:text-muted-foreground/40 sm:text-[26px]"
         />
         <AnimatePresence>
           {!topic && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, height: 0 }} className="mt-2 flex flex-wrap gap-2">
               {EXAMPLES.slice(0, 4).map((example) => (
-                <button key={example} type="button" onClick={() => setTopic(example)} className="rounded-full border border-border bg-card px-3 py-1 text-left text-xs text-muted-foreground transition-all hover:-translate-y-px hover:border-primary/50 hover:text-foreground pointer-coarse:px-3.5 pointer-coarse:py-3">
+                <button
+                  key={example}
+                  type="button"
+                  onClick={() => setTopic(example)}
+                  className="rounded-full border border-border bg-card px-3 py-1 text-left text-xs text-muted-foreground transition-all hover:-translate-y-px hover:border-primary/50 hover:text-foreground pointer-coarse:px-3.5 pointer-coarse:py-3"
+                >
                   {example}
                 </button>
               ))}
@@ -154,7 +164,13 @@ function Composer({ initialTopic }: { initialTopic: string }) {
             <div className={cn('grid gap-3', perStep ? 'sm:grid-cols-3' : 'sm:grid-cols-[1fr_auto]')}>
               {(perStep ? (['outline', 'title', 'section'] as Step[]) : (['section'] as Step[])).map((step) => (
                 <Field key={step} label={perStep ? `${STEP_LABELS[step]} model` : 'Model'} htmlFor={`model-${step}`}>
-                  <ModelSelect id={`model-${step}`} step={step} value={resolved[step]} options={options} onChange={(ref) => ref && setModels((m) => ({ ...m, [step]: ref }))} />
+                  <ModelSelect
+                    id={`model-${step}`}
+                    step={step}
+                    value={resolved[step]}
+                    options={options}
+                    onChange={(ref) => ref && setModels((m) => ({ ...m, [step]: ref }))}
+                  />
                 </Field>
               ))}
               {!perStep && (
@@ -162,7 +178,11 @@ function Composer({ initialTopic }: { initialTopic: string }) {
                   <Segmented<SectionLength>
                     value={sectionLength}
                     onChange={setSectionLength}
-                    options={(['short', 'medium', 'long'] as SectionLength[]).map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1), hint: `About ${config?.section_lengths[v] ?? ''} words per section` }))}
+                    options={(['short', 'medium', 'long'] as SectionLength[]).map((v) => ({
+                      value: v,
+                      label: v[0].toUpperCase() + v.slice(1),
+                      hint: `About ${config?.section_lengths[v] ?? ''} words per section`,
+                    }))}
                   />
                 </Field>
               )}
@@ -180,7 +200,12 @@ function Composer({ initialTopic }: { initialTopic: string }) {
               {perStep && (
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-muted-foreground">Length</span>
-                  <Segmented<SectionLength> size="sm" value={sectionLength} onChange={setSectionLength} options={(['short', 'medium', 'long'] as SectionLength[]).map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) }))} />
+                  <Segmented<SectionLength>
+                    size="sm"
+                    value={sectionLength}
+                    onChange={setSectionLength}
+                    options={(['short', 'medium', 'long'] as SectionLength[]).map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) }))}
+                  />
                 </div>
               )}
             </div>
@@ -188,7 +213,12 @@ function Composer({ initialTopic }: { initialTopic: string }) {
         )}
 
         <div className="rounded-2xl border border-border/80">
-          <button type="button" onClick={() => setAdvanced((a) => !a)} className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium" aria-expanded={advanced}>
+          <button
+            type="button"
+            onClick={() => setAdvanced((a) => !a)}
+            className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium"
+            aria-expanded={advanced}
+          >
             <SlidersHorizontal className="size-4 text-muted-foreground" />
             Advanced options
             {advancedCount > 0 && <span className="rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground">{advancedCount} set</span>}
@@ -198,10 +228,22 @@ function Composer({ initialTopic }: { initialTopic: string }) {
           </button>
           <AnimatePresence initial={false}>
             {advanced && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="overflow-hidden"
+              >
                 <div className="grid gap-4 border-t border-border/80 p-4">
                   <Field label="Guidelines" hint="Tone, audience, focus areas, things to include or avoid." htmlFor="guidelines">
-                    <Textarea id="guidelines" value={instructions} onChange={(e) => setInstructions(e.target.value)} maxLength={5000} placeholder="e.g. Practical and friendly. Include a worked example in every chapter." />
+                    <Textarea
+                      id="guidelines"
+                      value={instructions}
+                      onChange={(e) => setInstructions(e.target.value)}
+                      maxLength={5000}
+                      placeholder="e.g. Practical and friendly. Include a worked example in every chapter."
+                    />
                   </Field>
                   <div className="grid gap-4 sm:grid-cols-3">
                     <Field label="Writing style" htmlFor="style">
@@ -223,18 +265,42 @@ function Composer({ initialTopic }: { initialTopic: string }) {
                       </NativeSelect>
                     </Field>
                     <Field label="Outline detail">
-                      <Segmented<'standard' | 'in-depth'> value={longOutline ? 'in-depth' : 'standard'} onChange={(v) => setLongOutline(v === 'in-depth')} options={[{ value: 'standard', label: 'Standard' }, { value: 'in-depth', label: 'In-depth' }]} />
+                      <Segmented<'standard' | 'in-depth'>
+                        value={longOutline ? 'in-depth' : 'standard'}
+                        onChange={(v) => setLongOutline(v === 'in-depth')}
+                        options={[
+                          { value: 'standard', label: 'Standard' },
+                          { value: 'in-depth', label: 'In-depth' },
+                        ]}
+                      />
                     </Field>
                   </div>
                   <div className="grid gap-1.5">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="seed">Your notes (optional)</Label>
-                      <button type="button" onClick={() => fileInput.current?.click()} className="inline-flex items-center gap-1.5 rounded-lg text-xs font-medium text-primary hover:underline pointer-coarse:-my-2 pointer-coarse:px-2 pointer-coarse:py-2.5">
+                      <button
+                        type="button"
+                        onClick={() => fileInput.current?.click()}
+                        className="inline-flex items-center gap-1.5 rounded-lg text-xs font-medium text-primary hover:underline pointer-coarse:-my-2 pointer-coarse:px-2 pointer-coarse:py-2.5"
+                      >
                         <FileUp className="size-3.5" /> Add from a .txt or .md file
                       </button>
-                      <input ref={fileInput} type="file" accept=".txt,.md,text/plain,text/markdown" hidden onChange={(e) => e.target.files?.[0] && void loadFile(e.target.files[0])} />
+                      <input
+                        ref={fileInput}
+                        type="file"
+                        accept=".txt,.md,text/plain,text/markdown"
+                        hidden
+                        onChange={(e) => e.target.files?.[0] && void loadFile(e.target.files[0])}
+                      />
                     </div>
-                    <Textarea id="seed" value={seedContent} onChange={(e) => setSeedContent(e.target.value)} maxLength={config?.max_seed_chars ?? 20000} className="min-h-28" placeholder="Paste notes, an outline, or facts the book should build on." />
+                    <Textarea
+                      id="seed"
+                      value={seedContent}
+                      onChange={(e) => setSeedContent(e.target.value)}
+                      maxLength={config?.max_seed_chars ?? 20000}
+                      className="min-h-28"
+                      placeholder="Paste notes, an outline, or facts the book should build on."
+                    />
                     <Hint>Sent with every request, so long notes use more tokens.</Hint>
                   </div>
                 </div>
@@ -268,7 +334,10 @@ function ContinueStrip() {
     <section className="grid gap-3">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-medium text-muted-foreground">Continue where you left off</h2>
-        <Link to="/books" className="inline-flex items-center gap-1 rounded-lg text-sm font-medium text-primary hover:underline pointer-coarse:-my-2.5 pointer-coarse:px-2 pointer-coarse:py-2.5">
+        <Link
+          to="/books"
+          className="inline-flex items-center gap-1 rounded-lg text-sm font-medium text-primary hover:underline pointer-coarse:-my-2.5 pointer-coarse:px-2 pointer-coarse:py-2.5"
+        >
           All books <ArrowRight className="size-4" />
         </Link>
       </div>
@@ -278,7 +347,10 @@ function ContinueStrip() {
           return (
             <motion.div key={book.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}>
               <Link to={`/books/${book.id}`} className="surface spotlight group flex items-center gap-3 p-3 transition-colors hover:border-primary/40">
-                <span aria-hidden className="grid h-12 w-9 shrink-0 place-items-center rounded-[5px] bg-[linear-gradient(160deg,var(--hero-from),var(--hero-to))] font-display text-sm font-medium text-white shadow-sm transition-transform group-hover:-rotate-3">
+                <span
+                  aria-hidden
+                  className="grid h-12 w-9 shrink-0 place-items-center rounded-[5px] bg-[linear-gradient(160deg,var(--hero-from),var(--hero-to))] font-display text-sm font-medium text-white shadow-sm transition-transform group-hover:-rotate-3"
+                >
                   {(book.title || book.options.topic).trim().charAt(0).toUpperCase()}
                 </span>
                 <div className="grid min-w-0 flex-1 gap-1.5">
@@ -301,10 +373,10 @@ export function CreatePage() {
   const initialTopic = (params.get('topic') ?? '').slice(0, 500)
 
   return (
-    <div className="mx-auto grid max-w-4xl grid-cols-1 gap-10 px-4 pb-24 pt-10 sm:px-6 sm:pt-14">
+    <div className="mx-auto grid max-w-4xl grid-cols-1 gap-10 px-4 pt-10 pb-24 sm:px-6 sm:pt-14">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid gap-2">
         <p className="eyebrow">New book</p>
-        <h1 className="text-3xl font-medium tracking-tight [text-wrap:balance] sm:text-4xl">What will you write today?</h1>
+        <h1 className="text-3xl font-medium tracking-tight text-balance sm:text-4xl">What will you write today?</h1>
         <p className="max-w-2xl text-muted-foreground">
           Describe a topic and pick a model. You'll get an outline to review, then every chapter is written live.
         </p>

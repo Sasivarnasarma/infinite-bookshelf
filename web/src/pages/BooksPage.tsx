@@ -24,7 +24,11 @@ const SORTS: Record<Sort, (a: Book, b: Book) => number> = {
 
 function EmptyLibrary() {
   return (
-    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="surface grid justify-items-center gap-5 px-6 py-16 text-center">
+    <motion.div
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="surface grid justify-items-center gap-5 px-6 py-16 text-center"
+    >
       <LogoMark animated live className="w-28" />
       <div className="grid gap-1.5">
         <p className="font-display text-2xl font-medium">Your shelf is empty</p>
@@ -66,7 +70,7 @@ export function BooksPage() {
   if (books === undefined) return null
 
   return (
-    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 pb-24 pt-10 sm:px-6">
+    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 pt-10 pb-24 sm:px-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-end">
         <div>
           <h1 className="font-display text-4xl font-medium tracking-tight">My books</h1>
@@ -98,7 +102,7 @@ export function BooksPage() {
         <>
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <div className="relative sm:w-72">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search books…" className="pl-9" />
             </div>
             <Segmented<Filter>

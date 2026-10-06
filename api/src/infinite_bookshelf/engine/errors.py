@@ -3,13 +3,14 @@ Exceptions, provider error classification, and safe error payloads for the API
 """
 
 import re
-from typing import Dict, Iterable
+from collections.abc import Iterable
 
 import openai
 
 
 class InfiniteBookshelfError(Exception):
     """Base exception class for Infinite Bookshelf"""
+
     code = "generation_error"
     title = "Generation error"
     default_hint = "An error occurred during book generation."
@@ -22,6 +23,7 @@ class InfiniteBookshelfError(Exception):
 
 class APIAuthenticationError(InfiniteBookshelfError):
     """Raised when the API key is missing or invalid (HTTP 401 / 403)"""
+
     code = "auth"
     title = "Authentication failed"
     default_hint = "Check this provider's API key in Settings (use Test connection to verify it)."
@@ -29,6 +31,7 @@ class APIAuthenticationError(InfiniteBookshelfError):
 
 class APIRateLimitError(InfiniteBookshelfError):
     """Raised when API quota or rate limit is exceeded (HTTP 429)"""
+
     code = "rate_limit"
     title = "Rate limit reached"
     default_hint = (
@@ -39,6 +42,7 @@ class APIRateLimitError(InfiniteBookshelfError):
 
 class ModelUnavailableError(InfiniteBookshelfError):
     """Raised when the model does not exist or is at capacity (HTTP 404 / 503)"""
+
     code = "model_unavailable"
     title = "Model unavailable"
     default_hint = (
@@ -49,6 +53,7 @@ class ModelUnavailableError(InfiniteBookshelfError):
 
 class APIRequestError(InfiniteBookshelfError):
     """Raised when the provider rejects the request (HTTP 400 / 422)"""
+
     code = "bad_request"
     title = "Request rejected"
     default_hint = "The provider rejected the request. The model may not support one of the options used."
@@ -56,6 +61,7 @@ class APIRequestError(InfiniteBookshelfError):
 
 class APIConnectionError(InfiniteBookshelfError):
     """Raised when connecting to the API provider fails or times out"""
+
     code = "connection"
     title = "Couldn't reach the provider"
     default_hint = "Could not reach the provider. Check your internet connection, or the Base URL in Settings."
@@ -63,6 +69,7 @@ class APIConnectionError(InfiniteBookshelfError):
 
 class StructureGenerationError(InfiniteBookshelfError):
     """Raised when generating or parsing the JSON book structure fails"""
+
     code = "outline"
     title = "Outline generation failed"
     default_hint = "The model returned an invalid outline. Try a larger or different model."
@@ -121,7 +128,7 @@ def scrub(text: str, secrets: Iterable[str] = ()) -> str:
     return _KEY_LIKE.sub("[redacted]", text)
 
 
-def error_payload(e: Exception, secrets: Iterable[str] = ()) -> Dict[str, str]:
+def error_payload(e: Exception, secrets: Iterable[str] = ()) -> dict[str, str]:
     """A JSON-safe description of any error, with keys scrubbed, for the web app to display."""
     if isinstance(e, ValueError) and not isinstance(e, InfiniteBookshelfError):
         return {"code": "invalid_input", "title": "Can't start yet", "message": scrub(str(e), secrets), "hint": ""}

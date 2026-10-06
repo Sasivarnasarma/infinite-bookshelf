@@ -20,19 +20,49 @@ import base64
 import html
 import logging
 import re
+from collections.abc import Callable
 from functools import lru_cache
 from io import BytesIO
 from pathlib import Path
-from typing import Callable
 
 import nh3
 from markdown_it import MarkdownIt
 from mdit_py_plugins.dollarmath import dollarmath_plugin
 
 _ALLOWED_TAGS = {
-    "h1", "h2", "h3", "h4", "h5", "h6", "p", "br", "hr", "strong", "em", "b", "i", "u", "s", "del",
-    "code", "pre", "blockquote", "ul", "ol", "li", "table", "thead", "tbody", "tr", "th", "td",
-    "a", "sup", "sub", "span", "div",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "p",
+    "br",
+    "hr",
+    "strong",
+    "em",
+    "b",
+    "i",
+    "u",
+    "s",
+    "del",
+    "code",
+    "pre",
+    "blockquote",
+    "ul",
+    "ol",
+    "li",
+    "table",
+    "thead",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+    "a",
+    "sup",
+    "sub",
+    "span",
+    "div",
 }
 _ALLOWED_ATTRIBUTES = {"a": {"href"}, "th": {"style"}, "td": {"style"}, "ol": {"start"}}
 
@@ -273,7 +303,11 @@ def _book_html(content: str) -> str:
         level, inner = match.group(1), match.group(2)
         if level == "1" and title is None:
             title = inner
-            return '<section class="title-page"><div class="rule"></div><h1>' + inner + '</h1><p class="by">Infinite Bookshelf</p></section>'
+            return (
+                '<section class="title-page"><div class="rule"></div><h1>'
+                + inner
+                + '</h1><p class="by">Infinite Bookshelf</p></section>'
+            )
         if level == "2":
             chapters.append((f"ch-{len(chapters) + 1}", inner))
             return f'<h2 id="ch-{len(chapters)}">{inner}</h2>'
@@ -282,14 +316,14 @@ def _book_html(content: str) -> str:
     body = _HEADING.sub(anchor, body)
     toc = ""
     if len(chapters) > 1:
-        items = "".join(f'<li><a href="#{cid}"><span class="num">{i}</span>{_strip_tags(text)}</a></li>' for i, (cid, text) in enumerate(chapters, 1))
+        items = "".join(
+            f'<li><a href="#{cid}"><span class="num">{i}</span>{_strip_tags(text)}</a></li>'
+            for i, (cid, text) in enumerate(chapters, 1)
+        )
         toc = f'<nav class="toc"><h2>Contents</h2><ol>{items}</ol></nav>'
         # The contents heading isn't a chapter: keep it out of the running header
         toc = toc.replace("<h2>", '<h2 style="string-set: none">', 1)
-    if title is not None:
-        body = body.replace("</section>", "</section>" + toc, 1)
-    else:
-        body = toc + body
+    body = body.replace("</section>", "</section>" + toc, 1) if title is not None else toc + body
     style = _STYLE.replace("FONTS/", _FONTS.as_uri() + "/")
     return f'<!doctype html><html lang="en"><head><meta charset="utf-8"><style>{style}</style></head><body>{body}</body></html>'
 
@@ -346,7 +380,10 @@ def create_pdf_file(content: str) -> BytesIO:
 # Unicode fonts to look for (regular, bold, italic, bold italic), best first, and symbol fonts for
 # characters they lack. Without any, the core fonts are used, which only cover Latin-1.
 _FONT_SETS = [
-    ("/usr/share/fonts/truetype/dejavu", ("DejaVuSerif.ttf", "DejaVuSerif-Bold.ttf", "DejaVuSerif-Italic.ttf", "DejaVuSerif-BoldItalic.ttf")),
+    (
+        "/usr/share/fonts/truetype/dejavu",
+        ("DejaVuSerif.ttf", "DejaVuSerif-Bold.ttf", "DejaVuSerif-Italic.ttf", "DejaVuSerif-BoldItalic.ttf"),
+    ),
     ("C:/Windows/Fonts", ("georgia.ttf", "georgiab.ttf", "georgiai.ttf", "georgiaz.ttf")),
     ("/Library/Fonts", ("Georgia.ttf", "Georgia Bold.ttf", "Georgia Italic.ttf", "Georgia Bold Italic.ttf")),
 ]
@@ -354,24 +391,31 @@ _MONO_FONTS = [
     ("/usr/share/fonts/truetype/dejavu", "DejaVuSansMono.ttf"),
     ("C:/Windows/Fonts", "consola.ttf"),
 ]
-_SYMBOL_FONTS = ["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "C:/Windows/Fonts/seguisym.ttf", "C:/Windows/Fonts/segoeui.ttf", "C:/Windows/Fonts/cambria.ttc"]
+_SYMBOL_FONTS = [
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "C:/Windows/Fonts/seguisym.ttf",
+    "C:/Windows/Fonts/segoeui.ttf",
+    "C:/Windows/Fonts/cambria.ttc",
+]
 
 # Core PDF fonts only cover Latin-1, so map common typographic characters to ASCII first
-_ASCII_REPLACEMENTS = str.maketrans({
-    "\u2018": "'",
-    "\u2019": "'",
-    "\u201c": '"',
-    "\u201d": '"',
-    "\u2013": "-",
-    "\u2014": "--",
-    "\u2026": "...",
-    "\u2022": "*",
-    "\u00a0": " ",
-    "\u2192": "->",
-    "\u2190": "<-",
-    "\u2264": "<=",
-    "\u2265": ">=",
-})
+_ASCII_REPLACEMENTS = str.maketrans(
+    {
+        "\u2018": "'",
+        "\u2019": "'",
+        "\u201c": '"',
+        "\u201d": '"',
+        "\u2013": "-",
+        "\u2014": "--",
+        "\u2026": "...",
+        "\u2022": "*",
+        "\u00a0": " ",
+        "\u2192": "->",
+        "\u2190": "<-",
+        "\u2264": "<=",
+        "\u2265": ">=",
+    }
+)
 
 
 def _latin1(text: str) -> str:
@@ -386,7 +430,7 @@ def _add_unicode_fonts(pdf) -> bool:
         if not all(p.is_file() for p in paths):
             continue
         try:
-            for style, path in zip(("", "B", "I", "BI"), paths):
+            for style, path in zip(("", "B", "I", "BI"), paths, strict=False):
                 pdf.add_font("Book", style, str(path))
             mono = next((Path(d) / f for d, f in _MONO_FONTS if (Path(d) / f).is_file()), None)
             if mono:
@@ -430,7 +474,7 @@ def _create_pdf_with_fpdf(content: str) -> BytesIO:
 
     def math(tex: str, display: bool) -> str:
         text = html.escape(tex_to_text(tex))
-        return f"<p align=\"center\"><i>{text}</i></p>" if display else f"<i>{text}</i>"
+        return f'<p align="center"><i>{text}</i></p>' if display else f"<i>{text}</i>"
 
     pdf, unicode = new_pdf()
     source = content if unicode else _latin1(content)
@@ -446,12 +490,20 @@ def _create_pdf_with_fpdf(content: str) -> BytesIO:
             "pre": FontFace(family=pdf.mono_font, size_pt=9),
         }
         # Each chapter (h2) starts a new page, like the full renderer
-        body = _render(source, math).replace("<hr />", '<p align="center">' + ("•   •   •" if unicode else "*   *   *") + "</p>")
+        body = _render(source, math).replace(
+            "<hr />", '<p align="center">' + ("•   •   •" if unicode else "*   *   *") + "</p>"
+        )
         parts = [part for part in re.split(r"(?=<h2>)", body) if part.strip()]
         for i, part in enumerate(parts):
             if i:
                 pdf.add_page()
-            pdf.write_html(part, font_family=pdf.body_font, li_prefix_color=(248, 101, 34), table_line_separators=True, tag_styles=styles)
+            pdf.write_html(
+                part,
+                font_family=pdf.body_font,
+                li_prefix_color=(248, 101, 34),
+                table_line_separators=True,
+                tag_styles=styles,
+            )
     except Exception:
         # write_html can reject unusual markup (e.g. nested tables); keep the words at least
         pdf, unicode = new_pdf()

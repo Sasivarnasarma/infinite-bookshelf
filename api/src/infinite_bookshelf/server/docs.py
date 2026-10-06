@@ -10,7 +10,6 @@ and static/docs.css restyles it to match the web app, in light and dark.
 
 from html import escape
 from pathlib import Path
-from typing import Optional
 
 import fastapi_offline
 from fastapi import FastAPI
@@ -109,7 +108,7 @@ _PAGE = """<!doctype html>
 """
 
 
-def mount_docs(app: FastAPI, app_url: Optional[str] = None) -> None:
+def mount_docs(app: FastAPI, app_url: str | None = None) -> None:
     """
     Adds the Swagger UI page and its assets. The OpenAPI schema itself is served by FastAPI.
     `app_url` links to the web app when this server also serves it.

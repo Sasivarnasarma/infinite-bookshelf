@@ -7,12 +7,13 @@ is closed, which closes the provider's stream so the model stops writing (and bi
 """
 
 import json
-from typing import Any, AsyncIterator, Dict, Iterator, Tuple
+from collections.abc import AsyncIterator, Iterator
+from typing import Any
 
 import anyio
 from anyio import to_thread
 
-Event = Tuple[str, Dict[str, Any]]
+Event = tuple[str, dict[str, Any]]
 
 _DONE = object()
 
@@ -30,7 +31,7 @@ async def iterate_in_thread(generator: Iterator[Any]) -> AsyncIterator[Any]:
             await to_thread.run_sync(generator.close)
 
 
-async def sse_events(events: Iterator[Event]) -> AsyncIterator[Dict[str, str]]:
+async def sse_events(events: Iterator[Event]) -> AsyncIterator[dict[str, str]]:
     """Formats (event, data) pairs for sse_starlette's EventSourceResponse."""
     async for name, data in iterate_in_thread(events):
         yield {"event": name, "data": json.dumps(data, ensure_ascii=False)}

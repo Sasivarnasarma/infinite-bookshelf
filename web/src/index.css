@@ -103,34 +103,66 @@
 }
 
 @keyframes shimmer {
-  from { background-position: 200% 0; }
-  to { background-position: -200% 0; }
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }
 @keyframes caret {
-  to { visibility: hidden; }
+  to {
+    visibility: hidden;
+  }
 }
 @keyframes pulse-soft {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.45; transform: scale(0.8); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.8);
+  }
 }
 @keyframes sunrise {
-  0%, 100% { opacity: 0.85; transform: translateX(-50%) scale(1); }
-  50% { opacity: 1; transform: translateX(-50%) scale(1.08); }
+  0%,
+  100% {
+    opacity: 0.85;
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.08);
+  }
 }
 @keyframes marquee {
-  to { transform: translateX(-50%); }
+  to {
+    transform: translateX(-50%);
+  }
 }
 @keyframes fade-in {
-  from { opacity: 0; }
+  from {
+    opacity: 0;
+  }
 }
 @keyframes fade-out {
-  to { opacity: 0; }
+  to {
+    opacity: 0;
+  }
 }
 @keyframes pop-in {
-  from { opacity: 0; transform: scale(0.96) translateY(-4px); }
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
 }
 @keyframes pop-out {
-  to { opacity: 0; transform: scale(0.97); }
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
 }
 /* Touch: no grey flash on tap, and iOS keeps text at the size we set when rotating to landscape */
 html {
@@ -140,17 +172,28 @@ html {
 }
 
 @keyframes sheet-in {
-  from { transform: translateY(100%); }
+  from {
+    transform: translateY(100%);
+  }
 }
 @keyframes sheet-out {
-  to { transform: translateY(100%); }
+  to {
+    transform: translateY(100%);
+  }
 }
 @keyframes dialog-in {
-  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
 }
 @keyframes shine {
-  from { transform: translateX(-120%) skewX(-20deg); }
-  to { transform: translateX(220%) skewX(-20deg); }
+  from {
+    transform: translateX(-120%) skewX(-20deg);
+  }
+  to {
+    transform: translateX(220%) skewX(-20deg);
+  }
 }
 
 @layer base {
@@ -172,7 +215,10 @@ html {
     text-rendering: optimizeLegibility;
   }
   /* Grotesk headlines: medium weight, tight tracking */
-  h1, h2, h3, .font-display {
+  h1,
+  h2,
+  h3,
+  .font-display {
     letter-spacing: -0.035em;
   }
   ::selection {
@@ -206,7 +252,9 @@ html {
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius-2xl);
-    box-shadow: 0 1px 2px rgb(0 0 0 / 0.03), 0 8px 24px -16px rgb(0 0 0 / 0.12);
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.03),
+      0 8px 24px -16px rgb(0 0 0 / 0.12);
   }
   .dark .surface {
     box-shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset;
@@ -253,8 +301,12 @@ html {
     background: var(--background);
     z-index: 1;
   }
-  .frame-corners::before { left: -4px; }
-  .frame-corners::after { right: -4px; }
+  .frame-corners::before {
+    left: -4px;
+  }
+  .frame-corners::after {
+    right: -4px;
+  }
 
   .skeleton {
     background: linear-gradient(90deg, var(--muted) 0%, color-mix(in oklab, var(--muted) 50%, var(--card)) 50%, var(--muted) 100%);
@@ -312,12 +364,21 @@ html {
   animation-delay: calc(var(--i) * 90ms);
 }
 @keyframes ib-orbit {
-  from { stroke-dashoffset: 1; }
-  to { stroke-dashoffset: 0; }
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 @keyframes ib-book {
-  0%, 100% { transform: scaleY(1); }
-  50% { transform: scaleY(0.8); }
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.8);
+  }
 }
 
 /* Book reading typography. Unlayered on purpose: it must override the typography plugin's

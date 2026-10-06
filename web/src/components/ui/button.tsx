@@ -9,16 +9,16 @@ import { cn } from '@/lib/utils'
  * variant also gets a light sweep across it.
  */
 const buttonVariants = cva(
-  'group/btn relative inline-flex shrink-0 items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-full text-sm font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-200 select-none disabled:pointer-events-none disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg[data-nudge]]:transition-transform hover:[&_svg[data-nudge]]:translate-x-0.5 active:scale-[0.98]',
+  'group/btn relative inline-flex shrink-0 items-center justify-center gap-2 overflow-hidden rounded-full text-sm font-medium whitespace-nowrap transition-[background-color,border-color,color,box-shadow,transform] duration-200 select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg[data-nudge]]:transition-transform hover:[&_svg[data-nudge]]:translate-x-0.5',
   {
     variants: {
       variant: {
         primary: 'bg-primary text-primary-foreground hover:bg-primary-hover',
         brand:
-          'bg-primary text-primary-foreground shadow-[0_8px_24px_-10px_var(--primary)] hover:bg-primary-hover hover:-translate-y-px hover:shadow-[0_12px_30px_-10px_var(--primary)] before:absolute before:inset-y-0 before:left-0 before:w-1/3 before:bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.35),transparent)] before:-translate-x-[120%] hover:before:[animation:shine_0.9s_ease]',
+          'bg-primary text-primary-foreground shadow-[0_8px_24px_-10px_var(--primary)] before:absolute before:inset-y-0 before:left-0 before:w-1/3 before:translate-x-[-120%] before:bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.35),transparent)] hover:-translate-y-px hover:bg-primary-hover hover:shadow-[0_12px_30px_-10px_var(--primary)] hover:before:animate-[shine_0.9s_ease]',
         secondary: 'bg-muted text-foreground hover:bg-[color-mix(in_oklab,var(--muted)_85%,var(--foreground))]',
         outline: 'border border-border bg-card text-foreground hover:border-[color-mix(in_oklab,var(--border)_50%,var(--foreground))]',
-        inverse: 'bg-white text-neutral-900 hover:bg-white/90 shadow-sm',
+        inverse: 'bg-white text-neutral-900 shadow-sm hover:bg-white/90',
         ghost: 'text-foreground hover:bg-muted',
         danger: 'bg-danger text-white hover:brightness-110',
         link: 'h-auto rounded-none px-0 text-primary underline-offset-4 hover:underline',

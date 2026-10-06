@@ -6,14 +6,14 @@ updates:
       interval: weekly
     groups:
       web:
-        patterns: ["*"]
+        patterns: ['*']
   - package-ecosystem: uv
     directory: /api
     schedule:
       interval: weekly
     groups:
       api:
-        patterns: ["*"]
+        patterns: ['*']
   - package-ecosystem: github-actions
     directory: /
     schedule:

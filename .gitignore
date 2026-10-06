@@ -26,3 +26,7 @@ logs/
 *.swp
 .DS_Store
 Thumbs.db
+
+# Test reports (CI summary)
+api/pytest.xml
+web/vitest.json

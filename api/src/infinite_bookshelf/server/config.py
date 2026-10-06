@@ -7,7 +7,6 @@ IB_ALLOW_PRIVATE_ENDPOINTS=true so local servers (Ollama, LM Studio) work.
 
 from functools import lru_cache
 from pathlib import Path
-from typing import List, Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -33,9 +32,9 @@ class Settings(BaseSettings):
     docs_enabled: bool = True
 
     # Extra origins allowed to call the API from a browser (the bundled web app needs none)
-    cors_origins: List[str] = []
+    cors_origins: list[str] = []
     # Built web app to serve at "/" (the Docker image sets this); None = API only
-    web_dist: Optional[Path] = None
+    web_dist: Path | None = None
 
 
 @lru_cache

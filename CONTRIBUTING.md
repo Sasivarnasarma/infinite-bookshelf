@@ -15,10 +15,16 @@ pnpm dev                          # API on :8000, web app on http://localhost:51
 ## Before you open a pull request
 
 ```bash
-pnpm check                        # web typecheck, lint and tests, then API tests
+pnpm format                       # Prettier (web, docs) and Ruff (API) fix formatting and imports
+pnpm check                        # format and lint checks, web typecheck, web and API tests
 pnpm build                        # production build of the web app
 ```
 
+- Formatting is automatic: Prettier for TypeScript, CSS, Markdown, JSON and YAML (`.prettierrc.json`),
+  Ruff for Python (`api/pyproject.toml`). In VS Code, install the recommended extensions and turn
+  on format on save. CI fails on unformatted code.
+- CI runs the same gates as `pnpm check`, plus a dependency audit and the Docker build, and posts a
+  report (each gate's result, test counts, and the downloadable web build) on the run's summary page.
 - Keep the API **stateless**: nothing user-related is stored on the server.
 - Never log, store, or echo API keys. Use `SecretStr` for keys in request models.
 - Engine code (`api/src/infinite_bookshelf/engine`) has no web dependencies; HTTP concerns live

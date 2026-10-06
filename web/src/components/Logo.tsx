@@ -60,7 +60,13 @@ export function LogoMark({ className, animated = false, live = false }: { classN
     })
 
   return (
-    <svg viewBox="0 0 200 120" className={cn('ib-logo h-auto overflow-visible', className)} data-live={live || undefined} role="img" aria-label="Infinite Bookshelf">
+    <svg
+      viewBox="0 0 200 120"
+      className={cn('ib-logo h-auto overflow-visible', className)}
+      data-live={live || undefined}
+      role="img"
+      aria-label="Infinite Bookshelf"
+    >
       <defs>
         <linearGradient id={`${id}-loop`} x1="0" y1="0" x2="1" y2="0">
           <stop offset="0" stopColor="#FFB547" />

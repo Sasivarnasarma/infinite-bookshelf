@@ -80,12 +80,14 @@ used: lists, headings, and tables still work, and maths is written as plain text
 └── docker-compose.yml
 ```
 
-| Command | What it does |
-|---|---|
-| `pnpm dev` | Run the API and web app with live reload |
-| `pnpm check` | Web typecheck, lint and tests, then API tests |
-| `pnpm build` | Production build of the web app |
-| `pnpm test` | Web tests (Vitest), then API tests (pytest) |
+| Command       | What it does                                                       |
+| ------------- | ------------------------------------------------------------------ |
+| `pnpm dev`    | Run the API and web app with live reload                           |
+| `pnpm check`  | Everything CI runs: format and lint checks, typecheck, all tests   |
+| `pnpm build`  | Production build of the web app                                    |
+| `pnpm test`   | Web tests (Vitest), then API tests (pytest)                        |
+| `pnpm format` | Format the web app and docs (Prettier) and the API (Ruff)          |
+| `pnpm lint`   | Check formatting, then lint (oxlint for the web, Ruff for the API) |
 
 ## Documentation
 

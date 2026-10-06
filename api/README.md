@@ -16,16 +16,16 @@ offline and under the strict Content-Security-Policy. Turn both off with `IB_DOC
 
 ## Endpoints
 
-| Method | Path | What it does |
-|---|---|---|
-| GET | `/api` | Name, version, and links to the docs |
-| GET | `/` | Same as `/api` when the web app isn't bundled; otherwise the web app |
-| GET | `/api/health` | Liveness check |
-| GET | `/api/config` | Built-in providers and what this server allows |
-| POST | `/api/models` | Lists a provider's models (also tests the key) |
-| POST | `/api/outline` | Streams the outline and title (SSE) |
-| POST | `/api/sections/stream` | Streams one section, with the book so far as context (SSE) |
-| POST | `/api/export/pdf` | Renders a book's Markdown to a typeset PDF |
+| Method | Path                   | What it does                                                         |
+| ------ | ---------------------- | -------------------------------------------------------------------- |
+| GET    | `/api`                 | Name, version, and links to the docs                                 |
+| GET    | `/`                    | Same as `/api` when the web app isn't bundled; otherwise the web app |
+| GET    | `/api/health`          | Liveness check                                                       |
+| GET    | `/api/config`          | Built-in providers and what this server allows                       |
+| POST   | `/api/models`          | Lists a provider's models (also tests the key)                       |
+| POST   | `/api/outline`         | Streams the outline and title (SSE)                                  |
+| POST   | `/api/sections/stream` | Streams one section, with the book so far as context (SSE)           |
+| POST   | `/api/export/pdf`      | Renders a book's Markdown to a typeset PDF                           |
 
 **PDF export** uses WeasyPrint, which needs the Pango libraries (in the Docker image already).
 Without them (often on Windows) it falls back to fpdf2: lists, headings and tables still work,

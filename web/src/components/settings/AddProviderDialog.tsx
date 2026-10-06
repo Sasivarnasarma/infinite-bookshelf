@@ -96,7 +96,12 @@ function Setup({
           <div className="flex items-center justify-between gap-2">
             <Label htmlFor="setup-key">{provider.requiresKey ? 'API key' : 'API key (optional)'}</Label>
             {provider.keyUrl && (
-              <a href={provider.keyUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg text-xs font-medium text-primary hover:underline pointer-coarse:-my-2 pointer-coarse:px-2 pointer-coarse:py-2.5">
+              <a
+                href={provider.keyUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded-lg text-xs font-medium text-primary hover:underline pointer-coarse:-my-2 pointer-coarse:px-2 pointer-coarse:py-2.5"
+              >
                 Get a key <ExternalLink className="size-3" />
               </a>
             )}
@@ -107,7 +112,15 @@ function Setup({
             provider={provider}
             value={secret}
             onChange={onChange}
-            check={testing ? { state: 'checking' } : outcome?.ok ? { state: 'ok', models: outcome.models.length } : outcome ? { state: 'error', error: outcome.error } : { state: 'idle' }}
+            check={
+              testing
+                ? { state: 'checking' }
+                : outcome?.ok
+                  ? { state: 'ok', models: outcome.models.length }
+                  : outcome
+                    ? { state: 'error', error: outcome.error }
+                    : { state: 'idle' }
+            }
             providerNames={providerNames}
             onSwitchProvider={(id) => onSwitchProvider(id, secret)}
             onEnter={() => canConnect && connect()}
@@ -149,17 +162,20 @@ function Gallery({ providers, onPick, onCustom }: { providers: ProviderInfo[]; o
   return (
     <div className="grid gap-4">
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search providers" className="pl-9" aria-label="Search providers" />
       </div>
-      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]" role="group" aria-label="Filter providers">
+      <div className="-mx-1 flex scrollbar-none gap-1.5 overflow-x-auto px-1 pb-1" role="group" aria-label="Filter providers">
         {(['all', ...tags] as Filter[]).map((t) => (
           <button
             key={t}
             type="button"
             aria-pressed={filter === t}
             onClick={() => setFilter(t)}
-            className={cn('shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors pointer-coarse:py-2.5', filter === t ? 'border-foreground bg-foreground text-background' : 'border-border text-muted-foreground hover:text-foreground')}
+            className={cn(
+              'shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors pointer-coarse:py-2.5',
+              filter === t ? 'border-foreground bg-foreground text-background' : 'border-border text-muted-foreground hover:text-foreground',
+            )}
           >
             {t === 'all' ? 'All' : TAG_LABELS[t]}
           </button>
@@ -190,7 +206,11 @@ function Gallery({ providers, onPick, onCustom }: { providers: ProviderInfo[]; o
           ))}
         </AnimatePresence>
         {onCustom && (filter === 'all' || filter === 'open') && !query && (
-          <button type="button" onClick={onCustom} className="flex items-center gap-3 rounded-xl border border-dashed border-border p-3 text-left transition-colors hover:border-primary/40 hover:bg-accent/30">
+          <button
+            type="button"
+            onClick={onCustom}
+            className="flex items-center gap-3 rounded-xl border border-dashed border-border p-3 text-left transition-colors hover:border-primary/40 hover:bg-accent/30"
+          >
             <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-border bg-card text-muted-foreground">
               <Server className="size-5" />
             </span>
@@ -212,7 +232,19 @@ function Gallery({ providers, onPick, onCustom }: { providers: ProviderInfo[]; o
  * Opening with `initial` (e.g. "Start with Gemini") goes straight to that provider's setup.
  * Render with a new `key` for each opening, so it starts fresh.
  */
-export function AddProviderDialog({ open, onOpenChange, providers, onConnected, initial }: { open: boolean; onOpenChange: (open: boolean) => void; providers: ProviderInfo[]; onConnected: (id: string) => void; initial?: string | null }) {
+export function AddProviderDialog({
+  open,
+  onOpenChange,
+  providers,
+  onConnected,
+  initial,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  providers: ProviderInfo[]
+  onConnected: (id: string) => void
+  initial?: string | null
+}) {
   const [picked, setPicked] = useState<string | null>(initial ?? null)
   // A key pasted into one provider's setup that belongs to another moves with the switch
   const [carried, setCarried] = useState('')
@@ -228,7 +260,11 @@ export function AddProviderDialog({ open, onOpenChange, providers, onConnected, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title={provider ? `Connect ${provider.name}` : 'Add a provider'} description={provider ? undefined : 'Pick a service you have, or want, an API key for.'} className="sm:w-[min(92vw,42rem)]">
+      <DialogContent
+        title={provider ? `Connect ${provider.name}` : 'Add a provider'}
+        description={provider ? undefined : 'Pick a service you have, or want, an API key for.'}
+        className="sm:w-[min(92vw,42rem)]"
+      >
         {provider ? (
           provider.enabled && provider.status !== 'needs-key' ? (
             // Already connected: nothing to set up

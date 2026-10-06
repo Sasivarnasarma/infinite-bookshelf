@@ -7,14 +7,15 @@ become instructions, length presets, and the inputs for writing one section with
 context (outline + digest of earlier sections).
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any
 
 from .book import Book, section_key
 
 # Section length presets: (target words, max output tokens). The token budget leaves headroom
 # above the target, including for reasoning models that spend tokens thinking first.
-SECTION_LENGTHS: Dict[str, Tuple[int, int]] = {
+SECTION_LENGTHS: dict[str, tuple[int, int]] = {
     "short": (500, 4000),
     "medium": (1000, 6000),
     "long": (2000, 10000),
@@ -35,7 +36,7 @@ class BookOptions:
     section_length: str = DEFAULT_SECTION_LENGTH
 
     @property
-    def length_preset(self) -> Tuple[int, int]:
+    def length_preset(self) -> tuple[int, int]:
         return SECTION_LENGTHS.get(self.section_length, SECTION_LENGTHS[DEFAULT_SECTION_LENGTH])
 
     def extra_context(self) -> str:
@@ -53,9 +54,9 @@ def section_inputs(
     book: Book,
     path: Sequence[str],
     options: BookOptions,
-    revision_note: Optional[str] = None,
+    revision_note: str | None = None,
     previous_text: str = "",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Keyword arguments for agents.generate_section (minus model/client) to write the section at
     `path`: its prompt, the outline with the section marked, a digest of earlier written

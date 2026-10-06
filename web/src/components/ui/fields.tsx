@@ -12,9 +12,9 @@ export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
 ))
 Input.displayName = 'Input'
 
-export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(
-  ({ className, ...props }, ref) => <textarea ref={ref} className={cn(fieldBase, 'min-h-24 resize-y py-2.5 leading-relaxed', className)} {...props} />,
-)
+export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(({ className, ...props }, ref) => (
+  <textarea ref={ref} className={cn(fieldBase, 'min-h-24 resize-y py-2.5 leading-relaxed', className)} {...props} />
+))
 Textarea.displayName = 'Textarea'
 
 export function Label({ className, ...props }: React.ComponentProps<typeof LabelPrimitive.Root>) {
@@ -25,7 +25,19 @@ export function Hint({ className, ...props }: React.HTMLAttributes<HTMLParagraph
   return <p className={cn('text-xs leading-relaxed text-muted-foreground', className)} {...props} />
 }
 
-export function Field({ label, hint, htmlFor, children, className }: { label: React.ReactNode; hint?: React.ReactNode; htmlFor?: string; children: React.ReactNode; className?: string }) {
+export function Field({
+  label,
+  hint,
+  htmlFor,
+  children,
+  className,
+}: {
+  label: React.ReactNode
+  hint?: React.ReactNode
+  htmlFor?: string
+  children: React.ReactNode
+  className?: string
+}) {
   return (
     <div className={cn('grid gap-1.5', className)}>
       <Label htmlFor={htmlFor}>{label}</Label>
@@ -40,12 +52,12 @@ export function Switch({ className, ...props }: React.ComponentProps<typeof Swit
     <SwitchPrimitive.Root
       className={cn(
         // after: widens the tap area to about 44px without changing how the switch looks
-        "peer relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border border-transparent bg-input transition-colors after:absolute after:-inset-x-1 after:-inset-y-2.5 after:content-[''] data-[state=checked]:bg-primary disabled:cursor-not-allowed disabled:opacity-50",
+        "peer relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border border-transparent bg-input transition-colors after:absolute after:-inset-x-1 after:-inset-y-2.5 after:content-[''] disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary",
         className,
       )}
       {...props}
     >
-      <SwitchPrimitive.Thumb className="pointer-events-none block size-5 translate-x-0.5 rounded-full bg-white shadow-md ring-0 transition-transform duration-200 data-[state=checked]:translate-x-[22px]" />
+      <SwitchPrimitive.Thumb className="pointer-events-none block size-5 translate-x-0.5 rounded-full bg-white shadow-md ring-0 transition-transform duration-200 data-[state=checked]:translate-x-5.5" />
     </SwitchPrimitive.Root>
   )
 }
@@ -55,7 +67,7 @@ export const NativeSelect = React.forwardRef<HTMLSelectElement, React.SelectHTML
     ref={ref}
     className={cn(
       fieldBase,
-      "h-10 pointer-coarse:h-11 cursor-pointer appearance-none bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23888' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")] bg-[right_0.75rem_center] bg-no-repeat pr-9",
+      "bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23888' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")] h-10 cursor-pointer appearance-none bg-position-[right_0.75rem_center] bg-no-repeat pr-9 pointer-coarse:h-11",
       className,
     )}
     {...props}
@@ -88,7 +100,7 @@ export function Segmented<T extends string>({
           title={o.hint}
           onClick={() => onChange(o.value)}
           className={cn(
-            'relative flex-1 whitespace-nowrap rounded-full px-3.5 font-medium transition-all max-[359px]:px-2.5',
+            'relative flex-1 rounded-full px-3.5 font-medium whitespace-nowrap transition-all max-[359px]:px-2.5',
             size === 'sm' ? 'h-7 text-xs pointer-coarse:h-9' : 'h-8 text-[13px] pointer-coarse:h-10 pointer-coarse:text-sm',
             value === o.value ? 'bg-card text-foreground shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:text-foreground',
           )}

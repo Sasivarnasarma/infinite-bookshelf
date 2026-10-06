@@ -21,7 +21,11 @@ describe('model picks', () => {
 
   it('offers one-click combinations, without duplicates', () => {
     const byId = Object.fromEntries(combinations(OPTIONS).map((c) => [c.id, c.models]))
-    expect(byId.balanced).toEqual({ section: { providerId: 'openai', model: 'sol' }, outline: { providerId: 'openai', model: 'sol' }, title: { providerId: 'openai', model: 'luna' } })
+    expect(byId.balanced).toEqual({
+      section: { providerId: 'openai', model: 'sol' },
+      outline: { providerId: 'openai', model: 'sol' },
+      title: { providerId: 'openai', model: 'luna' },
+    })
     expect(byId.cheap.section.model).toBe('luna')
     // With a single model every combination is the same, so only one is offered
     expect(combinations([option('astra', 'best')])).toHaveLength(1)

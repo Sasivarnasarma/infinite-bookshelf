@@ -15,7 +15,6 @@ import ipaddress
 import socket
 import time
 from collections import defaultdict, deque
-from typing import Deque, Dict
 from urllib.parse import urlsplit
 
 from .config import Settings
@@ -49,7 +48,7 @@ def check_endpoint(base_url: str, settings: Settings, is_preset: bool = False) -
     try:
         infos = socket.getaddrinfo(parts.hostname, parts.port or 443, proto=socket.IPPROTO_TCP)
     except socket.gaierror:
-        raise EndpointNotAllowed(f"Couldn't resolve {parts.hostname}.")
+        raise EndpointNotAllowed(f"Couldn't resolve {parts.hostname}.") from None
     if any(_is_private(info[4][0]) for info in infos):
         raise EndpointNotAllowed(
             "Private and local addresses (like localhost) aren't reachable from this server. "
@@ -62,7 +61,7 @@ class RateLimiter:
 
     def __init__(self, per_minute: int):
         self.per_minute = per_minute
-        self._hits: Dict[str, Deque[float]] = defaultdict(deque)
+        self._hits: dict[str, deque[float]] = defaultdict(deque)
 
     def allow(self, client_ip: str) -> bool:
         if self.per_minute <= 0:

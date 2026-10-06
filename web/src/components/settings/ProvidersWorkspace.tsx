@@ -27,7 +27,10 @@ function ProviderRow({ provider, selected, onSelect, now }: { provider: Provider
       type="button"
       onClick={onSelect}
       aria-current={selected ? 'true' : undefined}
-      className={cn('flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-colors', selected ? 'bg-muted ring-1 ring-border' : 'hover:bg-muted/60')}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-colors',
+        selected ? 'bg-muted ring-1 ring-border' : 'hover:bg-muted/60',
+      )}
     >
       <ProviderTile id={provider.id} baseUrl={provider.baseUrl} className="size-9 text-[20px]" />
       <span className="grid min-w-0 flex-1">
@@ -52,7 +55,12 @@ function Welcome({ providers, onStart, onBrowse }: { providers: ProviderInfo[]; 
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         {starters.map((p) => (
-          <button key={p.id} type="button" onClick={() => onStart(p.id)} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3.5 text-left transition-colors hover:border-primary/40 hover:bg-accent/30">
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => onStart(p.id)}
+            className="flex items-center gap-3 rounded-xl border border-border bg-card p-3.5 text-left transition-colors hover:border-primary/40 hover:bg-accent/30"
+          >
             <ProviderTile id={p.id} baseUrl={p.baseUrl} />
             <span className="grid min-w-0 flex-1">
               <span className="text-sm font-medium">Start with {p.name}</span>
@@ -100,7 +108,10 @@ function DefaultModels({ providers }: { providers: ProviderInfo[] }) {
                 type="button"
                 aria-pressed={on}
                 onClick={() => prefs.set({ defaultModels: p.models })}
-                className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors pointer-coarse:py-2.5', on ? 'border-primary bg-accent text-accent-foreground' : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground')}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors pointer-coarse:py-2.5',
+                  on ? 'border-primary bg-accent text-accent-foreground' : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground',
+                )}
               >
                 {on && <Check className="size-3.5" />} {p.label}
               </button>
@@ -173,8 +184,8 @@ export function ProvidersWorkspace() {
       ) : (
         <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[16rem_minmax(0,1fr)]">
           <aside className={cn('surface grid gap-1 p-2 md:sticky md:top-24', selected && 'max-md:hidden')} aria-label="Your providers">
-            <div className="flex items-center justify-between gap-2 px-2.5 pb-1 pt-1.5">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Your providers</p>
+            <div className="flex items-center justify-between gap-2 px-2.5 pt-1.5 pb-1">
+              <p className="text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase">Your providers</p>
             </div>
             {mine.map((p) => (
               <ProviderRow key={p.id} provider={p} selected={shown?.id === p.id} onSelect={() => select(p.id)} now={now} />
@@ -192,7 +203,9 @@ export function ProvidersWorkspace() {
       <DefaultModels providers={providers} />
 
       {config && !config.allow_private_endpoints && (
-        <p className="-mt-6 text-xs text-muted-foreground">Local models (Ollama, LM Studio) are available when you run Infinite Bookshelf on your own computer.</p>
+        <p className="-mt-6 text-xs text-muted-foreground">
+          Local models (Ollama, LM Studio) are available when you run Infinite Bookshelf on your own computer.
+        </p>
       )}
 
       <AddProviderDialog
