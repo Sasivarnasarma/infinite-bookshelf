@@ -278,6 +278,8 @@ web/src/
 └── lib/
     ├── runner.ts     the writing loop: outline, sections, pause, rewrite, key switching
     ├── api.ts        requests and Server-Sent Events parsing
+    ├── api-url.ts    where the API is: config.js, then VITE_API_URL, then /api
+    ├── site-links.ts absolute link-preview URLs from VITE_SITE_URL at build time
     ├── db.ts         IndexedDB (Dexie)
     ├── settings.ts   preferences, providers, keys, key order, setup checks (zustand)
     ├── key-*.ts      tidying pasted keys, key status, testing keys

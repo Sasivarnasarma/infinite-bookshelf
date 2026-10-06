@@ -90,12 +90,13 @@ Use `api` or `web` as the scope when a change touches only one of them. Mark bre
 
 ## 🧭 Where things are
 
-| I want to change…                 | Look in                                                                         |
-| --------------------------------- | ------------------------------------------------------------------------------- |
-| The prompts                       | `api/src/infinite_bookshelf/engine/agents/`                                     |
-| The built-in providers and models | `PROVIDER_PRESETS` in `engine/client.py`, and `web/src/lib/provider-catalog.ts` |
-| How the next section is chosen    | `web/src/lib/runner.ts`                                                         |
-| Which key a request uses          | `keyOrder` in `web/src/lib/settings.ts`                                         |
-| How books are read and rendered   | `web/src/components/book/Reader.tsx`, `components/Markdown.tsx`                 |
-| The PDF layout                    | `api/src/infinite_bookshelf/engine/pdf.py`                                      |
-| Server settings                   | `api/src/infinite_bookshelf/server/config.py` and `.env.example`                |
+| I want to change…                         | Look in                                                                         |
+| ----------------------------------------- | ------------------------------------------------------------------------------- |
+| The prompts                               | `api/src/infinite_bookshelf/engine/agents/`                                     |
+| The built-in providers and models         | `PROVIDER_PRESETS` in `engine/client.py`, and `web/src/lib/provider-catalog.ts` |
+| How the next section is chosen            | `web/src/lib/runner.ts`                                                         |
+| Which key a request uses                  | `keyOrder` in `web/src/lib/settings.ts`                                         |
+| How books are read and rendered           | `web/src/components/book/Reader.tsx`, `components/Markdown.tsx`                 |
+| The PDF layout                            | `api/src/infinite_bookshelf/engine/pdf.py`                                      |
+| Server settings                           | `api/src/infinite_bookshelf/server/config.py` and `.env.example`                |
+| Link previews, icons and the app manifest | `web/index.html` and `web/public/`                                              |

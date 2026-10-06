@@ -57,6 +57,23 @@ different address, set the address in either place:
 deploying. Leave both empty for the usual setup. `lib/api-url.ts` works out the address, and every
 API call goes through it.
 
+## 🔗 Link previews and app metadata
+
+`index.html` carries the Open Graph and X card tags, icons, the web app manifest
+(`public/manifest.webmanifest`) and schema.org data. The preview image and icons are in `public/`.
+
+Preview and canonical links are written root-relative (`/og-image.png`), because crawlers need full
+addresses and the build can't know the domain. When the API serves the page, it fills in the address
+the page was requested on. For a static host, set the site's address when building:
+
+| Variable        | When it's read | Example                                              |
+| --------------- | -------------- | ---------------------------------------------------- |
+| `VITE_SITE_URL` | When building  | `VITE_SITE_URL=https://books.example.com pnpm build` |
+
+`lib/site-links.ts` does this at build time (wired up in `vite.config.ts`). Both `VITE_` settings
+can also live in `web/.env.production`, which `pnpm build` reads; the project root's `.env` is only
+for the API.
+
 Not to be confused with `IB_API_URL` above, which only tells the **dev server** where to forward
 `/api`. The API also has to allow the web app's address, and the static host has to send the security
 headers: see [Self-hosting → Hosting the web app separately](../docs/self-hosting.md#-hosting-the-web-app-separately).

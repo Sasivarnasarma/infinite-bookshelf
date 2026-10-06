@@ -134,7 +134,8 @@ key at all.
 - **Markdown**, a **typeset PDF** (title page, contents with page numbers, maths), or a **JSON
   backup** to move books between devices.
 - **Light and dark themes**, three reading sizes.
-- **Works on phones and tablets.**
+- **Works on phones and tablets,** and installs to the home screen like an app.
+- **Link previews** with an image when you share it on WhatsApp, Slack, Discord, X and more.
 - **Interactive API docs** at `/api/docs`.
 
 </td>

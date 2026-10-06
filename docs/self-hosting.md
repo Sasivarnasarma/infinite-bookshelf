@@ -16,6 +16,7 @@ books and keys live in each user's browser.
 - [Configuration](#-configuration)
 - [Behind a reverse proxy](#-behind-a-reverse-proxy)
 - [Hosting the web app separately](#-hosting-the-web-app-separately)
+- [Link previews](#-link-previews)
 - [Running a public instance](#-running-a-public-instance)
 - [Updating](#-updating)
 - [PDF export](#-pdf-export)
@@ -293,6 +294,13 @@ VITE_API_URL=https://api.example.com pnpm build
 `config.js` wins when both are set. The address may include a path (`https://example.com/bookshelf`);
 the app adds `/api/...` to it.
 
+For link previews, also give the web app's own address when building, so shared links show the
+preview image (see [Link previews](#-link-previews)):
+
+```bash
+VITE_API_URL=https://api.example.com VITE_SITE_URL=https://books.example.com pnpm build
+```
+
 **2. Let the API accept the web app's address** in the API's `.env`:
 
 ```bash
@@ -336,6 +344,25 @@ books.example.com {
 > [!NOTE]
 > Books and keys are stored per web address. Moving the web app to a new domain starts users with an
 > empty bookshelf there; they can move their books with a backup from **Settings → Your data**.
+
+## 🔗 Link previews
+
+When someone shares a link to your instance on WhatsApp, Slack, Discord, X, LinkedIn or Facebook, it
+shows the app's name, description and a preview image. Phones can also add it to the home screen
+as an app, with its own icon.
+
+Link-preview crawlers need full addresses (`https://books.example.com/og-image.png`), but the build
+can't know your domain. The page is written with root-relative links, made absolute either way:
+
+| How you serve it                                                 | Where the address comes from                                      |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Docker, `pnpm start`, or any setup where the API serves the page | Automatic: the address the page was requested on. Nothing to set. |
+| A static host, with the web app on its own                       | `VITE_SITE_URL=https://books.example.com` when building           |
+
+Behind a reverse proxy, the API sees `https` only through `X-Forwarded-Proto` from a trusted proxy:
+check that your proxy sends it and is in `IB_TRUSTED_PROXIES` (the [examples](#-behind-a-reverse-proxy)
+do). To check a preview, open your page's source and look for `og:image`, or paste the link into a
+chat.
 
 ## 🌍 Running a public instance
 
