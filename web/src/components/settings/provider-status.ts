@@ -1,7 +1,7 @@
 /** Status helpers shared by the provider list and the provider panel. */
 import { useEffect, useState } from 'react'
 
-import { combineTones, describeKey, useKeyHealth, type HealthTone } from '@/lib/key-health'
+import { combineTones, describeKey, useKeyHealth, type HealthTone, type KeyHealth } from '@/lib/key-health'
 import type { ProviderInfo } from '@/lib/settings'
 
 export const TONE_DOT: Record<HealthTone, string> = {
@@ -32,6 +32,11 @@ export function useNow(active: boolean): number {
 /** A provider's overall status, from its keys. */
 export function useProviderTone(provider: ProviderInfo, now: number): { tone: HealthTone; text: string } {
   const byKey = useKeyHealth((s) => s.byKey)
+  return providerTone(provider, byKey, now)
+}
+
+/** As useProviderTone, for many providers at once (e.g. the model picker). */
+export function providerTone(provider: ProviderInfo, byKey: Record<string, KeyHealth>, now: number): { tone: HealthTone; text: string } {
   if (provider.status === 'needs-key') return { tone: 'neutral', text: 'Needs a key' }
   if (provider.status === 'needs-url') return { tone: 'neutral', text: 'Needs a URL' }
   const tones = provider.keys.filter((k) => k.usable).map((k) => describeKey(k, byKey[k.id], provider.requiresKey, now).tone)

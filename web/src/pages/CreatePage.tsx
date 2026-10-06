@@ -152,7 +152,7 @@ function Composer({ initialTopic }: { initialTopic: string }) {
             <div className={cn('grid gap-3', perStep ? 'sm:grid-cols-3' : 'sm:grid-cols-[1fr_auto]')}>
               {(perStep ? (['outline', 'title', 'section'] as Step[]) : (['section'] as Step[])).map((step) => (
                 <Field key={step} label={perStep ? `${STEP_LABELS[step]} model` : 'Model'} htmlFor={`model-${step}`}>
-                  <ModelSelect id={`model-${step}`} value={resolved[step]} options={options} onChange={(ref) => setModels((m) => ({ ...m, [step]: ref }))} />
+                  <ModelSelect id={`model-${step}`} step={step} value={resolved[step]} options={options} onChange={(ref) => ref && setModels((m) => ({ ...m, [step]: ref }))} />
                 </Field>
               ))}
               {!perStep && (

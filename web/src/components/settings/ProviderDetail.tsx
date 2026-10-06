@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowUpToLine, Ellipsis, ExternalLink, Eye, EyeOff, KeyRound, Loader2, PenLine, Plus, RotateCcw, Star, Trash2, X, Zap } from 'lucide-react'
+import { ArrowLeft, ArrowUpToLine, Ellipsis, ExternalLink, KeyRound, Loader2, PenLine, Plus, RotateCcw, Star, Trash2, X, Zap } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -11,6 +11,8 @@ import { describeKey, useKeyHealth } from '@/lib/key-health'
 import { testKey } from '@/lib/key-test'
 import { useKeys, useProviders, useServer, type KeyInfo, type ProviderInfo } from '@/lib/settings'
 import { cn } from '@/lib/utils'
+
+import { KeyAdviceLine, KeyField } from './KeyField'
 
 import { summary, TONE_DOT, TONE_TEXT, useNow, useProviderTone } from './provider-status'
 
@@ -53,8 +55,9 @@ function KeyRow({ provider, apiKey, first, now }: { provider: ProviderInfo; apiK
   const { updateKey, removeKey, makePrimary } = useProviders()
   const [editing, setEditing] = useState(!apiKey.hasSecret)
   const [renaming, setRenaming] = useState(false)
-  const [show, setShow] = useState(false)
   const [testing, setTesting] = useState(false)
+  const config = useServer((s) => s.config)
+  const providerNames = Object.fromEntries((config?.providers ?? []).map((p) => [p.id, p.name]))
   // Menu actions that move focus run after the menu has closed (see onCloseAutoFocus)
   const after = useRef<null | (() => void)>(null)
   const autoTest = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -67,7 +70,6 @@ function KeyRow({ provider, apiKey, first, now }: { provider: ProviderInfo; apiK
     const outcome = await testKey(provider.id, apiKey.id)
     setTesting(false)
     if (outcome.ok) setEditing(false)
-    else toast.error(`${apiKey.label}: ${outcome.error.title}`, { description: [outcome.error.message, outcome.error.hint].filter(Boolean).join(' ') })
   }
 
   // Pasting or typing a key tests it shortly after, so there's no separate step
@@ -94,9 +96,13 @@ function KeyRow({ provider, apiKey, first, now }: { provider: ProviderInfo; apiK
           <div className="grid min-w-0 flex-1" onDoubleClick={() => setRenaming(true)}>
             <p className="truncate text-sm font-medium pointer-coarse:text-base">
               {apiKey.label}
-              {hint && <span className="ml-2 font-mono text-xs font-normal text-muted-foreground">{hint}</span>}
+              {hint && !editing && (
+                <button type="button" onClick={() => setEditing(true)} className="ml-2 rounded font-mono text-xs font-normal text-muted-foreground underline-offset-2 hover:text-foreground hover:underline pointer-coarse:py-3" title="Change this key" aria-label={`Change ${apiKey.label}`}>
+                  {hint} · Change
+                </button>
+              )}
             </p>
-            <p className={cn('truncate text-xs', TONE_TEXT[status.tone])}>
+            <p className={cn('truncate text-xs', TONE_TEXT[status.tone])} aria-live="polite">
               {testing ? 'Testing…' : status.text}
               {several && first && apiKey.usable && <span className="text-muted-foreground"> · {provider.rotate ? 'first in turn' : 'used first'}</span>}
             </p>
@@ -135,28 +141,30 @@ function KeyRow({ provider, apiKey, first, now }: { provider: ProviderInfo; apiK
           </MenuContent>
         </Menu>
       </div>
-      {editing && (
-        <div className="flex gap-2 pl-[1.125rem]">
-          <div className="relative min-w-0 flex-1">
-            <Input
-              autoFocus={apiKey.hasSecret}
-              type={show ? 'text' : 'password'}
-              value={secret}
-              onChange={(e) => onSecretChange(e.target.value.trim())}
-              placeholder={provider.requiresKey ? 'Paste your API key' : 'Optional: most local servers need none'}
-              autoComplete="off"
-              spellCheck={false}
-              className="pr-10 font-mono text-xs pointer-coarse:pr-12"
-              aria-label={`${apiKey.label} secret`}
-            />
-            <button type="button" onClick={() => setShow((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:text-foreground pointer-coarse:right-1 pointer-coarse:p-3" aria-label={show ? 'Hide key' : 'Show key'}>
-              {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-            </button>
-          </div>
-          <Button variant="outline" onClick={() => void test()} disabled={testing || (provider.requiresKey && !secret) || provider.status === 'needs-url'} aria-label={`Test ${apiKey.label}`}>
-            {testing ? <Loader2 className="animate-spin" /> : <Zap />} <span className="max-[359px]:sr-only">Test</span>
-          </Button>
+      {editing ? (
+        <div className="pl-[1.125rem]">
+          <KeyField
+            autoFocus={apiKey.hasSecret}
+            provider={provider}
+            value={secret}
+            onChange={onSecretChange}
+            check={
+              testing
+                ? { state: 'checking' }
+                : health?.state === 'ok'
+                  ? { state: 'ok', models: health.models }
+                  : health && secret
+                    ? { state: 'error', error: { code: health.code ?? '', message: health.message } }
+                    : { state: 'idle' }
+            }
+            providerNames={providerNames}
+            label={`${apiKey.label} secret`}
+          />
         </div>
+      ) : (
+        health &&
+        health.state !== 'ok' &&
+        !(health.state === 'limited' && health.until && health.until <= now) && <KeyAdviceLine className="pl-[1.125rem] text-xs leading-relaxed" error={{ code: health.code ?? '', message: health.message }} provider={provider} />
       )}
     </motion.li>
   )

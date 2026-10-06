@@ -24,8 +24,8 @@ export async function testKey(serviceId: string, keyId: string): Promise<TestOut
     return { ok: true, models }
   } catch (e) {
     const error = toError(e)
-    if (error.code === 'rate_limit') health.report(keyId, { state: 'limited', message: error.title, until: Date.now() + 60_000 })
-    else health.report(keyId, { state: 'failed', message: error.title })
+    if (error.code === 'rate_limit') health.report(keyId, { state: 'limited', message: error.title, until: Date.now() + 60_000, code: error.code })
+    else health.report(keyId, { state: 'failed', message: error.title, code: error.code })
     return { ok: false, error }
   }
 }

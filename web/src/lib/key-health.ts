@@ -14,6 +14,8 @@ export interface KeyHealth {
   until?: number
   /** For a successful test: how many models the key can see. */
   models?: number
+  /** For 'failed' / 'limited': the error code, for advice (see explainKeyError). */
+  code?: string
 }
 
 interface KeyHealthState {

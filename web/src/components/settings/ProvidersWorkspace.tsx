@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronRight, Sparkles } from 'lucide-react'
+import { ArrowRight, Check, ChevronRight, Sparkles } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
@@ -8,9 +8,10 @@ import { ProviderTile } from '@/components/ProviderIcon'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/fields'
 import { useKeyHealth } from '@/lib/key-health'
+import { combinations } from '@/lib/model-picks'
 import { CATALOG, STARTERS } from '@/lib/provider-catalog'
-import { modelOptions, usePreferences, useProviderList, useServer, type ProviderInfo } from '@/lib/settings'
-import type { Step } from '@/lib/types'
+import { modelOptions, sameRef, usePreferences, useProviderList, useServer, type ProviderInfo } from '@/lib/settings'
+import type { ModelRef, Step } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 import { AddProviderButton, AddProviderDialog } from './AddProviderDialog'
@@ -70,24 +71,58 @@ function Welcome({ providers, onStart, onBrowse }: { providers: ProviderInfo[]; 
 
 const STEPS: { step: Step; label: string; hint: string }[] = [
   { step: 'section', label: 'Chapters', hint: 'Writes every section. Pick your strongest model.' },
-  { step: 'outline', label: 'Outline', hint: 'Plans the chapters. Empty: the chapters model.' },
-  { step: 'title', label: 'Title', hint: 'One short call. A fast, cheap model is fine.' },
+  { step: 'outline', label: 'Outline', hint: 'Plans the chapters. A balanced model works well.' },
+  { step: 'title', label: 'Title', hint: 'One short call. A fast, low-cost model is fine.' },
 ]
 
 function DefaultModels({ providers }: { providers: ProviderInfo[] }) {
   const prefs = usePreferences()
   const options = useMemo(() => modelOptions(providers), [providers])
+  const presets = useMemo(() => combinations(options), [options])
   if (!options.length) return null
+  const current = prefs.defaultModels
+  // A combination is "on" when every step matches it (Outline and Title fall back to Chapters)
+  const isOn = (models: Record<Step, ModelRef>) => (['section', 'outline', 'title'] as Step[]).every((s) => sameRef(current[s] ?? current.section, models[s]))
   return (
     <section className="grid gap-4">
       <div>
         <h2 className="font-display text-xl font-medium">Default models</h2>
         <p className="mt-1 text-sm text-muted-foreground">Preselected for every new book. You can still change them per book.</p>
       </div>
+      {presets.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Quick start">
+          <span className="text-xs text-muted-foreground">Quick start:</span>
+          {presets.map((p) => {
+            const on = isOn(p.models)
+            return (
+              <button
+                key={p.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => prefs.set({ defaultModels: p.models })}
+                className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors pointer-coarse:py-2.5', on ? 'border-primary bg-accent text-accent-foreground' : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground')}
+              >
+                {on && <Check className="size-3.5" />} {p.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {STEPS.map(({ step, label, hint }) => (
           <Field key={step} label={label} hint={hint}>
-            <ModelSelect value={prefs.defaultModels[step] ?? null} options={options} onChange={(ref) => prefs.set({ defaultModels: { ...prefs.defaultModels, [step]: ref } })} />
+            <ModelSelect
+              step={step}
+              value={current[step] ?? null}
+              options={options}
+              emptyLabel={step === 'section' ? undefined : 'Same as chapters'}
+              onChange={(ref) => {
+                const next = { ...current }
+                if (ref) next[step] = ref
+                else delete next[step]
+                prefs.set({ defaultModels: next })
+              }}
+            />
           </Field>
         ))}
       </div>

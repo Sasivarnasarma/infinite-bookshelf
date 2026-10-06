@@ -10,7 +10,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-import type { ModelRef, ProviderPreset, SectionLength, ServerConfig, Step } from './types'
+import type { ModelRef, ModelTier, ProviderPreset, SectionLength, ServerConfig, Step } from './types'
 import { useKeyHealth } from './key-health'
 import { newId } from './utils'
 
@@ -24,6 +24,8 @@ interface PreferencesState {
   readingSize: ReadingSize
   rememberKeys: boolean
   defaultModels: Partial<Record<Step, ModelRef>>
+  /** Models used for recent books, newest first: offered first in pickers. */
+  recentModels: ModelRef[]
   sectionLength: SectionLength
   reviewOutline: boolean
   delaySeconds: number
@@ -37,6 +39,7 @@ export const usePreferences = create<PreferencesState>()(
       readingSize: 'md',
       rememberKeys: true,
       defaultModels: {},
+      recentModels: [],
       sectionLength: 'medium',
       reviewOutline: true,
       delaySeconds: 0.5,
@@ -263,6 +266,7 @@ export interface ProviderInfo {
   rotate: boolean
   failover: boolean
   starred: string[]
+  tiers: Record<string, ModelTier>
   baseUrl: string
   keyUrl: string
   models: string[]
@@ -304,6 +308,7 @@ export function listProviders(
       rotate: s.rotate,
       failover: s.failover,
       starred: s.starred ?? [],
+      tiers: p.tiers ?? {},
       baseUrl: s.baseUrl || p.base_url,
       keyUrl: p.key_url,
       models: s.models.length ? s.models : p.models,
@@ -326,6 +331,7 @@ export function listProviders(
       rotate: c.rotate,
       failover: c.failover,
       starred: c.starred ?? [],
+      tiers: {},
       baseUrl: c.baseUrl,
       keyUrl: '',
       models: c.models,
@@ -358,16 +364,26 @@ export interface ModelOption extends ModelRef {
   providerName: string
   baseUrl: string
   starred: boolean
+  tier?: ModelTier
 }
 
 export function modelOptions(providers: ProviderInfo[]): ModelOption[] {
   return providers
     .filter((p) => p.status === 'ready')
-    .flatMap((p) => p.models.map((model) => ({ providerId: p.id, model, providerName: p.name, baseUrl: p.baseUrl, label: `${p.name} · ${model}`, starred: p.starred.includes(model) })))
+    .flatMap((p) => p.models.map((model) => ({ providerId: p.id, model, providerName: p.name, baseUrl: p.baseUrl, label: `${p.name} · ${model}`, starred: p.starred.includes(model), tier: p.tiers[model] })))
 }
 
 export function sameRef(a?: ModelRef | null, b?: ModelRef | null): boolean {
   return Boolean(a && b && a.providerId === b.providerId && a.model === b.model)
+}
+
+const RECENT_LIMIT = 6
+
+/** Puts these models at the front of the recently used list. */
+export function rememberModels(refs: ModelRef[]) {
+  const prefs = usePreferences.getState()
+  const recent = [...refs, ...(prefs.recentModels ?? [])].filter((ref, i, all) => all.findIndex((r) => sameRef(r, ref)) === i)
+  prefs.set({ recentModels: recent.slice(0, RECENT_LIMIT) })
 }
 
 // ---- Choosing a key for each request ------------------------------------------------------------
@@ -400,10 +416,10 @@ export function noteKeyFailure(ref: ModelRef, keyId: string | null, code: string
   if (code === 'rate_limit') {
     const until = Date.now() + RATE_LIMIT_PAUSE_MS
     setAside.set(slotOf(keyId, null), { until, secret })
-    health.report(keyId, { state: 'limited', message: 'Rate limit or quota reached', until })
+    health.report(keyId, { state: 'limited', message: 'Rate limit or quota reached', until, code })
   } else if (code === 'auth') {
     setAside.set(slotOf(keyId, null), { until: Infinity, secret })
-    health.report(keyId, { state: 'failed', message: 'Key rejected' })
+    health.report(keyId, { state: 'failed', message: 'Key rejected', code })
   } else if (code === 'model_unavailable') setAside.set(slotOf(keyId, ref.model), { until: Infinity, secret })
 }
 

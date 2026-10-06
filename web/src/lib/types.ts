@@ -75,6 +75,9 @@ export interface OutlineNode {
 
 // ---- Server (/api/config) -----------------------------------------------------------------
 
+/** How a provider describes a model: its strongest, a good middle, or fast and low-cost. */
+export type ModelTier = 'best' | 'balanced' | 'fast'
+
 export interface ProviderPreset {
   id: string
   name: string
@@ -82,6 +85,7 @@ export interface ProviderPreset {
   key_url: string
   default_model: string
   models: string[]
+  tiers: Record<string, ModelTier>
   requires_key: boolean
   local: boolean
 }

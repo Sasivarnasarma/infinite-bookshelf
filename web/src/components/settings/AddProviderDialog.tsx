@@ -1,10 +1,10 @@
-import { ArrowLeft, Check, CheckCircle2, ExternalLink, Eye, EyeOff, Loader2, Plus, Search, Server, XCircle } from 'lucide-react'
+import { ArrowLeft, Check, ExternalLink, Plus, Search, Server } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { ProviderTile } from '@/components/ProviderIcon'
 import { Button } from '@/components/ui/button'
-import { Hint, Input, Label } from '@/components/ui/fields'
+import { Input, Label } from '@/components/ui/fields'
 import { Dialog, DialogContent } from '@/components/ui/overlays'
 import { useKeyHealth } from '@/lib/key-health'
 import { testSecret, type TestOutcome } from '@/lib/key-test'
@@ -12,13 +12,28 @@ import { CATALOG, TAG_LABELS, type ProviderTag } from '@/lib/provider-catalog'
 import { useKeys, useProviders, useServer, type ProviderInfo } from '@/lib/settings'
 import { cn } from '@/lib/utils'
 
+import { KeyField } from './KeyField'
+
 type Filter = 'all' | ProviderTag
 
 // ---- Step 2: connect one provider -------------------------------------------------------------
 
-function Setup({ provider, onBack, onConnected }: { provider: ProviderInfo; onBack: () => void; onConnected: (id: string) => void }) {
-  const [secret, setSecret] = useState('')
-  const [show, setShow] = useState(false)
+function Setup({
+  provider,
+  providerNames,
+  initialSecret,
+  onBack,
+  onConnected,
+  onSwitchProvider,
+}: {
+  provider: ProviderInfo
+  providerNames: Record<string, string>
+  initialSecret: string
+  onBack: () => void
+  onConnected: (id: string) => void
+  onSwitchProvider: (id: string, secret: string) => void
+}) {
+  const [secret, setSecret] = useState(initialSecret)
   const [testing, setTesting] = useState(false)
   const [outcome, setOutcome] = useState<TestOutcome | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -32,6 +47,11 @@ function Setup({ provider, onBack, onConnected }: { provider: ProviderInfo; onBa
   }
 
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), [])
+  // A key carried over from another provider's setup is checked straight away
+  useEffect(() => {
+    if (initialSecret.length >= 8) void test(initialSecret)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on arrival
+  }, [])
   function onChange(value: string) {
     setSecret(value)
     setOutcome(null)
@@ -81,40 +101,17 @@ function Setup({ provider, onBack, onConnected }: { provider: ProviderInfo; onBa
               </a>
             )}
           </div>
-          <div className="relative">
-            <Input
-              id="setup-key"
-              autoFocus
-              type={show ? 'text' : 'password'}
-              value={secret}
-              onChange={(e) => onChange(e.target.value.trim())}
-              onKeyDown={(e) => e.key === 'Enter' && canConnect && connect()}
-              placeholder="Paste your API key"
-              autoComplete="off"
-              spellCheck={false}
-              className="pr-10 font-mono text-xs pointer-coarse:pr-12"
-            />
-            <button type="button" onClick={() => setShow((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:text-foreground pointer-coarse:right-1 pointer-coarse:p-3" aria-label={show ? 'Hide key' : 'Show key'}>
-              {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-            </button>
-          </div>
-          <div className="min-h-5 text-xs" aria-live="polite">
-            {testing ? (
-              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                <Loader2 className="size-3.5 animate-spin" /> Checking the key…
-              </span>
-            ) : outcome?.ok ? (
-              <span className="inline-flex items-center gap-1.5 text-success">
-                <CheckCircle2 className="size-3.5" /> Working · {outcome.models.length} models found
-              </span>
-            ) : outcome ? (
-              <span className="inline-flex items-start gap-1.5 text-danger">
-                <XCircle className="mt-px size-3.5 shrink-0" /> {outcome.error.title}. {outcome.error.hint || outcome.error.message}
-              </span>
-            ) : (
-              <Hint>Saved only in this browser. It's checked as soon as you paste it.</Hint>
-            )}
-          </div>
+          <KeyField
+            id="setup-key"
+            autoFocus
+            provider={provider}
+            value={secret}
+            onChange={onChange}
+            check={testing ? { state: 'checking' } : outcome?.ok ? { state: 'ok', models: outcome.models.length } : outcome ? { state: 'error', error: outcome.error } : { state: 'idle' }}
+            providerNames={providerNames}
+            onSwitchProvider={(id) => onSwitchProvider(id, secret)}
+            onEnter={() => canConnect && connect()}
+          />
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">No key needed. You can change its address after connecting, if it doesn't run on this computer.</p>
@@ -217,6 +214,9 @@ function Gallery({ providers, onPick, onCustom }: { providers: ProviderInfo[]; o
  */
 export function AddProviderDialog({ open, onOpenChange, providers, onConnected, initial }: { open: boolean; onOpenChange: (open: boolean) => void; providers: ProviderInfo[]; onConnected: (id: string) => void; initial?: string | null }) {
   const [picked, setPicked] = useState<string | null>(initial ?? null)
+  // A key pasted into one provider's setup that belongs to another moves with the switch
+  const [carried, setCarried] = useState('')
+  const providerNames = Object.fromEntries(providers.map((p) => [p.id, p.name]))
   const allowCustom = useServer((s) => s.config?.allow_custom_endpoints)
   const addCustom = useProviders((s) => s.addCustom)
   const provider = providers.find((p) => p.id === picked)
@@ -239,7 +239,21 @@ export function AddProviderDialog({ open, onOpenChange, providers, onConnected, 
               </Button>
             </div>
           ) : (
-            <Setup provider={provider} onBack={() => setPicked(null)} onConnected={done} />
+            <Setup
+              key={provider.id}
+              provider={provider}
+              providerNames={providerNames}
+              initialSecret={carried}
+              onBack={() => {
+                setCarried('')
+                setPicked(null)
+              }}
+              onConnected={done}
+              onSwitchProvider={(id, secret) => {
+                setCarried(secret)
+                setPicked(id)
+              }}
+            />
           )
         ) : (
           <Gallery providers={providers} onPick={(p) => (p.enabled ? done(p.id) : setPicked(p.id))} onCustom={allowCustom ? () => done(addCustom()) : null} />

@@ -1,5 +1,6 @@
 import { db } from './db'
 import { draftOutline } from './runner'
+import { rememberModels } from './settings'
 import type { Book, BookOptions, ModelRef, Step } from './types'
 import { newId } from './utils'
 
@@ -20,6 +21,7 @@ export async function createBook(options: BookOptions, models: Record<Step, Mode
     updatedAt: now,
   }
   await db.books.add(book)
+  rememberModels([models.section, models.outline, models.title])
   void draftOutline(book.id)
   return book.id
 }
