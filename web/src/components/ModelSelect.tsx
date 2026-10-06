@@ -210,6 +210,7 @@ export function ModelSelect({
   id,
   step,
   emptyLabel,
+  disabled,
 }: {
   value: ModelRef | null
   onChange: (ref: ModelRef | null) => void
@@ -218,6 +219,7 @@ export function ModelSelect({
   id?: string
   step?: Step
   emptyLabel?: string
+  disabled?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const phone = useIsPhone()
@@ -231,9 +233,10 @@ export function ModelSelect({
     <button
       id={id}
       type="button"
+      disabled={disabled}
       onClick={phone ? () => setOpen(true) : undefined}
       aria-haspopup="listbox"
-      className={cn('flex h-10 w-full min-w-0 items-center gap-2 rounded-xl border border-input bg-card/70 px-3 text-left text-sm transition-colors hover:bg-muted/50 focus-visible:border-ring pointer-coarse:h-11', className)}
+      className={cn('flex h-10 w-full min-w-0 items-center gap-2 rounded-xl border border-input bg-card/70 px-3 text-left text-sm transition-colors hover:bg-muted/50 focus-visible:border-ring disabled:pointer-events-none disabled:opacity-55 pointer-coarse:h-11', className)}
     >
       {selected ? (
         <>

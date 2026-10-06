@@ -4,7 +4,7 @@ import { rememberModels } from './settings'
 import type { Book, BookOptions, ModelRef, Step } from './types'
 import { newId } from './utils'
 
-export async function createBook(options: BookOptions, models: Record<Step, ModelRef>, reviewOutline: boolean): Promise<string> {
+export async function createBook(options: BookOptions, models: Record<Step, ModelRef>, reviewOutline: boolean, chapterByChapter: boolean): Promise<string> {
   const now = Date.now()
   const book: Book = {
     id: newId(),
@@ -13,6 +13,7 @@ export async function createBook(options: BookOptions, models: Record<Step, Mode
     options,
     models,
     reviewOutline,
+    chapterByChapter,
     outline: null,
     sections: {},
     stats: { inputTokens: 0, outputTokens: 0, modelSeconds: 0 },

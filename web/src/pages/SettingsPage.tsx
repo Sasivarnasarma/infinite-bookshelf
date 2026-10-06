@@ -90,6 +90,10 @@ function WritingTab() {
           <Switch checked={prefs.reviewOutline} onCheckedChange={(reviewOutline) => prefs.set({ reviewOutline })} />
           Review the outline before writing starts
         </label>
+        <label className="flex cursor-pointer items-center gap-3 text-sm">
+          <Switch checked={prefs.chapterByChapter} onCheckedChange={(chapterByChapter) => prefs.set({ chapterByChapter })} />
+          Write one chapter at a time, so you can read each before the next
+        </label>
       </Section>
     </div>
   )

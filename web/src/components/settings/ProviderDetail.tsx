@@ -287,7 +287,7 @@ function Models({ provider }: { provider: ProviderInfo }) {
 // ---- The panel ------------------------------------------------------------------------------------
 
 function RemoveProvider({ provider, onRemoved }: { provider: ProviderInfo; onRemoved: () => void }) {
-  const { updateService, removeCustom } = useProviders()
+  const removeService = useProviders((s) => s.removeService)
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -297,7 +297,7 @@ function RemoveProvider({ provider, onRemoved }: { provider: ProviderInfo; onRem
       </DialogTrigger>
       <DialogContent
         title={`Remove ${provider.name}?`}
-        description={provider.custom ? 'This endpoint and its keys are deleted from this browser.' : 'It disappears from the model picker. Its keys stay saved here, so adding it again is instant.'}
+        description={`${provider.custom ? 'This endpoint' : provider.name} and ${provider.keys.length === 1 ? 'its key are' : `its ${provider.keys.length} keys are`} deleted from this browser.`}
       >
         <div className="flex justify-end gap-2">
           <DialogClose asChild>
@@ -307,8 +307,7 @@ function RemoveProvider({ provider, onRemoved }: { provider: ProviderInfo; onRem
             <Button
               variant="danger"
               onClick={() => {
-                if (provider.custom) removeCustom(provider.id)
-                else updateService(provider.id, { enabled: false })
+                removeService(provider.id)
                 onRemoved()
               }}
             >

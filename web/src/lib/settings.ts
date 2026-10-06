@@ -10,7 +10,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-import type { ModelRef, ModelTier, ProviderPreset, SectionLength, ServerConfig, Step } from './types'
+import type { Book, ModelRef, ModelTier, ProviderPreset, SectionLength, ServerConfig, Step } from './types'
 import { useKeyHealth } from './key-health'
 import { newId } from './utils'
 
@@ -28,6 +28,7 @@ interface PreferencesState {
   recentModels: ModelRef[]
   sectionLength: SectionLength
   reviewOutline: boolean
+  chapterByChapter: boolean
   delaySeconds: number
   set: (patch: Partial<Omit<PreferencesState, 'set'>>) => void
 }
@@ -42,6 +43,7 @@ export const usePreferences = create<PreferencesState>()(
       recentModels: [],
       sectionLength: 'medium',
       reviewOutline: true,
+      chapterByChapter: false,
       delaySeconds: 0.5,
       set: (patch) => set(patch),
     }),
@@ -103,7 +105,8 @@ interface ProvidersState {
   keys: ApiKeyEntry[]
   updateService: (id: string, patch: ServicePatch) => void
   addCustom: () => string
-  removeCustom: (id: string) => void
+  /** Removes a service with all its keys (and their secrets); a built-in one can be added again. */
+  removeService: (id: string) => void
   addKey: (serviceId: string) => string
   updateKey: (id: string, patch: Partial<Pick<ApiKeyEntry, 'label' | 'enabled'>>) => void
   removeKey: (id: string) => void
@@ -150,8 +153,18 @@ export const useProviders = create<ProvidersState>()(
         }))
         return id
       },
-      removeCustom: (id) =>
-        set((s) => ({ customs: s.customs.filter((c) => c.id !== id), keys: s.keys.filter((k) => k.serviceId !== id) })),
+      removeService: (id) => {
+        const gone = get().keys.filter((k) => k.serviceId === id)
+        set((s) => {
+          const presets = { ...s.presets }
+          delete presets[id]
+          return { presets, customs: s.customs.filter((c) => c.id !== id), keys: s.keys.filter((k) => k.serviceId !== id) }
+        })
+        for (const k of gone) {
+          useKeys.getState().setKey(k.id, '')
+          useKeyHealth.getState().clear(k.id)
+        }
+      },
       addKey: (serviceId) => {
         const id = `key-${newId()}`
         set((s) => ({ keys: [...s.keys, { id, serviceId, label: nextKeyLabel(s.keys, serviceId), enabled: true }] }))
@@ -342,6 +355,38 @@ export function listProviders(
   }
   const customAllowed = config.allow_custom_endpoints
   return [...config.providers.map(fromPreset), ...(customAllowed ? customs.map(fromCustom) : [])]
+}
+
+/** Why a model can't be used right now, for a message that says what to fix. */
+export interface SetupProblem {
+  providerId: string
+  name: string
+  model: string
+  reason: 'removed' | 'off' | 'needs-key' | 'needs-url'
+}
+
+/** What stops these models from running (each provider once), or an empty list when all can run. */
+export function setupProblems(providers: ProviderInfo[], refs: ModelRef[]): SetupProblem[] {
+  const problems: SetupProblem[] = []
+  for (const ref of refs) {
+    if (problems.some((p) => p.providerId === ref.providerId)) continue
+    const provider = providers.find((p) => p.id === ref.providerId)
+    const reason = !provider ? 'removed' : provider.status === 'ready' ? null : provider.status
+    if (reason) problems.push({ providerId: ref.providerId, name: provider?.name ?? 'This provider', model: ref.model, reason })
+  }
+  return problems
+}
+
+/** The models a book's next request would use: outline and title until there's an outline, then sections. */
+export function modelsInUse(book: Pick<Book, 'outline' | 'models'>): ModelRef[] {
+  return book.outline ? [book.models.section] : [book.models.outline, book.models.title]
+}
+
+/** Problems for the providers' current state (outside React, e.g. before a request). */
+export function currentSetupProblems(refs: ModelRef[]): SetupProblem[] {
+  // Until the server's provider list arrives nothing is known; let the request report problems
+  if (!useServer.getState().config) return []
+  return setupProblems(currentProviders(), refs)
 }
 
 export function useProviderList(): ProviderInfo[] {

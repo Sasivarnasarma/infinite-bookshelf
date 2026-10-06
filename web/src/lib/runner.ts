@@ -7,6 +7,9 @@
  * section is simply rewritten). Runs live outside React, so navigating between pages doesn't
  * stop them. Closing the tab does; the book then waits for Resume.
  *
+ * In chapter-by-chapter mode the run stops after each chapter, so the reader can check it (rewrite
+ * a section, switch the model) before asking for the next one.
+ *
  * Each request picks an API key for its service (see keyOrder): the first key, or the next in
  * turn when rotating. If a key fails in a way another key could fix (rejected key, rate limit or
  * quota, model not available), the same request is retried with the service's next key.
@@ -17,7 +20,7 @@ import { create } from 'zustand'
 import { ApiRequestError, streamOutline, streamSection, type ServerStats } from './api'
 import { db, updateBook } from './db'
 import { outlineNodes, pendingSections, sectionKey } from './outline'
-import { KEY_FAILOVER_CODES, keyOrder, noteKeyFailure, noteKeySuccess, usePreferences, type KeyChoice } from './settings'
+import { currentSetupProblems, KEY_FAILOVER_CODES, keyOrder, modelsInUse, noteKeyFailure, noteKeySuccess, usePreferences, type KeyChoice } from './settings'
 import type { ApiError, Book, ModelRef, Outline, Stats } from './types'
 import { isAbort, sleep } from './utils'
 
@@ -153,12 +156,31 @@ async function withKeys<T>(bookId: string, ref: ModelRef, run: (key: KeyChoice) 
   }
 }
 
+// ---- Setup -------------------------------------------------------------------------------------
+
+/** Code of the error saved on a book whose provider needs setting up (the book page shows a setup card). */
+export const NEEDS_SETUP = 'needs_setup'
+
+/**
+ * Checks the models a request would use before sending anything. If a provider was removed or has
+ * no usable key, the book gets an error saying so (and nothing is sent), and this returns true.
+ */
+async function blockedBySetup(book: Book, refs: ModelRef[] = modelsInUse(book)): Promise<boolean> {
+  const problem = currentSetupProblems(refs)[0]
+  if (!problem) return false
+  const title = problem.reason === 'needs-key' ? `No API key for ${problem.name}` : problem.reason === 'needs-url' ? `${problem.name} has no address` : `${problem.name} isn't set up`
+  await updateBook(book.id, {
+    error: { code: NEEDS_SETUP, title, message: `This book writes with ${problem.model}.`, hint: 'Add a key, or switch the book to a model you have set up.' },
+  })
+  return true
+}
+
 // ---- Outline ----------------------------------------------------------------------------------
 
 /** Drafts the outline and title. Then waits for review, or starts writing right away. */
 export async function draftOutline(bookId: string): Promise<void> {
   const book = await db.books.get(bookId)
-  if (!book) return
+  if (!book || (await blockedBySetup(book, [book.models.outline, book.models.title]))) return
   const controller = begin(bookId)
   const live = useLive.getState()
   live.set(bookId, { phase: 'outline', draftOutline: null, draftTitle: null })
@@ -246,6 +268,8 @@ function writtenSections(book: Book) {
  * pausing or closing the tab loses at most the section in progress.
  */
 export async function writeBook(bookId: string): Promise<void> {
+  const start = await db.books.get(bookId)
+  if (!start || (await blockedBySetup(start, [start.models.section]))) return
   const controller = begin(bookId)
   const { signal } = controller
   const live = useLive.getState()
@@ -257,6 +281,7 @@ export async function writeBook(bookId: string): Promise<void> {
       const book = await db.books.get(bookId)
       if (!book) return
       const next = pendingSections(book)[0]
+      const model = book.models.section
       if (!next) {
         await updateBook(bookId, { status: 'complete' })
         break
@@ -269,11 +294,12 @@ export async function writeBook(bookId: string): Promise<void> {
       const buffer = textBuffer(bookId)
       let stats = book.stats
       try {
-        await withKeys(bookId, book.models.section, (key) => {
+        await withKeys(bookId, model, (key) => {
           buffer.reset()
           stats = book.stats
           return streamSection(
             book,
+            model,
             key.keyId,
             next.path,
             writtenSections(book),
@@ -287,9 +313,18 @@ export async function writeBook(bookId: string): Promise<void> {
       }
       const text = buffer.text
       await updateBook(bookId, (b) => ({
-        sections: { ...b.sections, [next.key]: { text, updatedAt: Date.now() } },
+        sections: { ...b.sections, [next.key]: { text, updatedAt: Date.now(), model } },
         stats,
       }))
+
+      // Chapter by chapter: stop once this chapter is finished (read fresh, the setting may have changed)
+      const after = await db.books.get(bookId)
+      const upcoming = after && pendingSections(after)[0]
+      if (after?.chapterByChapter && upcoming && upcoming.path[0] !== next.path[0]) {
+        await updateBook(bookId, { status: 'paused' })
+        toast.success(`“${next.path[0]}” is written`, { description: 'Read it over, then write the next chapter when you’re ready.' })
+        break
+      }
     }
   } catch (e) {
     await updateBook(bookId, isAbort(e) ? { status: 'paused' } : { status: 'paused', error: asApiError(e) })
@@ -302,9 +337,11 @@ export async function writeBook(bookId: string): Promise<void> {
  * Rewrites one finished section with an optional note. The current text stays saved until the
  * new version is complete, so pausing or an error keeps the original.
  */
-export async function rewriteSection(bookId: string, path: string[], note: string): Promise<void> {
+export async function rewriteSection(bookId: string, path: string[], note: string, model?: ModelRef): Promise<void> {
   const book = await db.books.get(bookId)
   if (!book) return
+  const ref = model ?? book.models.section
+  if (await blockedBySetup(book, [ref])) return
   const key = sectionKey(path)
   const previous = book.sections[key]?.text ?? ''
   const controller = begin(bookId)
@@ -318,11 +355,12 @@ export async function rewriteSection(bookId: string, path: string[], note: strin
   // Context: everything written except the section being rewritten
   const written = writtenSections(book).filter((w) => sectionKey(w.path) !== key)
   try {
-    await withKeys(bookId, book.models.section, (key) => {
+    await withKeys(bookId, ref, (key) => {
       buffer.reset()
       stats = book.stats
       return streamSection(
         book,
+        ref,
         key.keyId,
         path,
         written,
@@ -333,7 +371,7 @@ export async function rewriteSection(bookId: string, path: string[], note: strin
     })
     buffer.stop()
     await updateBook(bookId, (b) => ({
-      sections: { ...b.sections, [key]: { text: buffer.text, updatedAt: Date.now() } },
+      sections: { ...b.sections, [key]: { text: buffer.text, updatedAt: Date.now(), model: ref } },
       stats,
       status: statusBefore === 'writing' ? 'paused' : statusBefore,
     }))

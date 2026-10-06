@@ -1,3 +1,4 @@
+import { prepareMarkdown } from './markdown'
 import type { Book, Outline, OutlineNode } from './types'
 
 /** Browser-side key for a section path. */
@@ -41,7 +42,27 @@ export function pendingSections(book: Book): OutlineNode[] {
   return sectionNodes(book.outline).filter((s) => !book.sections[s.key])
 }
 
-// ---- Editable rows (outline review) ---------------------------------------------------------
+/** The chapter the next unwritten section belongs to: its title, its number, and whether it's begun. */
+export function nextChapter(book: Book): { title: string; number: number; started: boolean } | null {
+  const next = pendingSections(book)[0]
+  if (!next) return null
+  const title = next.path[0]
+  const number = Object.keys(book.outline ?? {}).indexOf(title) + 1
+  const started = sectionNodes(book.outline).some((s) => s.path[0] === title && book.sections[s.key])
+  return { title, number, started }
+}
+
+/**
+ * In chapter-by-chapter mode, true when the book is waiting to be told to write its next chapter
+ * (at least one chapter is written and the next hasn't begun).
+ */
+export function awaitingNextChapter(book: Book): boolean {
+  if (!book.chapterByChapter || book.status !== 'paused' || book.error) return false
+  const next = nextChapter(book)
+  return Boolean(next && !next.started && Object.keys(book.sections).length > 0)
+}
+
+// ---- Editable rows (outline review)---------------------------------------------------------
 
 export type OutlineLevel = 1 | 2 | 3
 
@@ -106,7 +127,7 @@ export function rowsToOutline(rows: OutlineRow[]): Outline {
 export function bookToMarkdown(book: Book): string {
   const parts = [`# ${book.title}\n`]
   for (const node of outlineNodes(book.outline)) {
-    const text = book.sections[node.key]?.text.trim()
+    const text = book.sections[node.key] && prepareMarkdown(book.sections[node.key].text.trim())
     if (node.isSection && !text) continue
     parts.push(`${'#'.repeat(Math.min(6, node.depth + 1))} ${node.title}\n`)
     if (text) parts.push(`${text}\n`)

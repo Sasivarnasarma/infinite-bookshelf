@@ -1,15 +1,17 @@
-import { Check, Copy, ListTree, Loader2, PenLine, Wand2 } from 'lucide-react'
+import { BookOpenCheck, Check, Copy, ListTree, Loader2, PenLine, Play, Wand2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { memo, useEffect, useRef, useState } from 'react'
+import { Fragment, memo, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Markdown } from '@/components/Markdown'
+import { ModelSelect } from '@/components/ModelSelect'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/fields'
 import { Dialog, DialogContent, DialogTrigger, Popover, PopoverContent, PopoverTrigger } from '@/components/ui/overlays'
-import { outlineNodes } from '@/lib/outline'
-import { isRunning, rewriteSection, useLive, type LiveRun } from '@/lib/runner'
-import { usePreferences } from '@/lib/settings'
-import type { Book, OutlineNode } from '@/lib/types'
+import { updateBook } from '@/lib/db'
+import { awaitingNextChapter, nextChapter, outlineNodes } from '@/lib/outline'
+import { isRunning, rewriteSection, useLive, writeBook, type LiveRun } from '@/lib/runner'
+import { modelOptions, sameRef, usePreferences, useProviderList } from '@/lib/settings'
+import type { Book, ModelRef, OutlineNode } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const READING_SIZE = { sm: 'prose-base', md: 'prose-lg', lg: 'prose-xl' }
@@ -106,10 +108,18 @@ function MobileToc({ book, live }: { book: Book; live?: LiveRun }) {
 
 // ---- Section ----------------------------------------------------------------------------------
 
+function useModelOptions() {
+  const providers = useProviderList()
+  return useMemo(() => modelOptions(providers), [providers])
+}
+
 function RewriteButton({ book, node }: { book: Book; node: OutlineNode }) {
   const [note, setNote] = useState('')
   const [open, setOpen] = useState(false)
+  const [model, setModel] = useState<ModelRef | null>(null)
+  const options = useModelOptions()
   const busy = isRunning(book.id)
+  const chosen = model ?? book.models.section
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -121,12 +131,17 @@ function RewriteButton({ book, node }: { book: Book; node: OutlineNode }) {
         <p className="font-display text-base font-medium">Rewrite “{node.title}”</p>
         <p className="mb-3 mt-1 text-xs text-muted-foreground">The current version is kept until the new one is finished.</p>
         <Textarea autoFocus value={note} onChange={(e) => setNote(e.target.value)} placeholder="What should change? e.g. Add a worked example, make it shorter…" className="min-h-20" />
+        <label htmlFor={`rewrite-model-${node.key}`} className="mb-1.5 mt-3 block text-xs font-medium text-muted-foreground">
+          Model
+        </label>
+        <ModelSelect id={`rewrite-model-${node.key}`} step="section" value={chosen} options={options} onChange={(ref) => ref && setModel(ref)} />
         <Button
           className="mt-3 w-full"
           onClick={() => {
             setOpen(false)
-            void rewriteSection(book.id, node.path, note)
+            void rewriteSection(book.id, node.path, note, chosen)
             setNote('')
+            setModel(null)
           }}
         >
           <Wand2 /> Rewrite section
@@ -158,6 +173,7 @@ const HEADING_SPACE = { 1: 'mt-4', 2: 'mt-12', 3: 'mt-10' } as const
 
 const Section = memo(function Section({ book, node, liveText, isLive, rewriting, canEdit, textSize }: { book: Book; node: OutlineNode; liveText?: string; isLive: boolean; rewriting: boolean; canEdit: boolean; textSize: string }) {
   const saved = book.sections[node.key]?.text
+  const writtenBy = book.sections[node.key]?.model
   const heading = HEADING_SPACE[Math.min(node.depth, 3) as 1 | 2 | 3]
   const showLive = isLive && (liveText || !saved || rewriting)
 
@@ -187,7 +203,8 @@ const Section = memo(function Section({ book, node, liveText, isLive, rewriting,
           <>
             <Markdown text={saved} className={textSize} />
             {canEdit && (
-              <div className="mt-2 flex justify-end gap-1 opacity-100 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:focus-within:opacity-100">
+              <div className="mt-2 flex items-center justify-end gap-1 opacity-100 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:focus-within:opacity-100">
+                {writtenBy && <span className="mr-auto truncate text-xs text-muted-foreground" title="The model that wrote this section">Written by {writtenBy.model}</span>}
                 <CopyButton text={saved} />
                 <RewriteButton book={book} node={node} />
               </div>
@@ -200,6 +217,43 @@ const Section = memo(function Section({ book, node, liveText, isLive, rewriting,
     </section>
   )
 })
+
+/** Chapter by chapter: shown after the finished chapter until the next one is asked for. */
+function NextChapterCard({ book }: { book: Book }) {
+  const options = useModelOptions()
+  const next = nextChapter(book)
+  if (!next) return null
+  const unavailable = !options.some((o) => sameRef(o, book.models.section))
+  return (
+    <motion.aside
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      aria-label="Next chapter"
+      className="surface mt-16 grid grid-cols-1 gap-4 p-5 sm:p-6"
+    >
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground">
+          <BookOpenCheck className="size-5" />
+        </span>
+        <div className="grid min-w-0 gap-1">
+          <p className="font-display text-lg font-medium leading-snug">Read it over before the next chapter</p>
+          <p className="text-sm text-muted-foreground">Rewrite any section, or pick a different model. Up next: chapter {next.number}, “{next.title}”.</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+        <div className="grid min-w-0 gap-1.5">
+          <label htmlFor="next-chapter-model" className="text-xs font-medium text-muted-foreground">
+            Model for chapter {next.number}
+          </label>
+          <ModelSelect id="next-chapter-model" step="section" value={book.models.section} options={options} onChange={(ref) => ref && void updateBook(book.id, (b) => ({ models: { ...b.models, section: ref } }))} />
+        </div>
+        <Button disabled={unavailable} onClick={() => void writeBook(book.id)}>
+          <Play /> Write chapter {next.number}
+        </Button>
+      </div>
+    </motion.aside>
+  )
+}
 
 // ---- Reader -----------------------------------------------------------------------------------
 
@@ -240,21 +294,26 @@ export function Reader({ book }: { book: Book }) {
   }, [])
 
   const canEdit = !live
+  // Chapter by chapter: the card goes just before the next chapter's heading
+  const waitingFor = !live && awaitingNextChapter(book) ? nextChapter(book)?.title : undefined
 
   return (
     <div className="grid gap-10 lg:grid-cols-[15rem_1fr]">
       <Toc book={book} live={live} />
       <article className="min-w-0 max-w-[44rem]">
-        {nodes.map((node) =>
-          node.isSection ? (
-            <Section key={node.key} book={book} node={node} isLive={live?.sectionKey === node.key} liveText={live?.sectionKey === node.key ? live.text : undefined} rewriting={Boolean(live?.rewriting)} canEdit={canEdit} textSize={READING_SIZE[size]} />
-          ) : (
-            <div key={node.key} id={anchor(node.key)} className="scroll-mt-24">
-              {node.depth === 1 && <div className="bg-brand mt-16 h-px w-16 opacity-60" />}
-              <h2 className={cn('font-display font-medium tracking-tight [text-wrap:balance]', node.depth === 1 ? 'mt-4 text-2xl sm:text-3xl' : 'mt-10 text-xl sm:text-2xl')}>{node.title}</h2>
-            </div>
-          ),
-        )}
+        {nodes.map((node) => (
+          <Fragment key={node.key}>
+            {waitingFor && node.depth === 1 && node.title === waitingFor && <NextChapterCard book={book} />}
+            {node.isSection ? (
+              <Section book={book} node={node} isLive={live?.sectionKey === node.key} liveText={live?.sectionKey === node.key ? live.text : undefined} rewriting={Boolean(live?.rewriting)} canEdit={canEdit} textSize={READING_SIZE[size]} />
+            ) : (
+              <div id={anchor(node.key)} className="scroll-mt-24">
+                {node.depth === 1 && <div className="bg-brand mt-16 h-px w-16 opacity-60" />}
+                <h2 className={cn('font-display font-medium tracking-tight [text-wrap:balance]', node.depth === 1 ? 'mt-4 text-2xl sm:text-3xl' : 'mt-10 text-xl sm:text-2xl')}>{node.title}</h2>
+              </div>
+            )}
+          </Fragment>
+        ))}
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center gap-2 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] [&>*]:pointer-events-auto">
           <MobileToc book={book} live={live} />
           <AnimatePresence>

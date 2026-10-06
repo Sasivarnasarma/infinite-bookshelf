@@ -55,6 +55,7 @@ function Composer({ initialTopic }: { initialTopic: string }) {
   const [seedContent, setSeedContent] = useState('')
   const [sectionLength, setSectionLength] = useState<SectionLength>(prefs.sectionLength)
   const [reviewOutline, setReviewOutline] = useState(prefs.reviewOutline)
+  const [chapterByChapter, setChapterByChapter] = useState(prefs.chapterByChapter)
   const [advanced, setAdvanced] = useState(false)
   const [perStep, setPerStep] = useState(false)
   const [models, setModels] = useState<Partial<Record<Step, ModelRef>>>({})
@@ -86,6 +87,7 @@ function Composer({ initialTopic }: { initialTopic: string }) {
         { topic: topic.trim(), instructions: instructions.trim(), style, complexity, seedContent: seedContent.trim(), longOutline, sectionLength },
         perStep ? { outline: resolved.outline, title: resolved.title, section } : { outline: section, title: section, section },
         reviewOutline,
+        chapterByChapter,
       )
       navigate(`/books/${id}`)
     } catch (e) {
@@ -172,6 +174,9 @@ function Composer({ initialTopic }: { initialTopic: string }) {
               <label className="flex cursor-pointer items-center gap-2.5 text-sm">
                 <Switch checked={reviewOutline} onCheckedChange={setReviewOutline} /> Review outline first
               </label>
+              <label className="flex cursor-pointer items-center gap-2.5 text-sm">
+                <Switch checked={chapterByChapter} onCheckedChange={setChapterByChapter} /> One chapter at a time
+              </label>
               {perStep && (
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-muted-foreground">Length</span>
@@ -241,6 +246,7 @@ function Composer({ initialTopic }: { initialTopic: string }) {
         <div className="flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center">
           <p className="text-xs text-muted-foreground sm:mr-auto">
             {reviewOutline ? "You'll review the outline before any chapter is written." : 'Writing starts as soon as the outline is ready.'}
+            {chapterByChapter && ' Each chapter waits for you to read it before the next.'}
             <span className="ml-2 hidden sm:inline">
               <Kbd>Ctrl</Kbd> + <Kbd>Enter</Kbd>
             </span>

@@ -165,6 +165,7 @@ export interface SectionHandlers {
 
 export function streamSection(
   book: Book,
+  model: ModelRef,
   keyId: string | null,
   path: string[],
   written: { path: string[]; text: string }[],
@@ -175,7 +176,7 @@ export function streamSection(
   return stream(
     '/api/sections/stream',
     {
-      model: choice(book.models.section, keyId),
+      model: choice(model, keyId),
       options: optionsBody(book.options),
       book: { title: book.title, structure: book.outline, written },
       path,

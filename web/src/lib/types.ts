@@ -32,6 +32,8 @@ export type BookStatus =
 export interface SectionState {
   text: string
   updatedAt: number
+  /** The model that wrote it. */
+  model?: ModelRef
 }
 
 export interface Stats {
@@ -54,6 +56,8 @@ export interface Book {
   options: BookOptions
   models: Record<Step, ModelRef>
   reviewOutline: boolean
+  /** Stop after each chapter, so it can be read (and rewritten) before the next is written. */
+  chapterByChapter: boolean
   outline: Outline | null
   /** Finished sections only, keyed by sectionKey(path). */
   sections: Record<string, SectionState>

@@ -230,7 +230,7 @@ export function AddProviderDialog({ open, onOpenChange, providers, onConnected, 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent title={provider ? `Connect ${provider.name}` : 'Add a provider'} description={provider ? undefined : 'Pick a service you have, or want, an API key for.'} className="sm:w-[min(92vw,42rem)]">
         {provider ? (
-          provider.enabled ? (
+          provider.enabled && provider.status !== 'needs-key' ? (
             // Already connected: nothing to set up
             <div className="grid gap-4">
               <p className="text-sm text-muted-foreground">{provider.name} is already connected. Add more keys or models in its settings.</p>
