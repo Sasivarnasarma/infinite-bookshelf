@@ -26,6 +26,9 @@ class Settings(BaseSettings):
 
     # Requests per minute per client IP for generation endpoints (0 = unlimited)
     rate_limit_per_minute: int = 0
+    # Proxies whose X-Forwarded-For header is trusted for the client IP: comma-separated addresses
+    # or networks, or "*". Others can't fake their IP to dodge the rate limit.
+    trusted_proxies: str = "127.0.0.1"
     # Largest accepted request body; a section request carries the book written so far
     max_request_bytes: int = 8_000_000
 

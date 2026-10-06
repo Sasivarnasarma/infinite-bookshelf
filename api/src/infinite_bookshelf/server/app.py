@@ -21,6 +21,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from sse_starlette import EventSourceResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from .. import __version__
 from ..engine.agents import generate_book_structure, generate_book_title, generate_section
@@ -416,6 +417,7 @@ def create_app(settings: Settings = None) -> FastAPI:
         )
     app.add_middleware(RequestGuard, settings=settings)
     app.add_middleware(SecurityHeaders)
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=settings.trusted_proxies)
     return app
 
 
