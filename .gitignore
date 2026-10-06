@@ -10,7 +10,7 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 
-# Local configuration (copy api/.env.example to api/.env)
+# Local configuration (copy .env.example to .env)
 .env
 .env.*
 !.env.example

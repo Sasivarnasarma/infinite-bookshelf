@@ -31,6 +31,7 @@ offline and under the strict Content-Security-Policy. Turn both off with `IB_DOC
 Without them (often on Windows) it falls back to fpdf2: lists, headings and tables still work,
 maths is written as Unicode text. See [docs/architecture.md](../docs/architecture.md#pdf-export).
 
-Configuration (`IB_*` environment variables, or `api/.env`) is documented in
+Configuration (`IB_*` environment variables, or a `.env` file in the project root, with `api/.env`
+overriding it) is documented in
 [docs/self-hosting.md](../docs/self-hosting.md); the design in
 [docs/architecture.md](../docs/architecture.md).

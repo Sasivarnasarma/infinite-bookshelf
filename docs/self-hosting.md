@@ -58,7 +58,23 @@ work through a simpler fallback writer, with maths as plain text.
 
 ## Configuration
 
-All settings are environment variables prefixed with `IB_`:
+All settings are optional environment variables prefixed with `IB_` (for Infinite Bookshelf, so
+they can't clash with generic names like `PORT` that hosting platforms set). The easiest place for
+them is a `.env` file next to `docker-compose.yml`: copy `.env.example`, which lists every setting.
+
+```bash
+cp .env.example .env
+```
+
+- **Docker Compose** passes `.env` into the container (Compose 2.24 or newer). The container always
+  listens on `0.0.0.0:9752`, whatever `.env` says, so change the published port in
+  `docker-compose.yml` instead. Local model servers are allowed unless `.env` sets
+  `IB_ALLOW_PRIVATE_ENDPOINTS=false`.
+- **Running from source** (`pnpm dev`) reads the same `.env`, then `api/.env` if present, which wins.
+- **`docker run`** takes `-e IB_NAME=value`, or `--env-file .env`.
+- Variables set in the environment itself override `.env` files.
+
+API keys are not settings: users add them in the app, and they stay in their browser.
 
 | Variable                     | Default              | Meaning                                                                   |
 | ---------------------------- | -------------------- | ------------------------------------------------------------------------- |

@@ -1,5 +1,6 @@
 """
-Server configuration, from environment variables prefixed with IB_ (or a .env file).
+Server configuration, from environment variables prefixed with IB_ (Infinite Bookshelf), or a
+.env file: the project root's (shared with docker-compose.yml), then api/.env, which wins.
 
 Defaults are safe for a public instance. Self-hosters running on their own machine usually set
 IB_ALLOW_PRIVATE_ENDPOINTS=true so local servers (Ollama, LM Studio) work.
@@ -12,7 +13,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="IB_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="IB_", extra="ignore")
 
     host: str = "127.0.0.1"
     port: int = 8000
@@ -37,6 +38,19 @@ class Settings(BaseSettings):
     web_dist: Path | None = None
 
 
+def env_files(cwd: Path | None = None) -> tuple[Path, ...]:
+    """
+    The .env files to read, lowest priority first. The API runs from api/ in development, so the
+    project root's .env is one level up (recognised by pnpm-workspace.yaml, so a stray .env above
+    some other checkout is never read). Real environment variables override both.
+    """
+    cwd = cwd or Path.cwd()
+    files = [cwd / ".env"]
+    if (cwd.parent / "pnpm-workspace.yaml").is_file():
+        files.insert(0, cwd.parent / ".env")
+    return tuple(files)
+
+
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    return Settings(_env_file=env_files())

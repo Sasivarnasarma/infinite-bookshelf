@@ -60,7 +60,7 @@ GitHub Codespaces (`docker compose up -d infinite-bookshelf-host`).
 
 ```bash
 pnpm bootstrap                    # install web and API dependencies
-cp api/.env.example api/.env      # allow local models while developing
+cp .env.example .env              # settings (optional): local models are allowed
 pnpm dev                          # API on :8000, web app on :5173; both reload as you edit
 ```
 
