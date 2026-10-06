@@ -113,7 +113,7 @@ async function stream(path: string, body: unknown, handlers: Handlers, signal: A
   }
   if (failure) throw new ApiRequestError(failure)
   if (!finished) {
-    // Never return normally without `done`: the caller would save a partial section as finished
+    // Without `done` the result is incomplete, so it must not count as finished
     if (signal.aborted) throw signal.reason
     throw new ApiRequestError({ code: 'interrupted', title: 'Connection interrupted', message: 'The stream ended early.', hint: 'Press Resume to continue.' })
   }

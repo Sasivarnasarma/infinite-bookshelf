@@ -85,8 +85,7 @@ def _client_for(auth: ProviderAuth, settings: Settings) -> tuple[Any, list[str]]
             raise ValueError(f"Unknown provider '{auth.preset}'.")
         base_url = preset["base_url"]
         if preset.get("local"):
-            # Offered only where private endpoints are allowed (as GET /api/config shows); otherwise
-            # its base URL would let anyone reach any address, even with custom endpoints turned off
+            # Only offered where private endpoints are allowed (as in GET /api/config)
             if not settings.allow_private_endpoints:
                 raise EndpointNotAllowed(f"{preset['name']} runs on your own machine, so this server can't use it.")
             base_url = auth.base_url or base_url  # Local servers may run on another host/port
@@ -98,8 +97,7 @@ def _client_for(auth: ProviderAuth, settings: Settings) -> tuple[Any, list[str]]
         base_url = auth.base_url
         check_endpoint(base_url, settings)
         requires_key = False  # Many self-hosted servers don't use keys
-        # Only the base URL is checked, so where private addresses are refused a redirect could
-        # still lead to one (SSRF). Built-in providers' URLs are fixed, so they may redirect.
+        # A redirect could lead to an address check_endpoint never saw
         follow_redirects = settings.allow_private_endpoints
     return create_llm_client(key, base_url, requires_key=requires_key, follow_redirects=follow_redirects), [key]
 

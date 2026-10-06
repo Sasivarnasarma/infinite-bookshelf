@@ -52,7 +52,6 @@ export function App() {
   const dark = usePreferences((s) => s.theme) === 'dark'
 
   return (
-    // Motion's JS animations follow the OS "reduce motion" setting, like the CSS ones
     <MotionConfig reducedMotion="user">
       <TooltipProvider>
         <AppShell />

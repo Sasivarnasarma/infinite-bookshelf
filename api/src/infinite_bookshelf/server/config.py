@@ -26,8 +26,8 @@ class Settings(BaseSettings):
 
     # Requests per minute per client IP for generation endpoints (0 = unlimited)
     rate_limit_per_minute: int = 0
-    # Proxies whose X-Forwarded-For header is trusted for the client IP: comma-separated addresses
-    # or networks, or "*". Others can't fake their IP to dodge the rate limit.
+    # Proxies whose X-Forwarded-For header gives the client IP: comma-separated addresses or
+    # networks, or "*"
     trusted_proxies: str = "127.0.0.1"
     # Largest accepted request body; a section request carries the book written so far
     max_request_bytes: int = 8_000_000
@@ -43,9 +43,8 @@ class Settings(BaseSettings):
 
 def env_files(cwd: Path | None = None) -> tuple[Path, ...]:
     """
-    The .env files to read, lowest priority first. The API runs from api/ in development, so the
-    project root's .env is one level up (recognised by pnpm-workspace.yaml, so a stray .env above
-    some other checkout is never read). Real environment variables override both.
+    The .env files to read, lowest priority first: the project root's when running from api/ in a
+    checkout (found by pnpm-workspace.yaml), then the current folder's.
     """
     cwd = cwd or Path.cwd()
     files = [cwd / ".env"]

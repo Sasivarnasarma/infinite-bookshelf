@@ -5,10 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-/**
- * A random v4 UUID. `crypto.randomUUID` only exists on secure pages (HTTPS or localhost), so on a
- * plain-HTTP address (a server's IP, a LAN host) the same id is built from `getRandomValues`.
- */
+/** A random v4 UUID, also on plain-HTTP pages, where `crypto.randomUUID` doesn't exist. */
 export function newId(): string {
   if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
   const bytes = crypto.getRandomValues(new Uint8Array(16))
@@ -18,10 +15,7 @@ export function newId(): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 
-/**
- * Copies text to the clipboard; resolves to whether it worked. The Clipboard API also needs a
- * secure page, so on plain HTTP this falls back to a hidden text area and the copy command.
- */
+/** Copies text to the clipboard, also on plain-HTTP pages; resolves to whether it worked. */
 export async function copyText(text: string): Promise<boolean> {
   try {
     if (navigator.clipboard?.writeText) {

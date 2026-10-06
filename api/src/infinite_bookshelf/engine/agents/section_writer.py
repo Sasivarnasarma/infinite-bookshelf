@@ -106,7 +106,6 @@ def generate_section(
                 usage = chunk.usage
     except Exception as e:
         raise classify_api_error(e, f"Error streaming section '{prompt}'") from None
-    # Otherwise the section would be saved empty and counted as written
     if not output_chars:
         raise EmptyResponseError(f"{model} finished section '{prompt}' without writing any text.")
 

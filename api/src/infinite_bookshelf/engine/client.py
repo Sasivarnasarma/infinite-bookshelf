@@ -13,11 +13,9 @@ from openai import OpenAI
 
 from .errors import APIAuthenticationError, APIConnectionError, classify_api_error
 
-# Built-in providers, in the order the web app lists them. Every one speaks the OpenAI Chat
-# Completions API. Model IDs were checked against each provider's docs in October 2026; users can
-# load the live list with "Test", or type any model ID. `tiers` labels suggested models as best /
-# balanced / fast (low cost), from how each provider describes its own lineup; the web app uses it
-# to suggest models per step.
+# Built-in providers, in the order the web app lists them; all speak the OpenAI Chat Completions
+# API. `models` are suggestions (users can load the live list or type any model ID), and `tiers`
+# marks each as best / balanced / fast, which the web app uses to suggest models per step.
 PROVIDER_PRESETS: dict[str, dict[str, Any]] = {
     "openai": {
         "name": "OpenAI",
@@ -222,10 +220,8 @@ def create_llm_client(
     api_key: str, base_url: str = None, requires_key: bool = True, follow_redirects: bool = True
 ) -> OpenAI:
     """
-    Creates and validates an OpenAI-compatible client instance.
-
-    `follow_redirects=False` is for user-supplied URLs that were checked against private addresses:
-    a redirect would take the request to an address that was never checked.
+    Creates and validates an OpenAI-compatible client instance. `follow_redirects=False` keeps
+    every request on the base URL that was checked.
     """
     api_key = (api_key or "").strip()
     if not api_key:
@@ -237,7 +233,6 @@ def create_llm_client(
     if base_url and base_url.strip():
         client_kwargs["base_url"] = base_url.strip()
     if not follow_redirects:
-        # The SDK's own client (same timeouts and limits), which otherwise follows redirects
         client_kwargs["http_client"] = openai.DefaultHttpxClient(follow_redirects=False)
 
     try:
