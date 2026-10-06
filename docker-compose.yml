@@ -1,14 +1,20 @@
 # Self-hosting Infinite Bookshelf → http://localhost:9752
 #   docker compose up -d                          most hosts, including Docker Desktop
 #   docker compose up -d infinite-bookshelf-host  GitHub Codespaces (uses the host's network and DNS)
+# Settings: copy .env.example to .env in this folder (optional).
 
 x-app: &app
   image: ghcr.io/sasivarnasarma/infinite-bookshelf:latest
   build: .
+  env_file:
+    - path: .env
+      required: false
   environment:
-    # Allows local model servers (Ollama, LM Studio). For a public instance set "false" and
-    # add a rate limit, e.g. IB_RATE_LIMIT_PER_MINUTE: "30"
-    IB_ALLOW_PRIVATE_ENDPOINTS: 'true'
+    # The container always listens here, whatever .env says for running from source
+    IB_HOST: 0.0.0.0
+    IB_PORT: '9752'
+    # Local model servers (Ollama, LM Studio) are allowed unless .env turns this off
+    IB_ALLOW_PRIVATE_ENDPOINTS: ${IB_ALLOW_PRIVATE_ENDPOINTS:-true}
   restart: unless-stopped
 
 services:

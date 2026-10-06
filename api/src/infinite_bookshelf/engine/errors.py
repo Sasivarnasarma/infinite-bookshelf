@@ -67,6 +67,17 @@ class APIConnectionError(InfiniteBookshelfError):
     default_hint = "Could not reach the provider. Check your internet connection, or the Base URL in Settings."
 
 
+class EmptyResponseError(InfiniteBookshelfError):
+    """Raised when the model finishes without writing any text"""
+
+    code = "empty_response"
+    title = "The model wrote nothing"
+    default_hint = (
+        "Reasoning models can spend their whole budget thinking before they write. "
+        "Try a longer section length, or another model, then press Resume."
+    )
+
+
 class StructureGenerationError(InfiniteBookshelfError):
     """Raised when generating or parsing the JSON book structure fails"""
 

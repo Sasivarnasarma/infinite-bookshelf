@@ -62,11 +62,15 @@ class RateLimiter:
     def __init__(self, per_minute: int):
         self.per_minute = per_minute
         self._hits: dict[str, deque[float]] = defaultdict(deque)
+        self._last_sweep = time.monotonic()
 
     def allow(self, client_ip: str) -> bool:
         if self.per_minute <= 0:
             return True
         now = time.monotonic()
+        if now - self._last_sweep > 60:
+            self._hits = defaultdict(deque, {ip: h for ip, h in self._hits.items() if h and now - h[-1] <= 60})
+            self._last_sweep = now
         hits = self._hits[client_ip]
         while hits and now - hits[0] > 60:
             hits.popleft()

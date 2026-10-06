@@ -24,7 +24,7 @@ def main() -> None:
         factory=True,
         host=settings.host,
         port=settings.port,
-        proxy_headers=True,  # Trust X-Forwarded-For from the reverse proxy for rate limiting
+        proxy_headers=False,  # The app reads X-Forwarded-For itself, from IB_TRUSTED_PROXIES only
         log_level="info",
         reload=args.reload,
         reload_dirs=[str(PACKAGE_DIR)] if args.reload else None,

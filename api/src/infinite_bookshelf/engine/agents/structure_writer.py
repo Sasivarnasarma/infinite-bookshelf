@@ -10,7 +10,9 @@ from typing import Any
 from ..client import chat_completion
 from ..errors import (
     APIAuthenticationError,
+    APIRateLimitError,
     APIRequestError,
+    ModelUnavailableError,
     StructureGenerationError,
 )
 from ..stats import GenerationStatistics
@@ -148,8 +150,10 @@ def generate_book_structure(
                 f"JSON decoding error: {je}",
                 hint=f"Model '{model}' returned invalid JSON after {max_retries + 1} attempts. Try a different model.",
             )
-        except (APIAuthenticationError, APIRequestError):
-            raise  # Retrying won't fix a bad key or an invalid request
+        except (APIAuthenticationError, APIRateLimitError, ModelUnavailableError, APIRequestError):
+            # Retrying won't fix a bad key, a used-up limit, a missing model or an invalid request.
+            # Failing at once lets the web app move straight on to the provider's next key.
+            raise
         except Exception as e:
             last_exception = e
 

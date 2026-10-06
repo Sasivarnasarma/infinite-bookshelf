@@ -158,6 +158,21 @@ def test_section_rewrite_sends_note_and_previous_text(clients):
     assert "Requested changes: Add an example" in user_message and "Old version" in user_message
 
 
+def test_section_without_text_is_an_error_event(monkeypatch):
+    # A reasoning model can spend its whole budget thinking and stream no text at all
+    class SilentClient(FakeClient):
+        def create(self, **kwargs):
+            usage = SimpleNamespace(prompt_tokens=10, completion_tokens=6000)
+            empty = SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=None))], usage=None)
+            return iter([empty, SimpleNamespace(choices=[], usage=usage)])
+
+    monkeypatch.setattr(app_module, "create_llm_client", lambda *a, **k: SilentClient())
+    events = sse(make_client().post("/api/sections/stream", json=section_body()))
+    names = [name for name, _ in events]
+    assert names == ["start", "error"]  # Never "done", so the browser doesn't save an empty section
+    assert events[-1][1]["code"] == "empty_response"
+
+
 def test_section_for_a_heading_is_an_error_event(clients):
     events = sse(make_client().post("/api/sections/stream", json=section_body(path=["Chapter 2"])))
     assert events[-1][0] == "error" and "No section" in events[-1][1]["message"]
@@ -232,6 +247,15 @@ def test_self_hosters_can_reach_local_servers(clients):
 def test_local_preset_is_blocked_on_public_servers(clients):
     response = make_client().post("/api/models", json={"provider": {"preset": "ollama"}})
     assert response.status_code == 400
+
+
+def test_local_preset_cant_reach_other_addresses_on_public_servers(clients, public_dns):
+    # Its base URL must not become a way round IB_ALLOW_CUSTOM_ENDPOINTS=false
+    response = make_client(allow_custom_endpoints=False).post(
+        "/api/models", json={"provider": {"preset": "ollama", "base_url": "https://llm.example.com/v1"}}
+    )
+    assert response.status_code == 400 and response.json()["error"]["code"] == "endpoint_not_allowed"
+    assert clients == []
 
 
 def test_custom_endpoints_can_be_disabled(clients, public_dns):
@@ -357,3 +381,36 @@ def test_docs_link_to_the_web_app_only_when_it_is_bundled(tmp_path):
     assert "Open app" not in make_client().get("/api/docs").text
     (tmp_path / "index.html").write_text("<html>app</html>")
     assert "Open app" in make_client(web_dist=tmp_path).get("/api/docs").text
+
+
+def _models(client, ip=None):
+    headers = {"X-Forwarded-For": ip} if ip else {}
+    return client.post(
+        "/api/models", json={"provider": {"preset": "openai", "api_key": "k"}}, headers=headers
+    ).status_code
+
+
+def test_rate_limit_ignores_forwarded_ip_from_untrusted_clients(clients):
+    # The test client isn't a trusted proxy, so a faked X-Forwarded-For can't dodge the limit
+    client = make_client(rate_limit_per_minute=1)
+    assert [_models(client, "203.0.113.1"), _models(client, "203.0.113.2")] == [200, 429]
+
+
+def test_rate_limit_counts_each_visitor_behind_a_trusted_proxy(clients):
+    client = make_client(rate_limit_per_minute=1, trusted_proxies="testclient")
+    assert _models(client, "203.0.113.1") == 200
+    assert _models(client, "203.0.113.2") == 200  # another visitor, their own allowance
+    assert _models(client, "203.0.113.1") == 429
+
+
+def test_rate_limiter_forgets_idle_visitors(monkeypatch):
+    from infinite_bookshelf.server import security
+
+    now = [1000.0]
+    monkeypatch.setattr(security.time, "monotonic", lambda: now[0])
+    limiter = security.RateLimiter(per_minute=5)
+    for i in range(50):
+        limiter.allow(f"10.0.0.{i}")
+    now[0] += 61
+    limiter.allow("10.0.1.1")
+    assert set(limiter._hits) == {"10.0.1.1"}

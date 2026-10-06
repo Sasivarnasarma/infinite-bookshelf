@@ -58,18 +58,35 @@ work through a simpler fallback writer, with maths as plain text.
 
 ## Configuration
 
-All settings are environment variables prefixed with `IB_`:
+All settings are optional environment variables prefixed with `IB_` (for Infinite Bookshelf, so
+they can't clash with generic names like `PORT` that hosting platforms set). The easiest place for
+them is a `.env` file next to `docker-compose.yml`: copy `.env.example`, which lists every setting.
 
-| Variable                     | Default              | Meaning                                                                   |
-| ---------------------------- | -------------------- | ------------------------------------------------------------------------- |
-| `IB_HOST` / `IB_PORT`        | `127.0.0.1` / `8000` | Listen address (the Docker image uses `0.0.0.0` / `9752`)                 |
-| `IB_ALLOW_CUSTOM_ENDPOINTS`  | `true`               | Let users add their own OpenAI-compatible base URLs                       |
-| `IB_ALLOW_PRIVATE_ENDPOINTS` | `false`              | Allow localhost and private network addresses (Ollama, LM Studio)         |
-| `IB_RATE_LIMIT_PER_MINUTE`   | `0`                  | Generation requests per minute per client IP (`0` = unlimited)            |
-| `IB_MAX_REQUEST_BYTES`       | `8000000`            | Largest accepted request body                                             |
-| `IB_CORS_ORIGINS`            | `[]`                 | Extra browser origins allowed to call the API (JSON list)                 |
-| `IB_WEB_DIST`                | unset                | Folder of the built web app to serve at `/` (set in the image)            |
-| `IB_DOCS_ENABLED`            | `true`               | Interactive API docs at `/api/docs` and the schema at `/api/openapi.json` |
+```bash
+cp .env.example .env
+```
+
+- **Docker Compose** passes `.env` into the container (Compose 2.24 or newer). The container always
+  listens on `0.0.0.0:9752`, whatever `.env` says, so change the published port in
+  `docker-compose.yml` instead. Local model servers are allowed unless `.env` sets
+  `IB_ALLOW_PRIVATE_ENDPOINTS=false`.
+- **Running from source** (`pnpm dev`) reads the same `.env`, then `api/.env` if present, which wins.
+- **`docker run`** takes `-e IB_NAME=value`, or `--env-file .env`.
+- Variables set in the environment itself override `.env` files.
+
+API keys are not settings: users add them in the app, and they stay in their browser.
+
+| Variable                     | Default              | Meaning                                                                                                                                                           |
+| ---------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IB_HOST` / `IB_PORT`        | `127.0.0.1` / `8000` | Listen address (the Docker image uses `0.0.0.0` / `9752`)                                                                                                         |
+| `IB_ALLOW_CUSTOM_ENDPOINTS`  | `true`               | Let users add their own OpenAI-compatible base URLs                                                                                                               |
+| `IB_ALLOW_PRIVATE_ENDPOINTS` | `false`              | Allow localhost and private network addresses (Ollama, LM Studio)                                                                                                 |
+| `IB_RATE_LIMIT_PER_MINUTE`   | `0`                  | Generation requests per minute per client IP (`0` = unlimited)                                                                                                    |
+| `IB_TRUSTED_PROXIES`         | `127.0.0.1`          | Proxies whose `X-Forwarded-For` gives the client IP: comma-separated addresses or networks, or `*` (the Docker image adds `172.16.0.0/12`, Docker's own networks) |
+| `IB_MAX_REQUEST_BYTES`       | `8000000`            | Largest accepted request body                                                                                                                                     |
+| `IB_CORS_ORIGINS`            | `[]`                 | Extra browser origins allowed to call the API (JSON list)                                                                                                         |
+| `IB_WEB_DIST`                | unset                | Folder of the built web app to serve at `/` (set in the image)                                                                                                    |
+| `IB_DOCS_ENABLED`            | `true`               | Interactive API docs at `/api/docs` and the schema at `/api/openapi.json`                                                                                         |
 
 ## Running a public instance
 
@@ -79,7 +96,10 @@ If people other than you will use the instance:
    addresses inside your network.
 2. Set a rate limit, e.g. `IB_RATE_LIMIT_PER_MINUTE=30`.
 3. Put it behind a reverse proxy that terminates HTTPS (Caddy, nginx, Traefik, or a tunnel). The
-   server trusts `X-Forwarded-For` from the proxy for rate limiting.
+   rate limit counts each visitor's IP from the proxy's `X-Forwarded-For` header, trusted only from
+   `IB_TRUSTED_PROXIES`. The Docker image already trusts a proxy on the same machine; if yours runs
+   elsewhere, add its address. To make the proxy the only way in, publish the port on localhost
+   only (`'127.0.0.1:9752:9752'` in `docker-compose.yml`).
 4. As a second line of defence, block outbound traffic from the container to private IP ranges at
    the network level.
 5. Keep streaming responses unbuffered at the proxy (the API sends `X-Accel-Buffering: no`, which

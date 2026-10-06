@@ -7,7 +7,7 @@ from collections.abc import Generator
 from typing import Any
 
 from ..client import chat_completion
-from ..errors import classify_api_error
+from ..errors import EmptyResponseError, classify_api_error
 from ..stats import GenerationStatistics
 
 # The previous version is only a reference for a rewrite; cap it to keep the prompt bounded
@@ -106,6 +106,9 @@ def generate_section(
                 usage = chunk.usage
     except Exception as e:
         raise classify_api_error(e, f"Error streaming section '{prompt}'") from None
+    # Otherwise the section would be saved empty and counted as written
+    if not output_chars:
+        raise EmptyResponseError(f"{model} finished section '{prompt}' without writing any text.")
 
     end_time = time.time()
     first_token_time = first_token_time or end_time

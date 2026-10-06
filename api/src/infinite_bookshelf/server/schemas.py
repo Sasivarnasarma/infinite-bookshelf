@@ -185,7 +185,7 @@ class ErrorDetail(BaseModel):
         description=(
             "Machine-readable reason: `invalid_input`, `endpoint_not_allowed`, `rate_limited`, `too_large`, "
             "`not_found`, or from the provider: `auth`, `rate_limit`, `model_unavailable`, `bad_request`, "
-            "`connection`, `outline`, `generation_error`."
+            "`connection`, `empty_response`, `outline`, `generation_error`."
         ),
         examples=["auth"],
     )

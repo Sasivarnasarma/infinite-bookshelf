@@ -39,6 +39,7 @@ USER bookshelf
 ENV PATH="/app/api/.venv/bin:$PATH" \
     IB_HOST=0.0.0.0 \
     IB_PORT=9752 \
+    IB_TRUSTED_PROXIES=127.0.0.1,172.16.0.0/12 \
     IB_WEB_DIST=/app/web-dist
 EXPOSE 9752
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
