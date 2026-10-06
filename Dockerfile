@@ -3,7 +3,7 @@
 #   docker run -p 8000:8000 infinite-bookshelf          → http://localhost:8000
 
 # ---- 1. Build the web app ---------------------------------------------------------------------
-FROM node:22-slim AS web
+FROM node:25-slim AS web
 RUN corepack enable
 WORKDIR /app
 # Workspace manifests first, so dependency installs are cached until they change
