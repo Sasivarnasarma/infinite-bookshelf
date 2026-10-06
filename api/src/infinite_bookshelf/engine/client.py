@@ -218,9 +218,14 @@ _REASONING_MODEL_RE = re.compile(r"^(?:.*/)?(?:o\d|gpt-5|gpt-6)", re.IGNORECASE)
 _DROPPABLE_PARAMS = ("stream_options", "response_format", "temperature")
 
 
-def create_llm_client(api_key: str, base_url: str = None, requires_key: bool = True) -> OpenAI:
+def create_llm_client(
+    api_key: str, base_url: str = None, requires_key: bool = True, follow_redirects: bool = True
+) -> OpenAI:
     """
     Creates and validates an OpenAI-compatible client instance.
+
+    `follow_redirects=False` is for user-supplied URLs that were checked against private addresses:
+    a redirect would take the request to an address that was never checked.
     """
     api_key = (api_key or "").strip()
     if not api_key:
@@ -231,6 +236,9 @@ def create_llm_client(api_key: str, base_url: str = None, requires_key: bool = T
     client_kwargs = {"api_key": api_key}
     if base_url and base_url.strip():
         client_kwargs["base_url"] = base_url.strip()
+    if not follow_redirects:
+        # The SDK's own client (same timeouts and limits), which otherwise follows redirects
+        client_kwargs["http_client"] = openai.DefaultHttpxClient(follow_redirects=False)
 
     try:
         return OpenAI(**client_kwargs)

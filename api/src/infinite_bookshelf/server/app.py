@@ -76,6 +76,7 @@ SECURITY_HEADERS = {
 def _client_for(auth: ProviderAuth, settings: Settings) -> tuple[Any, list[str]]:
     """Returns (client, secrets) for a request's provider, enforcing the endpoint rules."""
     key = auth.api_key.get_secret_value().strip()
+    follow_redirects = True
     if auth.preset:
         preset = PROVIDER_PRESETS.get(auth.preset)
         if preset is None:
@@ -95,7 +96,10 @@ def _client_for(auth: ProviderAuth, settings: Settings) -> tuple[Any, list[str]]
         base_url = auth.base_url
         check_endpoint(base_url, settings)
         requires_key = False  # Many self-hosted servers don't use keys
-    return create_llm_client(key, base_url, requires_key=requires_key), [key]
+        # Only the base URL is checked, so where private addresses are refused a redirect could
+        # still lead to one (SSRF). Built-in providers' URLs are fixed, so they may redirect.
+        follow_redirects = settings.allow_private_endpoints
+    return create_llm_client(key, base_url, requires_key=requires_key, follow_redirects=follow_redirects), [key]
 
 
 def _stats(stats: GenerationStatistics) -> dict[str, Any]:

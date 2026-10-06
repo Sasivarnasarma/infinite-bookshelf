@@ -4,7 +4,8 @@ Request safety: which provider URLs the server may call, and a simple per-IP rat
 Users can supply any OpenAI-compatible base URL, and the server then makes requests to it.
 On a public instance that must not reach the server's own network (SSRF), so hosts that resolve
 to private, loopback, link-local, or otherwise reserved addresses are refused unless
-IB_ALLOW_PRIVATE_ENDPOINTS is set (for self-hosting with local models).
+IB_ALLOW_PRIVATE_ENDPOINTS is set (for self-hosting with local models). Only the base URL is
+checked, so redirects from such endpoints aren't followed either (see _client_for in app.py).
 
 Note: the check resolves the hostname before the request is made; a hostile DNS server could in
 principle answer differently a moment later (DNS rebinding). Public instances should also block

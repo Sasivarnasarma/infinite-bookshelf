@@ -46,8 +46,9 @@ class FakeClient:
 def clients(monkeypatch):
     made = []
 
-    def factory(api_key, base_url=None, requires_key=True):
+    def factory(api_key, base_url=None, requires_key=True, follow_redirects=True):
         client = FakeClient(api_key, base_url)
+        client.follow_redirects = follow_redirects
         made.append(client)
         return client
 
@@ -182,7 +183,7 @@ def test_section_for_a_heading_is_an_error_event(clients):
 
 
 def test_provider_errors_are_scrubbed_of_the_key(monkeypatch):
-    def failing(api_key, base_url=None, requires_key=True):
+    def failing(api_key, base_url=None, requires_key=True, **options):
         return FakeClient(fail_with=RuntimeError(f"401 Incorrect API key provided: {api_key}"))
 
     monkeypatch.setattr(app_module, "create_llm_client", failing)
@@ -242,6 +243,16 @@ def test_self_hosters_can_reach_local_servers(clients):
         "/api/models", json={"provider": {"preset": "ollama", "base_url": "http://192.168.1.20:11434/v1"}}
     )
     assert ollama.status_code == 200 and clients[-1].base_url == "http://192.168.1.20:11434/v1"
+
+
+def test_custom_endpoints_dont_follow_redirects_on_public_servers(clients, public_dns):
+    # Only the base URL is checked, so a redirect could lead to a private address
+    make_client().post("/api/models", json={"provider": {"base_url": "https://llm.example.com/v1"}})
+    make_client().post("/api/models", json={"provider": {"preset": "openai", "api_key": SECRET}})
+    make_client(allow_private_endpoints=True).post(
+        "/api/models", json={"provider": {"base_url": "https://llm.example.com/v1"}}
+    )
+    assert [c.follow_redirects for c in clients] == [False, True, True]
 
 
 def test_local_preset_is_blocked_on_public_servers(clients):

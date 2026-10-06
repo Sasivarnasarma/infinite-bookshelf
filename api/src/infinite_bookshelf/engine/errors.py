@@ -111,6 +111,12 @@ def classify_api_error(e: Exception, context: str = "") -> InfiniteBookshelfErro
     if isinstance(e, openai.BadRequestError | openai.UnprocessableEntityError):
         return APIRequestError(detail)
     if isinstance(e, openai.APIStatusError):
+        if 300 <= e.status_code < 400:  # Custom endpoints' redirects aren't followed on public servers
+            return APIConnectionError(
+                detail,
+                hint="This address redirects somewhere else, which this server doesn't follow. "
+                "Enter the address it redirects to as the Base URL.",
+            )
         if e.status_code in (502, 503, 529):
             return ModelUnavailableError(detail)
         return InfiniteBookshelfError(detail)
