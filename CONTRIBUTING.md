@@ -9,7 +9,7 @@ You need [uv](https://docs.astral.sh/uv/), Node.js 22+, and [pnpm](https://pnpm.
 ```bash
 pnpm bootstrap                    # web and API dependencies
 cp api/.env.example api/.env      # allows local models while developing
-pnpm dev                          # API on :8000, web app on http://localhost:5173
+pnpm dev                          # API on :8000, web app on :5173; both reload as you edit
 ```
 
 ## Before you open a pull request

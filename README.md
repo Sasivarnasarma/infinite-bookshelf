@@ -61,7 +61,7 @@ GitHub Codespaces (`docker compose up -d infinite-bookshelf-host`).
 ```bash
 pnpm bootstrap                    # install web and API dependencies
 cp api/.env.example api/.env      # allow local models while developing
-pnpm dev                          # API on :8000, web app on http://localhost:5173
+pnpm dev                          # API on :8000, web app on :5173; both reload as you edit
 ```
 
 Then open **Settings**, add a provider, and paste your API key.
