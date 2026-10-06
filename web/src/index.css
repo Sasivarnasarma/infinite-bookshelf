@@ -30,6 +30,10 @@
   --dot: #d6d3d1;
   --hero-from: #ff7a2f;
   --hero-to: #f2541b;
+  --code-keyword: #b4410e;
+  --code-string: #15803d;
+  --code-number: #7c3aed;
+  --code-title: #1d4ed8;
 }
 
 .dark {
@@ -55,6 +59,10 @@
   --dot: #2e2e2e;
   --hero-from: #f2621f;
   --hero-to: #c43d0b;
+  --code-keyword: #ff9a66;
+  --code-string: #86efac;
+  --code-number: #c4b5fd;
+  --code-title: #93c5fd;
 }
 
 @theme inline {
@@ -355,6 +363,94 @@ html {
 .reading :where(code)::before,
 .reading :where(code)::after {
   content: none;
+}
+.reading :where(pre) {
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  font-size: 0.85em;
+  line-height: 1.65;
+}
+.reading :where(ul, ol) > li::marker {
+  font-weight: 500;
+}
+.reading :where(li > p) {
+  margin-block: 0.35em;
+}
+.reading :where(hr) {
+  width: 4rem;
+  margin-inline: auto;
+}
+.reading :where(strong) {
+  font-weight: 650;
+}
+
+/* Tables: rounded frame, zebra rows, and their own sideways scroll on narrow screens */
+.reading .table-wrap {
+  overflow-x: auto;
+  margin-block: 1.75em;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+}
+.reading .table-wrap table {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 0.85em;
+}
+.reading .table-wrap :where(th, td) {
+  padding: 0.6em 0.9em;
+}
+.reading .table-wrap thead {
+  background: var(--muted);
+}
+.reading .table-wrap tbody tr:nth-child(even) {
+  background: color-mix(in oklab, var(--muted) 45%, transparent);
+}
+
+/* Maths (KaTeX): display equations scroll sideways instead of overflowing */
+.reading .katex {
+  font-size: 1.08em;
+}
+.reading .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.35em;
+}
+.reading .katex-error {
+  color: var(--danger);
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+/* Code highlighting (highlight.js classes), from the page's own colours */
+.reading .hljs-comment,
+.reading .hljs-quote {
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+.reading .hljs-keyword,
+.reading .hljs-selector-tag,
+.reading .hljs-built_in,
+.reading .hljs-meta {
+  color: var(--code-keyword);
+}
+.reading .hljs-string,
+.reading .hljs-regexp,
+.reading .hljs-attr,
+.reading .hljs-symbol {
+  color: var(--code-string);
+}
+.reading .hljs-number,
+.reading .hljs-literal,
+.reading .hljs-variable,
+.reading .hljs-template-variable {
+  color: var(--code-number);
+}
+.reading .hljs-title,
+.reading .hljs-function,
+.reading .hljs-section,
+.reading .hljs-type,
+.reading .hljs-class {
+  color: var(--code-title);
 }
 
 /* Blinking caret after the text being streamed (usable with variants, e.g. [&>*:last-child]:stream-caret) */
