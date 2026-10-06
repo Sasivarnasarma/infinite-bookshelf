@@ -1,7 +1,7 @@
 # Self-hosting
 
-Infinite Bookshelf runs as **one container**: the API serves the built web app and the API on a
-single port, **9752**. There's no database to set up and nothing to back up on the server, because
+Infinite Bookshelf runs as **one process**: the API serves the built web app and the API on a single
+port, **9752**, in a Docker container or straight from a checkout. There's no database to set up and nothing to back up on the server, because
 books and keys live in each user's browser.
 
 <details>
@@ -10,7 +10,8 @@ books and keys live in each user's browser.
 - [Choose how to run it](#-choose-how-to-run-it)
 - [Docker Compose](#-docker-compose)
 - [Docker](#-docker)
-- [From source](#-from-source)
+- [Without Docker](#-without-docker)
+- [From source (development)](#-from-source-development)
 - [Local models: Ollama and LM Studio](#-local-models-ollama-and-lm-studio)
 - [Configuration](#-configuration)
 - [Behind a reverse proxy](#-behind-a-reverse-proxy)
@@ -23,11 +24,12 @@ books and keys live in each user's browser.
 
 ## 🧭 Choose how to run it
 
-| Setup                              | Best for                                       | Address                 |
-| ---------------------------------- | ---------------------------------------------- | ----------------------- |
-| [Docker Compose](#-docker-compose) | Most people: a home server, a VPS, your laptop | `http://localhost:9752` |
-| [Docker](#-docker)                 | A one-line start, or your own orchestration    | `http://localhost:9752` |
-| [From source](#-from-source)       | Development, or running without Docker         | `http://localhost:5173` |
+| Setup                                    | Best for                                       | Address                 |
+| ---------------------------------------- | ---------------------------------------------- | ----------------------- |
+| [Docker Compose](#-docker-compose)       | Most people: a home server, a VPS, your laptop | `http://localhost:9752` |
+| [Docker](#-docker)                       | A one-line start, or your own orchestration    | `http://localhost:9752` |
+| [Without Docker](#-without-docker)       | A server without Docker, run with systemd      | `http://localhost:9752` |
+| [From source](#-from-source-development) | Development, with live reload                  | `http://localhost:5173` |
 
 ## 🐳 Docker Compose
 
@@ -91,7 +93,62 @@ version (e.g. `1.0.0`), and `sha-<commit>`.
 
 </details>
 
-## 💻 From source
+## 📦 Without Docker
+
+`pnpm start` runs the finished app the way the container does: one process serving the web app, the
+API and the API docs on port 9752, with no reloading. You need [uv](https://docs.astral.sh/uv/),
+Node.js 22 or newer, and [pnpm](https://pnpm.io/).
+
+```bash
+git clone https://github.com/Sasivarnasarma/infinite-bookshelf.git
+cd infinite-bookshelf
+pnpm bootstrap          # install the web and API dependencies
+cp .env.example .env    # optional settings
+pnpm build              # build the web app into web/dist
+pnpm start              # → http://localhost:9752
+```
+
+- It listens on `0.0.0.0:9752`, like the container, so other devices on the network can reach it.
+  Set `IB_HOST` and `IB_PORT` in `.env` to change that, for example `IB_HOST=127.0.0.1` behind a
+  [reverse proxy](#-behind-a-reverse-proxy).
+- Every other setting comes from the same `.env` (see [Configuration](#-configuration)).
+- For PDF export, install Pango (see [PDF export](#-pdf-export)).
+- `pnpm start` is `cd api && uv run infinite-bookshelf-api --serve-web`. Without a build it stops and
+  asks you to run `pnpm build`.
+
+<details>
+<summary><b>Keep it running with systemd</b> (Linux)</summary>
+
+Create `/etc/systemd/system/infinite-bookshelf.service`, with your own user and paths. `which uv`
+shows where uv is installed.
+
+```ini
+[Unit]
+Description=Infinite Bookshelf
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=bookshelf
+WorkingDirectory=/opt/infinite-bookshelf/api
+ExecStart=/home/bookshelf/.local/bin/uv run infinite-bookshelf-api --serve-web
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then start it, and have it start at boot:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now infinite-bookshelf
+journalctl -u infinite-bookshelf -f     # follow its log
+```
+
+</details>
+
+## 💻 From source (development)
 
 You need [uv](https://docs.astral.sh/uv/), Node.js 22 or newer, and [pnpm](https://pnpm.io/).
 
@@ -106,8 +163,7 @@ single address, as it does in production. It also listens on your network, so ot
 it at `http://<your-computer's-IP>:5173`.
 
 To run only the API: `cd api && uv run infinite-bookshelf-api` (add `--reload` to restart on code
-changes). It serves the web app too if `IB_WEB_DIST` points at a build (`pnpm build` writes one to
-`web/dist`).
+changes). This is for development; to serve the finished app, use [`pnpm start`](#-without-docker).
 
 ## 🦙 Local models: Ollama and LM Studio
 
@@ -116,7 +172,7 @@ address in **Settings → Providers & models → Ollama** (or LM Studio) to matc
 
 | You run the app with…           | Ollama address                         | LM Studio address                     |
 | ------------------------------- | -------------------------------------- | ------------------------------------- |
-| `pnpm dev` (from source)        | `http://localhost:11434/v1` (default)  | `http://localhost:1234/v1` (default)  |
+| `pnpm start` or `pnpm dev`      | `http://localhost:11434/v1` (default)  | `http://localhost:1234/v1` (default)  |
 | Docker Compose, default service | `http://host.docker.internal:11434/v1` | `http://host.docker.internal:1234/v1` |
 | Docker Compose, `-host` service | `http://localhost:11434/v1`            | `http://localhost:1234/v1`            |
 | Ollama on another machine       | `http://192.168.x.x:11434/v1`          | `http://192.168.x.x:1234/v1`          |
@@ -137,24 +193,24 @@ Bookshelf_, so it can't clash with names like `PORT` that hosting platforms set)
 for them is a `.env` file in the project root: copy [`.env.example`](../.env.example), which lists
 them all.
 
-| How you run it | Where settings come from                                          |
-| -------------- | ----------------------------------------------------------------- |
-| Docker Compose | `.env` next to `docker-compose.yml` (needs Compose 2.24 or newer) |
-| `docker run`   | `-e IB_NAME=value`, or `--env-file .env`                          |
-| From source    | The root `.env`, then `api/.env` if present (which wins)          |
-| All of them    | Variables set in the environment itself win over any `.env` file  |
+| How you run it             | Where settings come from                                          |
+| -------------------------- | ----------------------------------------------------------------- |
+| Docker Compose             | `.env` next to `docker-compose.yml` (needs Compose 2.24 or newer) |
+| `docker run`               | `-e IB_NAME=value`, or `--env-file .env`                          |
+| `pnpm start` or `pnpm dev` | The root `.env`, then `api/.env` if present (which wins)          |
+| All of them                | Variables set in the environment itself win over any `.env` file  |
 
-| Variable                     | Default              | What it does                                                                                                                                                              |
-| ---------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IB_ALLOW_PRIVATE_ENDPOINTS` | `false`              | Allow localhost and private network addresses: Ollama, LM Studio, servers on your network. Compose sets `true`.                                                           |
-| `IB_ALLOW_CUSTOM_ENDPOINTS`  | `true`               | Let users add their own OpenAI-compatible base URLs.                                                                                                                      |
-| `IB_RATE_LIMIT_PER_MINUTE`   | `0`                  | Writing requests per minute per visitor IP (`0` = no limit).                                                                                                              |
-| `IB_TRUSTED_PROXIES`         | `127.0.0.1`          | Reverse proxies whose `X-Forwarded-For` header gives the visitor's IP: comma-separated addresses or networks, or `*`. The image adds `172.16.0.0/12` (Docker's networks). |
-| `IB_MAX_REQUEST_BYTES`       | `8000000`            | Largest accepted request. A section request carries the book written so far.                                                                                              |
-| `IB_DOCS_ENABLED`            | `true`               | Interactive API docs at `/api/docs` and the schema at `/api/openapi.json`.                                                                                                |
-| `IB_CORS_ORIGINS`            | `[]`                 | Other websites allowed to call the API from a browser, as a JSON list. The app itself needs none.                                                                         |
-| `IB_HOST` / `IB_PORT`        | `127.0.0.1` / `8000` | Where the API listens when run from source. The image always uses `0.0.0.0` / `9752`: change the published port instead.                                                  |
-| `IB_WEB_DIST`                | _unset_              | Folder of a built web app to serve at `/`. The image sets it.                                                                                                             |
+| Variable                     | Default              | What it does                                                                                                                                                                        |
+| ---------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IB_ALLOW_PRIVATE_ENDPOINTS` | `false`              | Allow localhost and private network addresses: Ollama, LM Studio, servers on your network. Compose sets `true`.                                                                     |
+| `IB_ALLOW_CUSTOM_ENDPOINTS`  | `true`               | Let users add their own OpenAI-compatible base URLs.                                                                                                                                |
+| `IB_RATE_LIMIT_PER_MINUTE`   | `0`                  | Writing requests per minute per visitor IP (`0` = no limit).                                                                                                                        |
+| `IB_TRUSTED_PROXIES`         | `127.0.0.1`          | Reverse proxies whose `X-Forwarded-For` header gives the visitor's IP: comma-separated addresses or networks, or `*`. The image adds `172.16.0.0/12` (Docker's networks).           |
+| `IB_MAX_REQUEST_BYTES`       | `8000000`            | Largest accepted request. A section request carries the book written so far.                                                                                                        |
+| `IB_DOCS_ENABLED`            | `true`               | Interactive API docs at `/api/docs` and the schema at `/api/openapi.json`.                                                                                                          |
+| `IB_CORS_ORIGINS`            | `[]`                 | Other websites allowed to call the API from a browser, as a JSON list. The app itself needs none.                                                                                   |
+| `IB_HOST` / `IB_PORT`        | `127.0.0.1` / `8000` | Where the API listens when run from source. `pnpm start` uses `0.0.0.0` / `9752` unless these are set. The image always uses `0.0.0.0` / `9752`: change the published port instead. |
+| `IB_WEB_DIST`                | _unset_              | Folder of a built web app to serve at `/`. The image sets it.                                                                                                                       |
 
 > [!NOTE]
 > API keys are not settings. Users add them in the app, and they stay in their browser.
@@ -237,10 +293,21 @@ your users that, and point them to the **Privacy** section of the home page (`/#
 
 ## 🔄 Updating
 
+With Docker Compose:
+
 ```bash
 git pull
 docker compose pull          # the published image; or: docker compose build
 docker compose up -d
+```
+
+Without Docker:
+
+```bash
+git pull
+pnpm bootstrap               # new or updated dependencies
+pnpm build
+sudo systemctl restart infinite-bookshelf    # or stop and run pnpm start again
 ```
 
 Users' books and keys are in their browsers, so updating never touches them.
@@ -250,7 +317,7 @@ Users' books and keys are in their browsers, so updating never touches them.
 The Docker image includes everything PDF export needs: [WeasyPrint] with Pango and HarfBuzz, and
 DejaVu fonts for characters the bundled book fonts (Literata and Geist, Latin only) don't cover.
 
-From source, install Pango with your package manager:
+Without Docker, install Pango with your package manager:
 
 ```bash
 sudo apt install libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0   # Debian, Ubuntu

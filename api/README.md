@@ -7,6 +7,7 @@ API keys live in the user's browser and arrive with each request.
 ```bash
 uv sync                           # install
 uv run infinite-bookshelf-api     # http://127.0.0.1:8000  (add --reload while developing)
+uv run infinite-bookshelf-api --serve-web   # also serve the built web app on :9752 (pnpm start)
 uv run pytest                     # tests
 ```
 

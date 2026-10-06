@@ -61,6 +61,20 @@ pnpm dev               # API on :8000, web app on :5173
 
 Open **http://localhost:5173**.
 
+### 📦 Without Docker
+
+To run the finished app on a server without Docker, build it once and start it:
+
+```bash
+pnpm bootstrap         # install everything
+pnpm build             # build the web app
+pnpm start             # serve the app and the API → http://localhost:9752
+```
+
+One process serves everything on port 9752, like the container. See
+[Self-hosting → Without Docker](docs/self-hosting.md#-without-docker) for keeping it running with
+systemd.
+
 Then go to **Settings → Providers & models**, add a provider, and paste your API key. Google Gemini
 has a generous free tier, and [Ollama](https://ollama.com) runs models on your own machine with no
 key at all.
@@ -223,6 +237,7 @@ infinite-bookshelf/
 | `pnpm test`      | Web tests (Vitest), then API tests (pytest)                            |
 | `pnpm format`    | Format the web app and docs (Prettier) and the API (Ruff)              |
 | `pnpm build`     | Production build of the web app                                        |
+| `pnpm start`     | Serve the built web app and the API on `:9752`, without Docker         |
 
 ## 🤝 Contributing
 
