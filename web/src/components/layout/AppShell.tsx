@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, Library, Menu as MenuIcon, Monitor, Moon, PenLine, Settings, Sun, WifiOff, X } from 'lucide-react'
+import { ArrowRight, BookOpen, Heart, Library, Menu as MenuIcon, Monitor, Moon, PenLine, Settings, Sun, WifiOff, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useState } from 'react'
 import { Link, NavLink, useLocation, useOutlet } from 'react-router'
@@ -81,18 +81,12 @@ function NavLinks({ onNavigate, vertical }: { onNavigate?: () => void; vertical?
   )
 }
 
-/**
- * The page frame: hairline guides at the content edges with a dot texture in the margins, plus
- * a soft warm glow at the top. Static, so it costs nothing while scrolling.
- */
+/** Behind every page: a faint paper grain and a soft warm glow at the top. Static, so it costs nothing while scrolling. */
 function Backdrop() {
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
-      <div className="absolute inset-x-0 top-0 h-120 bg-[radial-gradient(60%_100%_at_50%_0%,color-mix(in_oklab,var(--primary)_9%,transparent),transparent)]" />
-      <div className="dots absolute inset-y-0 left-0 w-[max(0px,calc(50%-37rem))] mask-[linear-gradient(to_right,black,transparent)] opacity-70" />
-      <div className="dots absolute inset-y-0 right-0 w-[max(0px,calc(50%-37rem))] mask-[linear-gradient(to_left,black,transparent)] opacity-70" />
-      <div className="absolute inset-y-0 left-[max(0.75rem,calc(50%-37rem))] hidden w-px bg-[repeating-linear-gradient(to_bottom,var(--border)_0_6px,transparent_6px_10px)] xl:block" />
-      <div className="absolute inset-y-0 right-[max(0.75rem,calc(50%-37rem))] hidden w-px bg-[repeating-linear-gradient(to_bottom,var(--border)_0_6px,transparent_6px_10px)] xl:block" />
+      <div className="absolute inset-x-0 top-0 h-160 bg-[radial-gradient(55%_100%_at_50%_0%,color-mix(in_oklab,var(--primary)_10%,transparent),transparent)]" />
+      <div className="grain absolute inset-0" />
     </div>
   )
 }
@@ -204,7 +198,23 @@ export function AppShell() {
           <a href="https://github.com/Sasivarnasarma/infinite-bookshelf" target="_blank" rel="noreferrer" className="hover:text-foreground">
             Source code
           </a>
-          <span className="sm:ml-auto">Open source · MIT</span>
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-2 sm:ml-auto">
+            <span>Open source · MIT</span>
+            <a
+              href="https://github.com/Sasivarnasarma"
+              target="_blank"
+              rel="noreferrer"
+              className="group inline-flex items-center gap-1.5 hover:text-foreground"
+              aria-label="Made with love by Sasivarnasarma (GitHub)"
+            >
+              Made with
+              <Heart className="size-4 fill-primary text-primary group-hover:[animation-duration:0.7s] motion-safe:animate-heartbeat" aria-hidden />
+              by{' '}
+              <span className="font-medium text-foreground/80 underline decoration-primary/40 underline-offset-4 transition-colors group-hover:decoration-primary">
+                Sasivarnasarma
+              </span>
+            </a>
+          </span>
         </div>
       </footer>
     </div>

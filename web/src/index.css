@@ -98,8 +98,9 @@
   --animate-shimmer: shimmer 2.2s linear infinite;
   --animate-caret: caret 1s steps(2, start) infinite;
   --animate-pulse-soft: pulse-soft 1.6s ease-in-out infinite;
-  --animate-sunrise: sunrise 7s ease-in-out infinite;
-  --animate-marquee: marquee 40s linear infinite;
+  --animate-shelf: shelf 90s linear infinite;
+  --animate-glow-spin: glow-spin 6s linear infinite;
+  --animate-heartbeat: heartbeat 1.4s ease-in-out infinite;
 }
 
 @keyframes shimmer {
@@ -126,20 +127,42 @@
     transform: scale(0.8);
   }
 }
-@keyframes sunrise {
-  0%,
-  100% {
-    opacity: 0.85;
-    transform: translateX(-50%) scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: translateX(-50%) scale(1.08);
-  }
-}
-@keyframes marquee {
+@keyframes shelf {
   to {
     transform: translateX(-50%);
+  }
+}
+/* Two quick beats, then a rest, like a pulse */
+@keyframes heartbeat {
+  0%,
+  40%,
+  100% {
+    transform: scale(1);
+  }
+  12% {
+    transform: scale(1.22);
+  }
+  24% {
+    transform: scale(0.95);
+  }
+  32% {
+    transform: scale(1.15);
+  }
+}
+@keyframes orbit {
+  to {
+    rotate: 360deg;
+  }
+}
+/* Turns a conic gradient's starting angle (see .glow-border) */
+@property --glow-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes glow-spin {
+  to {
+    --glow-angle: 360deg;
   }
 }
 @keyframes fade-in {
@@ -280,32 +303,40 @@ html {
     opacity: 1;
   }
 
-  /* Dot texture (page margins, empty states) */
+  /* Paper grain: a faint fibre texture behind every page */
+  .grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.3 0 0 0 0 0.2 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.09;
+  }
+  .dark .grain {
+    opacity: 0.05;
+  }
+
+  /* A border of light that slowly travels around a card */
+  .glow-border {
+    position: relative;
+    isolation: isolate;
+  }
+  .glow-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    z-index: -1;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(from var(--glow-angle), transparent 0deg, var(--primary) 60deg, #ffc58f 90deg, transparent 150deg, transparent 360deg);
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: var(--animate-glow-spin);
+  }
+
+  /* Dot texture (empty states) */
   .dots {
     background-image: radial-gradient(var(--dot) 1px, transparent 1px);
     background-size: 14px 14px;
-  }
-
-  /* Small square markers at the corners of framed sections */
-  .frame-corners {
-    position: relative;
-  }
-  .frame-corners::before,
-  .frame-corners::after {
-    content: '';
-    position: absolute;
-    top: -4px;
-    width: 7px;
-    height: 7px;
-    border: 1px solid var(--border);
-    background: var(--background);
-    z-index: 1;
-  }
-  .frame-corners::before {
-    left: -4px;
-  }
-  .frame-corners::after {
-    right: -4px;
   }
 
   .skeleton {

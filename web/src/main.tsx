@@ -1,6 +1,7 @@
 import '@fontsource-variable/geist'
 import '@fontsource-variable/geist-mono'
 import '@fontsource-variable/literata'
+import '@fontsource-variable/literata/wght-italic.css'
 import './index.css'
 
 import { StrictMode } from 'react'
