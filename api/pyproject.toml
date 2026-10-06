@@ -1,0 +1,55 @@
+[project]
+name = "infinite-bookshelf-api"
+version = "0.6.0.dev0"
+description = "Infinite Bookshelf API: a stateless engine that turns a topic into a book, streamed live"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sse-starlette>=2.1",
+    "pydantic-settings>=2.4",
+    "openai>=1.26.0",
+    "markdown-it-py>=3.0",
+    "mdit-py-plugins>=0.4",
+    "ziamath>=0.13",
+    "unicodeit>=0.7.5",
+    "weasyprint>=70",
+    "fpdf2>=2.8.0",
+    "nh3>=0.2.17",
+    "fastapi-offline>=1.7.7",
+]
+
+[project.scripts]
+infinite-bookshelf-api = "infinite_bookshelf.server.__main__:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1",
+    "httpx>=0.27",
+    "ruff>=0.14",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/infinite_bookshelf"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+# pyflakes, pycodestyle, import order, bugbear, pyupgrade, simplify
+select = ["F", "E", "W", "I", "B", "UP", "SIM"]
+# Long lines the formatter can't split (strings, URLs) are fine
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["infinite_bookshelf"]

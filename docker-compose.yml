@@ -1,0 +1,16 @@
+# Self-hosting Infinite Bookshelf:  docker compose up -d   → http://localhost:8000
+services:
+  infinite-bookshelf:
+    image: ghcr.io/sasivarnasarma/infinite-bookshelf:latest
+    build: .
+    ports:
+      - '8000:8000'
+    environment:
+      # Your own server: allow local model servers. Ollama on this machine is then at
+      # http://host.docker.internal:11434/v1 (set it as the Ollama base URL in Settings).
+      IB_ALLOW_PRIVATE_ENDPOINTS: 'true'
+      # For a public instance instead: IB_ALLOW_PRIVATE_ENDPOINTS "false" and a rate limit, e.g.
+      # IB_RATE_LIMIT_PER_MINUTE: "30"
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    restart: unless-stopped

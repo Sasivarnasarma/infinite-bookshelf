@@ -1,0 +1,581 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+/* Class-based dark mode: <html class="dark"> (set by theme-init.js and the theme store) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------- Design tokens ----------
+   Crisp and editorial: pure white (or near-black), hairline borders, one bold orange accent,
+   tight grotesk headings. The logo's rainbow stays the brand mark. */
+:root {
+  --background: #ffffff;
+  --foreground: #262626;
+  --card: #ffffff;
+  --card-foreground: var(--foreground);
+  --popover: #ffffff;
+  --muted: #f5f5f4;
+  --muted-foreground: #6b6b6b;
+  --border: #e7e5e4;
+  --input: #dedcd9;
+  --primary: #f86522;
+  --primary-hover: #e4561a;
+  --primary-foreground: #ffffff;
+  --accent: #fff1e8;
+  --accent-foreground: #b4410e;
+  --ring: #f86522;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --reading: #2e2e2e;
+  --dot: #d6d3d1;
+  --hero-from: #ff7a2f;
+  --hero-to: #f2541b;
+  --code-keyword: #b4410e;
+  --code-string: #15803d;
+  --code-number: #7c3aed;
+  --code-title: #1d4ed8;
+}
+
+.dark {
+  --background: #0b0b0b;
+  --foreground: #ededed;
+  --card: #121212;
+  --card-foreground: var(--foreground);
+  --popover: #161616;
+  --muted: #1b1b1b;
+  --muted-foreground: #9a9a9a;
+  --border: #262626;
+  --input: #303030;
+  --primary: #ff7433;
+  --primary-hover: #ff8a52;
+  --primary-foreground: #ffffff;
+  --accent: #2a1810;
+  --accent-foreground: #ffad80;
+  --ring: #ff7433;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --reading: #dcdcdc;
+  --dot: #2e2e2e;
+  --hero-from: #f2621f;
+  --hero-to: #c43d0b;
+  --code-keyword: #ff9a66;
+  --code-string: #86efac;
+  --code-number: #c4b5fd;
+  --code-title: #93c5fd;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-reading: var(--reading);
+
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Literata Variable', ui-serif, Georgia, serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+  --font-serif: 'Literata Variable', ui-serif, Georgia, serif;
+
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.125rem;
+  --radius-3xl: 1.75rem;
+
+  --animate-shimmer: shimmer 2.2s linear infinite;
+  --animate-caret: caret 1s steps(2, start) infinite;
+  --animate-pulse-soft: pulse-soft 1.6s ease-in-out infinite;
+  --animate-shelf: shelf 90s linear infinite;
+  --animate-glow-spin: glow-spin 6s linear infinite;
+  --animate-heartbeat: heartbeat 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes caret {
+  to {
+    visibility: hidden;
+  }
+}
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.8);
+  }
+}
+@keyframes shelf {
+  to {
+    transform: translateX(-50%);
+  }
+}
+/* Two quick beats, then a rest, like a pulse */
+@keyframes heartbeat {
+  0%,
+  40%,
+  100% {
+    transform: scale(1);
+  }
+  12% {
+    transform: scale(1.22);
+  }
+  24% {
+    transform: scale(0.95);
+  }
+  32% {
+    transform: scale(1.15);
+  }
+}
+@keyframes orbit {
+  to {
+    rotate: 360deg;
+  }
+}
+/* Turns a conic gradient's starting angle (see .glow-border) */
+@property --glow-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes glow-spin {
+  to {
+    --glow-angle: 360deg;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+}
+@keyframes pop-out {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+/* Touch: no grey flash on tap, and iOS keeps text at the size we set when rotating to landscape */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes sheet-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+}
+@keyframes shine {
+  from {
+    transform: translateX(-120%) skewX(-20deg);
+  }
+  to {
+    transform: translateX(220%) skewX(-20deg);
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    color-scheme: light;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  /* Headlines: tight tracking; the book serif (font-display) a little looser than the sans */
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.035em;
+  }
+  .font-display {
+    letter-spacing: -0.02em;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 25%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  /* Edge/IE add their own reveal/clear buttons to inputs; the app provides its own */
+  input::-ms-reveal,
+  input::-ms-clear {
+    display: none;
+  }
+}
+
+@layer components {
+  /* Warm accent gradient for highlighted words and thin accents */
+  .text-brand {
+    background: linear-gradient(95deg, var(--primary) 10%, #ffad5c 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .bg-brand {
+    background: linear-gradient(90deg, var(--primary), #ffad5c);
+  }
+
+  /* Card surface: hairline border, barely-there shadow */
+  .surface {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-2xl);
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.03),
+      0 8px 24px -16px rgb(0 0 0 / 0.12);
+  }
+  .dark .surface {
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset;
+  }
+
+  /* Cursor spotlight (pointer position comes from --mx/--my, set by useSpotlight) */
+  .spotlight {
+    position: relative;
+    isolation: isolate;
+  }
+  .spotlight::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.3s;
+    background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), color-mix(in oklab, var(--primary) 9%, transparent), transparent 60%);
+    pointer-events: none;
+  }
+  .spotlight:hover::before {
+    opacity: 1;
+  }
+
+  /* Paper grain: a faint fibre texture behind every page */
+  .grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.3 0 0 0 0 0.2 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.09;
+  }
+  .dark .grain {
+    opacity: 0.05;
+  }
+
+  /* A border of light that slowly travels around a card */
+  .glow-border {
+    position: relative;
+    isolation: isolate;
+  }
+  .glow-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    z-index: -1;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(from var(--glow-angle), transparent 0deg, var(--primary) 60deg, #ffc58f 90deg, transparent 150deg, transparent 360deg);
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: var(--animate-glow-spin);
+  }
+
+  /* Dot texture (empty states) */
+  .dots {
+    background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+    background-size: 14px 14px;
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, var(--muted) 0%, color-mix(in oklab, var(--muted) 50%, var(--card)) 50%, var(--muted) 100%);
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
+    border-radius: 0.5rem;
+  }
+
+  /* Uppercase mono label, used for small section eyebrows */
+  /* Small label above a heading, in the home page's chapter style: italic serif with a rule */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: var(--font-serif);
+    font-size: 0.875rem;
+    font-style: italic;
+    color: var(--primary);
+  }
+  .eyebrow::before {
+    content: '';
+    width: 2rem;
+    height: 1px;
+    background: color-mix(in oklab, var(--primary) 40%, transparent);
+  }
+}
+
+/* ---------- Logo motion (see LogoMark) ----------
+   A comet of light travels the infinity loop and the books bob in a wave. Runs while the mark
+   is "live" (e.g. a book is being written) or hovered. pathLength=1 normalises the loop, so the
+   dash pattern is a fraction of its length and the offset loops seamlessly from 1 to 0. */
+.ib-logo .ib-comet {
+  opacity: 0;
+  stroke-dashoffset: 1;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+.ib-logo .ib-comet-head {
+  stroke-dasharray: 0.05 0.95;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.9));
+}
+.ib-logo .ib-comet-trail {
+  stroke-dasharray: 0.16 0.84;
+  opacity: 0;
+}
+.ib-logo[data-live] .ib-comet,
+.ib-logo:hover .ib-comet,
+.group:hover > .ib-logo .ib-comet {
+  opacity: 1;
+  animation: ib-orbit 2.4s linear infinite;
+}
+.ib-logo[data-live] .ib-comet-trail,
+.ib-logo:hover .ib-comet-trail,
+.group:hover > .ib-logo .ib-comet-trail {
+  opacity: 0.45;
+  /* Trail sits just behind the head */
+  animation-delay: 0.06s;
+}
+.ib-logo[data-live] .ib-book,
+.ib-logo:hover .ib-book,
+.group:hover > .ib-logo .ib-book {
+  animation: ib-book 1.6s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 90ms);
+}
+@keyframes ib-orbit {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes ib-book {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.8);
+  }
+}
+
+/* Book reading typography. Unlayered on purpose: it must override the typography plugin's
+   .prose colours, which live in the utilities layer. */
+.reading {
+  font-family: var(--font-serif);
+  color: var(--reading);
+  --tw-prose-body: var(--reading);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-links: var(--primary);
+  --tw-prose-quotes: var(--foreground);
+  --tw-prose-quote-borders: var(--primary);
+  --tw-prose-code: var(--foreground);
+  --tw-prose-bullets: var(--muted-foreground);
+  --tw-prose-counters: var(--muted-foreground);
+  --tw-prose-hr: var(--border);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
+  --tw-prose-pre-bg: var(--muted);
+  --tw-prose-pre-code: var(--foreground);
+}
+.reading.reading-sans {
+  font-family: var(--font-sans);
+}
+.reading :where(h1, h2, h3, h4) {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+.reading :where(blockquote) {
+  font-style: normal;
+  background: var(--accent);
+  border-radius: 0 0.75rem 0.75rem 0;
+  padding: 0.25rem 1.25rem;
+}
+.reading :where(code):not(pre code) {
+  background: var(--muted);
+  border-radius: 0.375rem;
+  padding: 0.1em 0.35em;
+  font-weight: 500;
+}
+.reading :where(code)::before,
+.reading :where(code)::after {
+  content: none;
+}
+.reading :where(pre) {
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  font-size: 0.85em;
+  line-height: 1.65;
+}
+.reading :where(ul, ol) > li::marker {
+  font-weight: 500;
+}
+.reading :where(li > p) {
+  margin-block: 0.35em;
+}
+.reading :where(hr) {
+  width: 4rem;
+  margin-inline: auto;
+}
+.reading :where(strong) {
+  font-weight: 650;
+}
+
+/* Tables: rounded frame, zebra rows, and their own sideways scroll on narrow screens */
+.reading .table-wrap {
+  overflow-x: auto;
+  margin-block: 1.75em;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+}
+.reading .table-wrap table {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 0.85em;
+}
+.reading .table-wrap :where(th, td) {
+  padding: 0.6em 0.9em;
+}
+.reading .table-wrap thead {
+  background: var(--muted);
+}
+.reading .table-wrap tbody tr:nth-child(even) {
+  background: color-mix(in oklab, var(--muted) 45%, transparent);
+}
+
+/* Maths (KaTeX): display equations scroll sideways instead of overflowing */
+.reading .katex {
+  font-size: 1.08em;
+}
+.reading .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.35em;
+}
+.reading .katex-error {
+  color: var(--danger);
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+/* Code highlighting (highlight.js classes), from the page's own colours */
+.reading .hljs-comment,
+.reading .hljs-quote {
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+.reading .hljs-keyword,
+.reading .hljs-selector-tag,
+.reading .hljs-built_in,
+.reading .hljs-meta {
+  color: var(--code-keyword);
+}
+.reading .hljs-string,
+.reading .hljs-regexp,
+.reading .hljs-attr,
+.reading .hljs-symbol {
+  color: var(--code-string);
+}
+.reading .hljs-number,
+.reading .hljs-literal,
+.reading .hljs-variable,
+.reading .hljs-template-variable {
+  color: var(--code-number);
+}
+.reading .hljs-title,
+.reading .hljs-function,
+.reading .hljs-section,
+.reading .hljs-type,
+.reading .hljs-class {
+  color: var(--code-title);
+}
+
+/* Blinking caret after the text being streamed (usable with variants, e.g. [&>*:last-child]:stream-caret) */
+@utility stream-caret {
+  &::after {
+    content: '';
+    display: inline-block;
+    width: 0.55ch;
+    height: 1.1em;
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    border-radius: 2px;
+    background: var(--primary);
+    animation: var(--animate-caret);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

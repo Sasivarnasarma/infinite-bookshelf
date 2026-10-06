@@ -1,0 +1,25 @@
+{
+  "name": "infinite-bookshelf",
+  "private": true,
+  "description": "Turn a topic into a complete book, written live by the AI model of your choice.",
+  "license": "MIT",
+  "scripts": {
+    "bootstrap": "pnpm install && cd api && uv sync",
+    "dev": "pnpm run \"/^dev:/\"",
+    "dev:api": "cd api && uv run infinite-bookshelf-api",
+    "dev:web": "pnpm --filter @infinite-bookshelf/web dev",
+    "build": "pnpm --filter @infinite-bookshelf/web build",
+    "format": "prettier --write . && cd api && uv run ruff check --fix && uv run ruff format",
+    "lint": "prettier --check . && pnpm --filter @infinite-bookshelf/web lint && cd api && uv run ruff check && uv run ruff format --check",
+    "test": "pnpm --filter @infinite-bookshelf/web test && cd api && uv run pytest",
+    "check": "pnpm lint && pnpm --filter @infinite-bookshelf/web typecheck && pnpm test"
+  },
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.9",
+    "prettier-plugin-tailwindcss": "^0.8.1"
+  }
+}
