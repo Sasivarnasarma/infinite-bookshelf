@@ -8,14 +8,42 @@ Infinite Bookshelf runs as a single container: the API serves the built web app 
 docker compose up -d
 ```
 
-Open http://localhost:8000. The bundled `docker-compose.yml` is set up for a private server: it
+Open http://localhost:9752. The bundled `docker-compose.yml` is set up for a private server: it
 allows local model servers, so Ollama running on the same machine is reachable at
 `http://host.docker.internal:11434/v1` (set this as the Ollama base URL in **Settings**).
+
+### GitHub Codespaces and other hosts where providers can't be reached
+
+If the app loads but every provider fails with **Couldn't reach the provider**, the container
+probably can't look up domain names. This happens when Docker's own DNS can't reach the host's
+resolver, as in GitHub Codespaces. Run the variant that uses the host's network and DNS instead:
+
+```bash
+docker compose up -d infinite-bookshelf-host
+```
+
+It serves the same app on the host's port 9752, and Ollama on the same machine is at
+`http://localhost:11434/v1`. Run only one of the two services at a time. On Docker Desktop this
+variant needs host networking turned on in Docker Desktop's settings; the default service works
+there without it.
+
+To check whether DNS is the problem, this prints an IP address when the container can look up
+domain names, and a "name resolution" error when it can't:
+
+```bash
+docker compose exec infinite-bookshelf python -c "import socket; print(socket.gethostbyname('api.openai.com'))"
+```
 
 ## Docker
 
 ```bash
-docker run -p 8000:8000 -e IB_ALLOW_PRIVATE_ENDPOINTS=true ghcr.io/sasivarnasarma/infinite-bookshelf
+docker run -p 9752:9752 -e IB_ALLOW_PRIVATE_ENDPOINTS=true ghcr.io/sasivarnasarma/infinite-bookshelf
+```
+
+On GitHub Codespaces (see above), use the host's network instead of publishing a port:
+
+```bash
+docker run --network host -e IB_ALLOW_PRIVATE_ENDPOINTS=true ghcr.io/sasivarnasarma/infinite-bookshelf
 ```
 
 To build the image yourself: `docker build -t infinite-bookshelf .`
@@ -34,7 +62,7 @@ All settings are environment variables prefixed with `IB_`:
 
 | Variable                     | Default              | Meaning                                                                   |
 | ---------------------------- | -------------------- | ------------------------------------------------------------------------- |
-| `IB_HOST` / `IB_PORT`        | `127.0.0.1` / `8000` | Listen address (the Docker image uses `0.0.0.0`)                          |
+| `IB_HOST` / `IB_PORT`        | `127.0.0.1` / `8000` | Listen address (the Docker image uses `0.0.0.0` / `9752`)                 |
 | `IB_ALLOW_CUSTOM_ENDPOINTS`  | `true`               | Let users add their own OpenAI-compatible base URLs                       |
 | `IB_ALLOW_PRIVATE_ENDPOINTS` | `false`              | Allow localhost and private network addresses (Ollama, LM Studio)         |
 | `IB_RATE_LIMIT_PER_MINUTE`   | `0`                  | Generation requests per minute per client IP (`0` = unlimited)            |

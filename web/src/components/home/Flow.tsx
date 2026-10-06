@@ -2,6 +2,8 @@ import { Check, Copy, Terminal as TerminalIcon } from 'lucide-react'
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 
+import { copyText } from '@/lib/utils'
+
 /** The curve a request travels between two boxes (the connector is 9rem × 64px on wide screens). */
 const CURVE = 'M 0 32 C 48 -4, 96 68, 144 32'
 
@@ -82,13 +84,11 @@ export function TypingTerminal({ lines, note }: { lines: string[]; note: string 
         <button
           type="button"
           onClick={() => {
-            void navigator.clipboard
-              .writeText(full)
-              .then(() => {
-                setCopied(true)
-                setTimeout(() => setCopied(false), 1500)
-              })
-              .catch(() => {})
+            void copyText(full).then((ok) => {
+              if (!ok) return
+              setCopied(true)
+              setTimeout(() => setCopied(false), 1500)
+            })
           }}
           className="ml-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white pointer-coarse:px-3.5 pointer-coarse:py-3"
           aria-label="Copy commands"

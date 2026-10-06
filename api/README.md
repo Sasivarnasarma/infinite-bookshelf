@@ -6,7 +6,7 @@ and API keys live in the user's browser and arrive with each request.
 
 ```bash
 uv sync
-uv run infinite-bookshelf-api     # http://127.0.0.1:8000
+uv run infinite-bookshelf-api     # http://127.0.0.1:8000 (add --reload to restart on code changes)
 uv run pytest
 ```
 

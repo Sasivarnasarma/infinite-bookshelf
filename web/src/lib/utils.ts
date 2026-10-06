@@ -5,8 +5,46 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * A random v4 UUID. `crypto.randomUUID` only exists on secure pages (HTTPS or localhost), so on a
+ * plain-HTTP address (a server's IP, a LAN host) the same id is built from `getRandomValues`.
+ */
 export function newId(): string {
-  return crypto.randomUUID()
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  const bytes = crypto.getRandomValues(new Uint8Array(16))
+  bytes[6] = (bytes[6] & 0x0f) | 0x40 // version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80 // RFC 4122 variant
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
+/**
+ * Copies text to the clipboard; resolves to whether it worked. The Clipboard API also needs a
+ * secure page, so on plain HTTP this falls back to a hidden text area and the copy command.
+ */
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch {
+    /* Blocked or unavailable: try the fallback */
+  }
+  const area = document.createElement('textarea')
+  area.value = text
+  area.setAttribute('readonly', '')
+  area.style.position = 'fixed'
+  area.style.opacity = '0'
+  document.body.appendChild(area)
+  area.select()
+  try {
+    return document.execCommand('copy')
+  } catch {
+    return false
+  } finally {
+    area.remove()
+  }
 }
 
 export function sleep(ms: number, signal?: AbortSignal): Promise<void> {

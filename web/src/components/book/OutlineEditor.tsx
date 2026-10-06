@@ -13,7 +13,7 @@ import { updateBook } from '@/lib/db'
 import { outlineToRows, rowsToOutline, type OutlineLevel, type OutlineRow } from '@/lib/outline'
 import { draftOutline, writeBook } from '@/lib/runner'
 import type { Book } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { cn, newId } from '@/lib/utils'
 
 const LEVEL_NAMES: Record<OutlineLevel, string> = { 1: 'Chapter', 2: 'Section', 3: 'Subsection' }
 
@@ -172,7 +172,7 @@ export function OutlineEditor({ book }: { book: Book }) {
   }, [rows])
 
   const update = (id: string, patch: Partial<OutlineRow>) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)))
-  const add = (level: OutlineLevel) => setRows((rs) => [...rs, { id: crypto.randomUUID(), level, title: '', description: '' }])
+  const add = (level: OutlineLevel) => setRows((rs) => [...rs, { id: newId(), level, title: '', description: '' }])
 
   function onDragEnd(event: DragEndEvent) {
     const { active, over } = event

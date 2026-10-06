@@ -1,16 +1,25 @@
-# Self-hosting Infinite Bookshelf:  docker compose up -d   → http://localhost:8000
+# Self-hosting Infinite Bookshelf → http://localhost:9752
+#   docker compose up -d                          most hosts, including Docker Desktop
+#   docker compose up -d infinite-bookshelf-host  GitHub Codespaces (uses the host's network and DNS)
+
+x-app: &app
+  image: ghcr.io/sasivarnasarma/infinite-bookshelf:latest
+  build: .
+  environment:
+    # Allows local model servers (Ollama, LM Studio). For a public instance set "false" and
+    # add a rate limit, e.g. IB_RATE_LIMIT_PER_MINUTE: "30"
+    IB_ALLOW_PRIVATE_ENDPOINTS: 'true'
+  restart: unless-stopped
+
 services:
   infinite-bookshelf:
-    image: ghcr.io/sasivarnasarma/infinite-bookshelf:latest
-    build: .
+    <<: *app
     ports:
-      - '8000:8000'
-    environment:
-      # Your own server: allow local model servers. Ollama on this machine is then at
-      # http://host.docker.internal:11434/v1 (set it as the Ollama base URL in Settings).
-      IB_ALLOW_PRIVATE_ENDPOINTS: 'true'
-      # For a public instance instead: IB_ALLOW_PRIVATE_ENDPOINTS "false" and a rate limit, e.g.
-      # IB_RATE_LIMIT_PER_MINUTE: "30"
+      - '9752:9752'
     extra_hosts:
       - 'host.docker.internal:host-gateway'
-    restart: unless-stopped
+
+  infinite-bookshelf-host:
+    <<: *app
+    profiles: [host]
+    network_mode: host

@@ -50,17 +50,18 @@ length, style, depth, and your own notes · light and dark themes · works on ph
 **Self-host with Docker**
 
 ```bash
-docker compose up -d        # → http://localhost:8000
+docker compose up -d        # → http://localhost:9752
 ```
 
-See [docs/self-hosting.md](docs/self-hosting.md) for configuration and running a public instance.
+See [docs/self-hosting.md](docs/self-hosting.md) for configuration, running a public instance, and
+GitHub Codespaces (`docker compose up -d infinite-bookshelf-host`).
 
 **Run from source** (needs [uv](https://docs.astral.sh/uv/), Node.js 22+, [pnpm](https://pnpm.io/))
 
 ```bash
 pnpm bootstrap                    # install web and API dependencies
 cp api/.env.example api/.env      # allow local models while developing
-pnpm dev                          # API on :8000, web app on http://localhost:5173
+pnpm dev                          # API on :8000, web app on :5173; both reload as you edit
 ```
 
 Then open **Settings**, add a provider, and paste your API key.

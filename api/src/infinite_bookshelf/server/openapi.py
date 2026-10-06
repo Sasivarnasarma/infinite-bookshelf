@@ -54,7 +54,7 @@ The two generation endpoints answer with
 `fetch`, or with curl's `-N` flag:
 
 ```bash
-curl -N http://localhost:8000/api/sections/stream \\
+curl -N http://localhost:9752/api/sections/stream \\
   -H "Content-Type: application/json" -d @section.json
 ```
 

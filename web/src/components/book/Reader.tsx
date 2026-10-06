@@ -12,7 +12,7 @@ import { awaitingNextChapter, nextChapter, outlineNodes } from '@/lib/outline'
 import { isRunning, rewriteSection, useLive, writeBook, type LiveRun } from '@/lib/runner'
 import { modelOptions, sameRef, usePreferences, useProviderList } from '@/lib/settings'
 import type { Book, ModelRef, OutlineNode } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { cn, copyText } from '@/lib/utils'
 
 const READING_SIZE = { sm: 'prose-base', md: 'prose-lg', lg: 'prose-xl' }
 
@@ -164,7 +164,8 @@ function CopyButton({ text }: { text: string }) {
       variant="ghost"
       size="sm"
       onClick={() => {
-        void navigator.clipboard.writeText(text).then(() => {
+        void copyText(text).then((ok) => {
+          if (!ok) return
           setCopied(true)
           setTimeout(() => setCopied(false), 1500)
         })
