@@ -9,8 +9,8 @@
     "dev:api": "cd api && uv run infinite-bookshelf-api",
     "dev:web": "pnpm --filter @infinite-bookshelf/web dev",
     "build": "pnpm --filter @infinite-bookshelf/web build",
-    "test": "cd api && uv run pytest",
-    "check": "pnpm --filter @infinite-bookshelf/web typecheck && pnpm --filter @infinite-bookshelf/web lint && cd api && uv run pytest"
+    "test": "pnpm --filter @infinite-bookshelf/web test && cd api && uv run pytest",
+    "check": "pnpm --filter @infinite-bookshelf/web typecheck && pnpm --filter @infinite-bookshelf/web lint && pnpm --filter @infinite-bookshelf/web test && cd api && uv run pytest"
   },
   "packageManager": "pnpm@11.7.0",
   "engines": {

@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { fileURLToPath, URL } from 'node:url'
 
 import tailwindcss from '@tailwindcss/vite'
@@ -20,5 +21,10 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+  },
+  // Unit tests for the browser-side logic (pnpm test): plain Node, no page needed
+  test: {
+    include: ['src/**/*.test.ts'],
+    environment: 'node',
   },
 })
