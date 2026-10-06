@@ -1,5 +1,6 @@
 import { prepareMarkdown } from './markdown'
 import type { Book, Outline, OutlineNode } from './types'
+import { newId } from './utils'
 
 /** Browser-side key for a section path. */
 export function sectionKey(path: string[]): string {
@@ -75,7 +76,7 @@ export interface OutlineRow {
 
 export function outlineToRows(outline: Outline | null): OutlineRow[] {
   return outlineNodes(outline).map((node) => ({
-    id: crypto.randomUUID(),
+    id: newId(),
     level: Math.min(node.depth, 3) as OutlineLevel,
     title: node.title,
     description: node.description,
