@@ -18,7 +18,18 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    groups:
+      actions:
+        patterns: ['*']
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: monthly
+    groups:
+      docker:
+        patterns: ['*']
+    ignore:
+      # Node moves between LTS releases on purpose (odd-numbered majors are short-lived);
+      # minor and patch updates still come through
+      - dependency-name: node
+        update-types: ['version-update:semver-major']
