@@ -29,6 +29,17 @@ function write(signal: AbortSignal, onDelta: (text: string) => void = () => {}) 
 describe('streamSection', () => {
   afterEach(() => vi.unstubAllGlobals())
 
+  it('sends the request to the configured API', async () => {
+    vi.stubGlobal('window', { IB_CONFIG: { apiUrl: 'https://api.example.com' } })
+    const urls: string[] = []
+    vi.stubGlobal('fetch', async (url: string) => {
+      urls.push(url)
+      return sseResponse([START, 'event: done\ndata: {}\n\n'])
+    })
+    await write(new AbortController().signal)
+    expect(urls).toEqual(['https://api.example.com/api/sections/stream'])
+  })
+
   it('resolves once the stream says done', async () => {
     vi.stubGlobal('fetch', async () => sseResponse([START, DELTA, 'event: done\ndata: {}\n\n']))
     const text: string[] = []
