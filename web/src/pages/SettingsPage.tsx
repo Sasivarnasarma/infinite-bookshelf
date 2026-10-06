@@ -1,25 +1,24 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Database, Download, KeyRound, Monitor, Moon, Palette, Plus, ServerCog, ShieldCheck, SlidersHorizontal, Sun, Trash2, Upload } from 'lucide-react'
+import { Database, Download, KeyRound, Monitor, Moon, Palette, ShieldCheck, SlidersHorizontal, Sun, Trash2, Upload } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useMemo, useRef, type ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 
 import { Markdown } from '@/components/Markdown'
-import { ModelSelect } from '@/components/ModelSelect'
-import { ProviderCard } from '@/components/settings/ProviderCard'
+import { ProvidersWorkspace } from '@/components/settings/ProvidersWorkspace'
 import { Button } from '@/components/ui/button'
 import { Field, Hint, Segmented, Switch } from '@/components/ui/fields'
 import { Dialog, DialogClose, DialogContent, DialogTrigger } from '@/components/ui/overlays'
 import { db } from '@/lib/db'
 import { downloadBackup, importBackup } from '@/lib/export'
-import { modelOptions, useKeys, usePreferences, useProviderList, useProviders, useServer, type ReadingSize, type Theme } from '@/lib/settings'
-import type { SectionLength, Step } from '@/lib/types'
+import { useKeys, usePreferences, useServer, type ReadingSize, type Theme } from '@/lib/settings'
+import type { SectionLength } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const TABS = [
-  { id: 'providers', label: 'Providers & keys', icon: KeyRound },
-  { id: 'defaults', label: 'Defaults', icon: SlidersHorizontal },
+  { id: 'providers', label: 'Providers & models', icon: KeyRound },
+  { id: 'writing', label: 'Writing', icon: SlidersHorizontal },
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'data', label: 'Your data', icon: Database },
 ] as const
@@ -38,16 +37,12 @@ function Section({ title, description, children }: { title: string; description?
 }
 
 function ProvidersTab() {
-  const providers = useProviderList()
-  const config = useServer((s) => s.config)
-  const addCustom = useProviders((s) => s.addCustom)
   const remember = usePreferences((s) => s.rememberKeys)
   const setPrefs = usePreferences((s) => s.set)
-  const presets = providers.filter((p) => !p.custom)
-  const customs = providers.filter((p) => p.custom)
 
   return (
     <div className="grid grid-cols-1 gap-10">
+      <ProvidersWorkspace />
       <div className="surface flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
         <ShieldCheck className="size-8 shrink-0 text-success" />
         <div className="grid grid-cols-1 gap-1 text-sm">
@@ -65,76 +60,17 @@ function ProvidersTab() {
         </label>
       </div>
       {!remember && <Hint className="-mt-8">Keys are kept only until you close this tab.</Hint>}
-
-      <Section title="Providers" description="Switch on the services you have keys for. Their models appear in the model picker.">
-        {!config ? (
-          <div className="grid grid-cols-1 gap-3">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="skeleton h-[72px] rounded-2xl" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-3">
-            {presets.map((p) => (
-              <ProviderCard key={p.id} provider={p} />
-            ))}
-          </div>
-        )}
-        {config && !config.allow_private_endpoints && (
-          <p className="flex items-start gap-2 text-xs text-muted-foreground">
-            <ServerCog className="mt-0.5 size-4 shrink-0" />
-            Local models (Ollama, LM Studio) are available when you run Infinite Bookshelf on your own computer.
-          </p>
-        )}
-      </Section>
-
-      {config?.allow_custom_endpoints && (
-        <Section title="Custom endpoints" description="Any OpenAI-compatible API: a company proxy, Together, Fireworks, vLLM, and more.">
-          <div className="grid grid-cols-1 gap-3">
-            <AnimatePresence initial={false}>
-              {customs.map((p) => (
-                <motion.div key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }}>
-                  <ProviderCard provider={p} />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-          <Button variant="outline" className="w-fit" onClick={() => addCustom()}>
-            <Plus /> Add custom endpoint
-          </Button>
-        </Section>
-      )}
     </div>
   )
 }
 
-function DefaultsTab() {
+function WritingTab() {
   const prefs = usePreferences()
-  const providers = useProviderList()
   const config = useServer((s) => s.config)
-  const options = useMemo(() => modelOptions(providers), [providers])
-  const steps: { step: Step; label: string; hint: string }[] = [
-    { step: 'section', label: 'Chapters', hint: 'Writes every section. Pick your strongest model.' },
-    { step: 'outline', label: 'Outline', hint: 'Plans the table of contents. Falls back to the chapters model.' },
-    { step: 'title', label: 'Title', hint: 'One short call. A fast, cheap model is fine.' },
-  ]
 
   return (
     <div className="grid grid-cols-1 gap-10">
-      <Section title="Default models" description="Preselected when you start a new book. You can still change them per book.">
-        {options.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Set up a provider first.</p>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {steps.map(({ step, label, hint }) => (
-              <Field key={step} label={label} hint={hint}>
-                <ModelSelect value={prefs.defaultModels[step] ?? null} options={options} onChange={(ref) => prefs.set({ defaultModels: { ...prefs.defaultModels, [step]: ref } })} />
-              </Field>
-            ))}
-          </div>
-        )}
-      </Section>
-      <Section title="Writing">
+      <Section title="Writing" description="How new books are written. You can still change these per book.">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <Field label="Section length" hint={`About ${config?.section_lengths[prefs.sectionLength] ?? '…'} words per section.`}>
             <Segmented<SectionLength>
@@ -145,7 +81,7 @@ function DefaultsTab() {
           </Field>
           <Field label="Delay between sections" hint="A pause between requests helps stay under free-tier rate limits.">
             <div className="flex items-center gap-3">
-              <input type="range" min={0} max={10} step={0.5} value={prefs.delaySeconds} onChange={(e) => prefs.set({ delaySeconds: Number(e.target.value) })} className="w-full accent-[var(--primary)]" />
+              <input type="range" min={0} max={10} step={0.5} value={prefs.delaySeconds} onChange={(e) => prefs.set({ delaySeconds: Number(e.target.value) })} className="h-6 w-full accent-[var(--primary)] pointer-coarse:h-11" aria-label="Delay between sections" />
               <span className="w-12 text-right font-mono text-sm tabular-nums">{prefs.delaySeconds.toFixed(1)}s</span>
             </div>
           </Field>
@@ -294,7 +230,7 @@ export function SettingsPage() {
         <AnimatePresence mode="wait">
           <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.18 }} className="min-w-0">
             {tab === 'providers' && <ProvidersTab />}
-            {tab === 'defaults' && <DefaultsTab />}
+            {tab === 'writing' && <WritingTab />}
             {tab === 'appearance' && <AppearanceTab />}
             {tab === 'data' && <DataTab />}
           </motion.div>

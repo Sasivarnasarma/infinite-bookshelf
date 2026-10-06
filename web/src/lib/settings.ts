@@ -11,6 +11,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 import type { ModelRef, ProviderPreset, SectionLength, ServerConfig, Step } from './types'
+import { useKeyHealth } from './key-health'
 import { newId } from './utils'
 
 // ---- Preferences ------------------------------------------------------------------------------
@@ -67,6 +68,8 @@ export interface ServiceSettings {
   baseUrl?: string
   rotate: boolean
   failover: boolean
+  /** Favourite models: listed first in model pickers. */
+  starred: string[]
 }
 
 export interface CustomEndpoint {
@@ -77,6 +80,7 @@ export interface CustomEndpoint {
   fetchedModels: string[]
   rotate: boolean
   failover: boolean
+  starred: string[]
 }
 
 /** A labelled API key for a service. The secret itself lives in useKeys, by key id. */
@@ -102,9 +106,10 @@ interface ProvidersState {
   removeKey: (id: string) => void
   /** Moves a key to the front of its service's list, making it the one tried first. */
   makePrimary: (id: string) => void
+  toggleStar: (serviceId: string, model: string) => void
 }
 
-const emptyService: ServiceSettings = { enabled: false, models: [], fetchedModels: [], rotate: false, failover: true }
+const emptyService: ServiceSettings = { enabled: false, models: [], fetchedModels: [], rotate: false, failover: true, starred: [] }
 
 /** "Key 2" for a service's second key, and so on (skipping a name already taken). */
 function nextKeyLabel(keys: ApiKeyEntry[], serviceId: string) {
@@ -137,7 +142,7 @@ export const useProviders = create<ProvidersState>()(
       addCustom: () => {
         const id = `custom-${newId().slice(0, 8)}`
         set((s) => ({
-          customs: [...s.customs, { id, name: 'Custom endpoint', baseUrl: '', models: [], fetchedModels: [], rotate: false, failover: true }],
+          customs: [...s.customs, { id, name: 'Custom endpoint', baseUrl: '', models: [], fetchedModels: [], rotate: false, failover: true, starred: [] }],
           keys: [...s.keys, { id: `key-${newId()}`, serviceId: id, label: 'Key 1', enabled: true }],
         }))
         return id
@@ -153,6 +158,13 @@ export const useProviders = create<ProvidersState>()(
       removeKey: (id) => {
         set((s) => ({ keys: s.keys.filter((k) => k.id !== id) }))
         useKeys.getState().setKey(id, '')
+        useKeyHealth.getState().clear(id)
+      },
+      toggleStar: (serviceId, model) => {
+        const custom = get().customs.find((c) => c.id === serviceId)
+        const starred = (custom ?? { ...emptyService, ...get().presets[serviceId] }).starred ?? []
+        const next = starred.includes(model) ? starred.filter((m) => m !== model) : [...starred, model]
+        get().updateService(serviceId, { starred: next })
       },
       makePrimary: (id) => {
         const key = get().keys.find((k) => k.id === id)
@@ -187,6 +199,7 @@ export const useKeys = create<KeysState>()((set) => ({
   keys: readKeys(),
   setKey: (keyId, secret) =>
     set((s) => {
+      if ((s.keys[keyId] ?? '') !== secret) useKeyHealth.getState().clear(keyId)
       const keys = { ...s.keys, [keyId]: secret }
       if (!secret) delete keys[keyId]
       return { keys }
@@ -249,6 +262,7 @@ export interface ProviderInfo {
   usableKeys: number
   rotate: boolean
   failover: boolean
+  starred: string[]
   baseUrl: string
   keyUrl: string
   models: string[]
@@ -289,6 +303,7 @@ export function listProviders(
       usableKeys,
       rotate: s.rotate,
       failover: s.failover,
+      starred: s.starred ?? [],
       baseUrl: s.baseUrl || p.base_url,
       keyUrl: p.key_url,
       models: s.models.length ? s.models : p.models,
@@ -310,6 +325,7 @@ export function listProviders(
       usableKeys: keys.filter((k) => k.usable).length,
       rotate: c.rotate,
       failover: c.failover,
+      starred: c.starred ?? [],
       baseUrl: c.baseUrl,
       keyUrl: '',
       models: c.models,
@@ -341,12 +357,13 @@ export interface ModelOption extends ModelRef {
   label: string
   providerName: string
   baseUrl: string
+  starred: boolean
 }
 
 export function modelOptions(providers: ProviderInfo[]): ModelOption[] {
   return providers
     .filter((p) => p.status === 'ready')
-    .flatMap((p) => p.models.map((model) => ({ providerId: p.id, model, providerName: p.name, baseUrl: p.baseUrl, label: `${p.name} · ${model}` })))
+    .flatMap((p) => p.models.map((model) => ({ providerId: p.id, model, providerName: p.name, baseUrl: p.baseUrl, label: `${p.name} · ${model}`, starred: p.starred.includes(model) })))
 }
 
 export function sameRef(a?: ModelRef | null, b?: ModelRef | null): boolean {
@@ -379,9 +396,23 @@ const slotOf = (keyId: string, model: string | null) => (model === null ? keyId 
 export function noteKeyFailure(ref: ModelRef, keyId: string | null, code: string) {
   if (!keyId) return
   const secret = useKeys.getState().keys[keyId] ?? ''
-  if (code === 'rate_limit') setAside.set(slotOf(keyId, null), { until: Date.now() + RATE_LIMIT_PAUSE_MS, secret })
-  else if (code === 'auth') setAside.set(slotOf(keyId, null), { until: Infinity, secret })
-  else if (code === 'model_unavailable') setAside.set(slotOf(keyId, ref.model), { until: Infinity, secret })
+  const health = useKeyHealth.getState()
+  if (code === 'rate_limit') {
+    const until = Date.now() + RATE_LIMIT_PAUSE_MS
+    setAside.set(slotOf(keyId, null), { until, secret })
+    health.report(keyId, { state: 'limited', message: 'Rate limit or quota reached', until })
+  } else if (code === 'auth') {
+    setAside.set(slotOf(keyId, null), { until: Infinity, secret })
+    health.report(keyId, { state: 'failed', message: 'Key rejected' })
+  } else if (code === 'model_unavailable') setAside.set(slotOf(keyId, ref.model), { until: Infinity, secret })
+}
+
+/** A request with this key worked. */
+export function noteKeySuccess(keyId: string | null) {
+  if (!keyId) return
+  const health = useKeyHealth.getState()
+  const previous = health.byKey[keyId]
+  if (previous?.state !== 'ok') health.report(keyId, { state: 'ok', message: 'Working', models: previous?.models })
 }
 
 function isSetAside(keyId: string, model: string): boolean {
@@ -422,7 +453,11 @@ export function keyOrder(ref: ModelRef): KeyChoice[] {
 
 /** The request body describing how to reach a service, with the chosen key. */
 export function providerAuth(serviceId: string, keyId: string | null): Record<string, string> {
-  const secret = keyId ? (useKeys.getState().keys[keyId] ?? '') : ''
+  return providerAuthWithSecret(serviceId, keyId ? (useKeys.getState().keys[keyId] ?? '') : '')
+}
+
+/** As providerAuth, with a secret that isn't saved yet (testing a key before adding it). */
+export function providerAuthWithSecret(serviceId: string, secret: string): Record<string, string> {
   const custom = useProviders.getState().customs.find((c) => c.id === serviceId)
   if (custom) return { base_url: custom.baseUrl, api_key: secret }
   const preset = useProviders.getState().presets[serviceId]

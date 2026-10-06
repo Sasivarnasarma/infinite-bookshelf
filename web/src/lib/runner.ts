@@ -17,7 +17,7 @@ import { create } from 'zustand'
 import { ApiRequestError, streamOutline, streamSection, type ServerStats } from './api'
 import { db, updateBook } from './db'
 import { outlineNodes, pendingSections, sectionKey } from './outline'
-import { KEY_FAILOVER_CODES, keyOrder, noteKeyFailure, usePreferences, type KeyChoice } from './settings'
+import { KEY_FAILOVER_CODES, keyOrder, noteKeyFailure, noteKeySuccess, usePreferences, type KeyChoice } from './settings'
 import type { ApiError, Book, ModelRef, Outline, Stats } from './types'
 import { isAbort, sleep } from './utils'
 
@@ -141,7 +141,9 @@ async function withKeys<T>(bookId: string, ref: ModelRef, run: (key: KeyChoice) 
   for (let i = 0; ; i++) {
     useLive.getState().set(bookId, { keyLabel: order[i].label || null })
     try {
-      return await run(order[i])
+      const result = await run(order[i])
+      noteKeySuccess(order[i].keyId)
+      return result
     } catch (e) {
       if (!canTryAnotherKey(e)) throw e
       noteKeyFailure(ref, order[i].keyId, e.error.code)
@@ -195,6 +197,8 @@ export async function draftOutline(bookId: string): Promise<void> {
           },
           controller.signal,
         )
+        noteKeySuccess(outlineKeys[o].keyId)
+        noteKeySuccess(titleKeys[t].keyId)
         break
       } catch (e) {
         if (!canTryAnotherKey(e)) throw e

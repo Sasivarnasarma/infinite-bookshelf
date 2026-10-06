@@ -1,6 +1,6 @@
 import { createParser } from 'eventsource-parser'
 
-import { providerAuth } from './settings'
+import { providerAuth, providerAuthWithSecret } from './settings'
 import type { ApiError, Book, BookOptions, ModelRef, ServerConfig } from './types'
 
 export class ApiRequestError extends Error {
@@ -46,6 +46,12 @@ export async function fetchConfig(): Promise<ServerConfig> {
 /** Lists a service's models with one of its keys. Also the "Test" check for that key. */
 export async function listModels(serviceId: string, keyId: string | null): Promise<string[]> {
   const data = await postJson<{ models: string[] }>('/api/models', { provider: providerAuth(serviceId, keyId) })
+  return data.models
+}
+
+/** Lists models with a key that isn't saved yet (the "Add provider" setup step). */
+export async function listModelsWithSecret(serviceId: string, secret: string): Promise<string[]> {
+  const data = await postJson<{ models: string[] }>('/api/models', { provider: providerAuthWithSecret(serviceId, secret) })
   return data.models
 }
 
