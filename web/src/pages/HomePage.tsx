@@ -377,7 +377,7 @@ function SelfHost() {
         </motion.div>
       </div>
       <motion.div {...reveal}>
-        <TypingTerminal lines={[`git clone ${REPO_URL}`, 'cd infinite-bookshelf', 'docker compose up -d']} note="Open http://localhost:8000" />
+        <TypingTerminal lines={[`git clone ${REPO_URL}`, 'cd infinite-bookshelf', 'docker compose up -d']} note="Open http://localhost:9752" />
       </motion.div>
     </section>
   )

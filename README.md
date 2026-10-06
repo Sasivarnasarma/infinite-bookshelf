@@ -50,10 +50,11 @@ length, style, depth, and your own notes · light and dark themes · works on ph
 **Self-host with Docker**
 
 ```bash
-docker compose up -d        # → http://localhost:8000
+docker compose up -d        # → http://localhost:9752
 ```
 
-See [docs/self-hosting.md](docs/self-hosting.md) for configuration and running a public instance.
+See [docs/self-hosting.md](docs/self-hosting.md) for configuration, running a public instance, and
+GitHub Codespaces (`docker compose up -d infinite-bookshelf-host`).
 
 **Run from source** (needs [uv](https://docs.astral.sh/uv/), Node.js 22+, [pnpm](https://pnpm.io/))
 

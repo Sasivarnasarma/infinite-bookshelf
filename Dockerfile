@@ -1,6 +1,6 @@
 # Infinite Bookshelf: one image with the API and the built web app.
 #   docker build -t infinite-bookshelf .
-#   docker run -p 8000:8000 infinite-bookshelf          → http://localhost:8000
+#   docker run -p 9752:9752 infinite-bookshelf          → http://localhost:9752
 
 # ---- 1. Build the web app ---------------------------------------------------------------------
 FROM node:24-slim AS web
@@ -38,10 +38,10 @@ USER bookshelf
 
 ENV PATH="/app/api/.venv/bin:$PATH" \
     IB_HOST=0.0.0.0 \
-    IB_PORT=8000 \
+    IB_PORT=9752 \
     IB_WEB_DIST=/app/web-dist
-EXPOSE 8000
+EXPOSE 9752
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=4)"
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9752/api/health', timeout=4)"
 
 CMD ["infinite-bookshelf-api"]
