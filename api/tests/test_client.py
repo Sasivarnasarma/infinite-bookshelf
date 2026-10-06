@@ -1,9 +1,13 @@
+import json
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
 import httpx2 as httpx
 import openai
 import pytest
 
-from infinite_bookshelf.engine.client import chat_completion
-from infinite_bookshelf.engine.errors import APIAuthenticationError, APIRequestError
+from infinite_bookshelf.engine.client import chat_completion, create_llm_client, list_models
+from infinite_bookshelf.engine.errors import APIAuthenticationError, APIConnectionError, APIRequestError
 
 REQUEST = httpx.Request("POST", "https://example.com/v1/chat/completions")
 
@@ -88,3 +92,49 @@ def test_presets_are_complete():
         # Tiers only label models the preset offers
         assert set(preset.get("tiers", {})) <= set(preset["models"]), pid
         assert set(preset.get("tiers", {}).values()) <= {"best", "balanced", "fast"}, pid
+
+
+@pytest.fixture
+def redirecting_server():
+    """A server whose /v1 redirects to /internal, standing in for an internal address; records hits."""
+    hits = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            hits.append(self.path)
+            if self.path.startswith("/v1/"):
+                self.send_response(307)
+                self.send_header("Location", "/internal/models")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            body = json.dumps({"object": "list", "data": [{"id": "internal-secret", "object": "model"}]}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    yield f"http://127.0.0.1:{server.server_address[1]}/v1", hits
+    server.shutdown()
+
+
+def test_redirects_are_refused_when_asked(redirecting_server):
+    base_url, hits = redirecting_server
+    client = create_llm_client("", base_url, requires_key=False, follow_redirects=False)
+    with pytest.raises(APIConnectionError) as error:
+        list_models(client)
+    assert "redirects somewhere else" in error.value.hint
+    assert hits == ["/v1/models"]  # The redirect's target is never contacted
+
+
+def test_redirects_are_followed_by_default(redirecting_server):
+    # Built-in providers and self-hosted setups keep the SDK's usual behaviour
+    base_url, hits = redirecting_server
+    assert list_models(create_llm_client("", base_url, requires_key=False)) == ["internal-secret"]
+    assert hits == ["/v1/models", "/internal/models"]
