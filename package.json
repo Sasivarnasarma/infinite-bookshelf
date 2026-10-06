@@ -9,6 +9,7 @@
     "dev:api": "cd api && uv run infinite-bookshelf-api --reload",
     "dev:web": "pnpm --filter @infinite-bookshelf/web dev --host",
     "build": "pnpm --filter @infinite-bookshelf/web build",
+    "start": "cd api && uv run infinite-bookshelf-api --serve-web",
     "format": "prettier --write . && cd api && uv run ruff check --fix && uv run ruff format",
     "lint": "prettier --check . && pnpm --filter @infinite-bookshelf/web lint && cd api && uv run ruff check && uv run ruff format --check",
     "test": "pnpm --filter @infinite-bookshelf/web test && cd api && uv run pytest",

@@ -21,6 +21,20 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    rolldownOptions: {
+      output: {
+        // Large libraries get files of their own: they download in parallel and stay cached
+        // across releases. KaTeX and highlight.js load only with the book reader.
+        codeSplitting: {
+          groups: [
+            { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler|react-router)[\\/]/, priority: 30 },
+            { name: 'motion', test: /node_modules[\\/](motion|framer-motion|motion-dom|motion-utils)[\\/]/, priority: 20 },
+            { name: 'katex', test: /node_modules[\\/]katex[\\/]/, priority: 20 },
+            { name: 'highlight', test: /node_modules[\\/](highlight\.js|lowlight)[\\/]/, priority: 20 },
+          ],
+        },
+      },
+    },
   },
   // Unit tests for the browser-side logic (pnpm test): plain Node, no page needed
   test: {
