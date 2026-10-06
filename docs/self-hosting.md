@@ -160,7 +160,8 @@ pnpm dev                # API on :8000, web app on :5173, both reloading as you 
 
 Open **http://localhost:5173**. The web dev server forwards `/api` to the API, so the browser sees a
 single address, as it does in production. It also listens on your network, so other devices can open
-it at `http://<your-computer's-IP>:5173`.
+it at `http://<your-computer's-IP>:5173`. If the API runs on another address (say you set `IB_PORT`),
+point the web dev server at it with `IB_API_URL`: see the [web app README](../web/README.md#-pointing-at-the-api-ib_api_url).
 
 To run only the API: `cd api && uv run infinite-bookshelf-api` (add `--reload` to restart on code
 changes). This is for development; to serve the finished app, use [`pnpm start`](#-without-docker).

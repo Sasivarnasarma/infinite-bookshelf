@@ -209,6 +209,7 @@ The server stores nothing: no database, no accounts, no sessions. Read the
 | [Self-hosting](docs/self-hosting.md) | Docker, configuration, local models, reverse proxies, public instances, troubleshooting |
 | [Architecture](docs/architecture.md) | How the browser and server work together, streaming, prompts, PDF export, security      |
 | [API reference](api/README.md)       | Endpoints, request bodies, streamed events, error codes                                 |
+| [Web app](web/README.md)             | The web app's commands, `IB_API_URL`, and conventions                                   |
 | [Contributing](CONTRIBUTING.md)      | Development setup, checks, tests and commit style                                       |
 | [Security policy](SECURITY.md)       | How to report a vulnerability, and what's protected                                     |
 
