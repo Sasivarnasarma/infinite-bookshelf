@@ -236,15 +236,15 @@ const MIX = [
 
 function Models() {
   return (
-    <section className="grid items-center gap-12 lg:grid-cols-[1fr_1.1fr]">
-      <div className="grid gap-6">
+    <section className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      <div className="grid min-w-0 grid-cols-1 gap-6">
         <ChapterHeading
           label="Chapter II"
           center={false}
           title="Write with the models you already pay for"
           text="Sixteen providers built in, plus any OpenAI-compatible API or a model on your own machine. Mix them: a fast one for the outline, your strongest for the chapters."
         />
-        <motion.ul {...reveal} className="grid gap-2 rounded-2xl border border-border bg-card p-3">
+        <motion.ul {...reveal} className="grid grid-cols-1 gap-2 rounded-2xl border border-border bg-card p-3">
           {MIX.map((m, i) => (
             <motion.li
               key={m.step}
@@ -254,9 +254,9 @@ function Models() {
               transition={{ delay: 0.2 + i * 0.12 }}
               className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted"
             >
-              <span className="w-20 font-serif text-sm text-muted-foreground italic">{m.step}</span>
-              <ProviderIcon id={m.provider} className="text-lg" />
-              <span className="truncate font-mono text-sm">{m.model}</span>
+              <span className="w-20 shrink-0 font-serif text-sm text-muted-foreground italic">{m.step}</span>
+              <ProviderIcon id={m.provider} className="shrink-0 text-lg" />
+              <span className="min-w-0 truncate font-mono text-sm">{m.model}</span>
             </motion.li>
           ))}
         </motion.ul>
@@ -356,8 +356,8 @@ function Privacy() {
 
 function SelfHost() {
   return (
-    <section id="self-host" className="grid scroll-mt-24 items-center gap-10 lg:grid-cols-[1fr_1.1fr]">
-      <div className="grid gap-6">
+    <section id="self-host" className="grid scroll-mt-24 grid-cols-1 items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      <div className="grid min-w-0 grid-cols-1 gap-6">
         <ChapterHeading
           label="Chapter IV"
           center={false}
@@ -377,7 +377,8 @@ function SelfHost() {
           </Button>
         </motion.div>
       </div>
-      <motion.div {...reveal}>
+      {/* min-w-0: a grid item otherwise grows to its longest line, and the page scrolls sideways */}
+      <motion.div {...reveal} className="min-w-0">
         <TypingTerminal lines={[`git clone ${REPO_URL}`, 'cd infinite-bookshelf', 'docker compose up -d']} note="Open http://localhost:9752" />
       </motion.div>
     </section>

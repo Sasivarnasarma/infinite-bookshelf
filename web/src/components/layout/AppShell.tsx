@@ -1,12 +1,12 @@
-import { ArrowRight, BookOpen, Heart, Library, Menu as MenuIcon, Monitor, Moon, PenLine, Settings, Sun, WifiOff, X } from 'lucide-react'
+import { ArrowRight, Library, Menu as MenuIcon, Monitor, Moon, PenLine, Settings, Sun, WifiOff, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useState } from 'react'
 import { Link, NavLink, useLocation, useOutlet } from 'react-router'
 
 import { Wordmark } from '@/components/Logo'
+import { SiteFooter } from '@/components/layout/SiteFooter'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/overlays'
-import { apiUrl } from '@/lib/api-url'
 import { useLive } from '@/lib/runner'
 import { usePreferences, useServer, type Theme } from '@/lib/settings'
 import { cn } from '@/lib/utils'
@@ -113,7 +113,6 @@ export function AppShell() {
   const [menuOpenOn, setMenuOpenOn] = useState<string | null>(null)
   const mobileOpen = menuOpenOn === location.pathname
   const setMobileOpen = (open: boolean) => setMenuOpenOn(open ? location.pathname : null)
-  const version = useServer((s) => s.config?.version)
   // The logo traces its loop while any book is being written
   const working = useLive((s) => Object.keys(s.runs).length > 0)
 
@@ -182,42 +181,7 @@ export function AppShell() {
         </AnimatePresence>
       </main>
 
-      <footer className="border-t border-border bg-background/80">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-sm text-muted-foreground sm:px-6 pointer-coarse:gap-x-2 [&_a]:rounded-lg pointer-coarse:[&_a]:px-2 pointer-coarse:[&_a]:py-2.5">
-          <span className="inline-flex items-center gap-2">
-            <BookOpen className="size-4" /> Infinite Bookshelf {version && <span className="font-mono text-xs">v{version}</span>}
-          </span>
-          <Link to="/#privacy" className="hover:text-foreground">
-            Privacy
-          </Link>
-          <Link to="/#self-host" className="hover:text-foreground">
-            Self-host
-          </Link>
-          <a href={apiUrl('/api/docs')} target="_blank" rel="noreferrer" className="hover:text-foreground">
-            API docs
-          </a>
-          <a href="https://github.com/Sasivarnasarma/infinite-bookshelf" target="_blank" rel="noreferrer" className="hover:text-foreground">
-            Source code
-          </a>
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-2 sm:ml-auto">
-            <span>Open source · MIT</span>
-            <a
-              href="https://github.com/Sasivarnasarma"
-              target="_blank"
-              rel="noreferrer"
-              className="group inline-flex items-center gap-1.5 hover:text-foreground"
-              aria-label="Made with love by Sasivarnasarma (GitHub)"
-            >
-              Made with
-              <Heart className="size-4 fill-primary text-primary group-hover:[animation-duration:0.7s] motion-safe:animate-heartbeat" aria-hidden />
-              by{' '}
-              <span className="font-medium text-foreground/80 underline decoration-primary/40 underline-offset-4 transition-colors group-hover:decoration-primary">
-                Sasivarnasarma
-              </span>
-            </a>
-          </span>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   )
 }
