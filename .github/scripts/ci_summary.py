@@ -40,6 +40,7 @@ GATES = [
     ("🧪", "Unit tests", "Vitest (web app) and pytest (API)", ("WEB_TESTS", "API_TESTS")),
     ("📦", "Build", "Production build of the web app", ("WEB_BUILD",)),
     ("🐳", "Docker image", "One image with the API and the web app", ("IMAGE",)),
+    ("🔥", "Smoke test", "Starts the image: health, web app, settings, PDF export, non-root", ("IMAGE_SMOKE",)),
     ("🛡️", "Audit", "Known vulnerabilities in shipped dependencies", ("WEB_AUDIT", "API_AUDIT")),
 ]
 
