@@ -30,7 +30,8 @@ Open http://localhost:5173. The API's interactive docs are at http://localhost:8
 2. **Make your change**, with tests.
 3. **Run the checks** below.
 4. **Open a pull request** describing what changed and why. CI runs the same checks, plus a
-   dependency audit and the Docker build, and posts a report on the run's summary page.
+   dependency audit, the Docker build and a smoke test of the image. It posts the report as a
+   comment on the pull request, updated on every push, and on the run's summary page.
 
 ```bash
 pnpm format     # fix formatting: Prettier (web, docs) and Ruff (API, including imports)

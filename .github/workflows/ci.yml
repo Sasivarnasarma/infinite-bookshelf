@@ -206,4 +206,19 @@ jobs:
           IMAGE_PUSHED: ${{ needs.image.outputs.pushed }}
           IMAGE_NAME: ${{ needs.image.outputs.name }}
           IMAGE_SMOKE: ${{ needs.image.outputs.smoke }}
-        run: python3 .github/scripts/ci_summary.py >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          python3 .github/scripts/ci_summary.py > ci-report.md
+          cat ci-report.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Save the report for the pull request comment
+        if: github.event_name == 'pull_request'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: echo "$PR_NUMBER" > pr-number
+      - uses: actions/upload-artifact@v7
+        if: github.event_name == 'pull_request'
+        with:
+          name: ci-report
+          path: |
+            ci-report.md
+            pr-number
+          retention-days: 7
