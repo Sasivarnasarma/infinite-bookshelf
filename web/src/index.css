@@ -484,6 +484,14 @@ html {
 .reading :where(strong) {
   font-weight: 650;
 }
+/* Long unbroken text (inline code, URLs, file paths) wraps instead of widening the page on
+   phones. Code blocks and tables keep their own sideways scroll. */
+.reading {
+  overflow-wrap: anywhere;
+}
+.reading :where(pre, .table-wrap) {
+  overflow-wrap: normal;
+}
 
 /* Tables: rounded frame, zebra rows, and their own sideways scroll on narrow screens */
 .reading .table-wrap {
