@@ -3,7 +3,8 @@
 #   docker run -p 9752:9752 infinite-bookshelf          → http://localhost:9752
 
 # ---- 1. Build the web app ---------------------------------------------------------------------
-FROM node:24-slim AS web
+# Built once on the build machine's own platform: the output is static files for every image
+FROM --platform=$BUILDPLATFORM node:24-slim AS web
 RUN corepack enable
 WORKDIR /app
 # Workspace manifests first, so dependency installs are cached until they change
