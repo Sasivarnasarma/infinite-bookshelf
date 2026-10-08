@@ -97,4 +97,10 @@ describe('Markdown export', () => {
     b.sections[sectionKey(['Right Triangles', 'Triples'])].text = String.raw`Costs $5. Maths \(x^2\).`
     expect(bookToMarkdown(b)).toBe('# Geometry\n\n## Right Triangles\n\n### Triples\n\nCosts \\$5. Maths $x^2$.\n\n## Computing\n')
   })
+
+  it("drops a section's repeated title and puts its headings below the section's", () => {
+    const b = book([['Right Triangles', 'Triples']])
+    b.sections[sectionKey(['Right Triangles', 'Triples'])].text = '### Triples\n\nIntro.\n\n### Primitive triples\n\nMore.'
+    expect(bookToMarkdown(b)).toContain('### Triples\n\nIntro.\n\n#### Primitive triples\n\nMore.')
+  })
 })

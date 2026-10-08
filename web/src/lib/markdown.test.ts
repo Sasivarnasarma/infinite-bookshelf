@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { prepareMarkdown } from './markdown'
+import { prepareMarkdown, sectionMarkdown } from './markdown'
 
 describe('prepareMarkdown', () => {
   it('leaves inline and display maths alone', () => {
@@ -34,5 +34,39 @@ describe('prepareMarkdown', () => {
 
   it('handles prices inside list items', () => {
     expect(prepareMarkdown('- one $x$\n- two costs $3')).toBe('- one $x$\n- two costs \\$3')
+  })
+})
+
+describe('sectionMarkdown', () => {
+  const title = 'Section 2.1: Subnet Design, Routing, and Gateways'
+
+  it('drops a first heading that repeats the section title', () => {
+    expect(sectionMarkdown('### Subnet Design, Routing, and Gateways\n\nText.', title, 4)).toBe('Text.')
+    expect(sectionMarkdown('## Section 2.1: Subnet design, routing and gateways ##\nText.', title, 4)).toBe('Text.')
+  })
+
+  it('drops a heading or bold line that starts with the title', () => {
+    expect(sectionMarkdown('### Subnet Design, Routing, and Gateways: A Primer\n\nText.', title, 4)).toBe('Text.')
+    expect(sectionMarkdown('**Subnet Design, Routing, and Gateways**\n\nText.', title, 4)).toBe('Text.')
+  })
+
+  it('keeps a first heading that is about something else', () => {
+    const text = '### Multi-AZ Subnet Topography\n\nText.'
+    expect(sectionMarkdown(text, title, 3)).toBe(text)
+    // A heading that is only part of the title is a real subheading
+    expect(sectionMarkdown('### Subnet Design\n\nText.', title, 3)).toBe('### Subnet Design\n\nText.')
+    expect(sectionMarkdown('Subnet Design, Routing, and Gateways matter.', title, 4)).toBe('Subnet Design, Routing, and Gateways matter.')
+  })
+
+  it('moves headings down so the biggest is at the given level', () => {
+    expect(sectionMarkdown('## A\n\ntext\n\n### B', 'Other', 4)).toBe('#### A\n\ntext\n\n##### B')
+    expect(sectionMarkdown('#### A\n\n###### B', 'Other', 4)).toBe('#### A\n\n###### B')
+    expect(sectionMarkdown('# A\n\n###### B', 'Other', 4)).toBe('#### A\n\n###### B') // Capped at 6
+    expect(sectionMarkdown('#### A', 'Other', 3)).toBe('#### A') // Never moved up
+  })
+
+  it('leaves lines in code blocks alone', () => {
+    const text = '### Setup\n\n```bash\n# install it\nnpm i\n```\n\n~~~\n## not a heading\n~~~'
+    expect(sectionMarkdown(text, 'Other', 4)).toBe('#### Setup\n\n```bash\n# install it\nnpm i\n```\n\n~~~\n## not a heading\n~~~')
   })
 })

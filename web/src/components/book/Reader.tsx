@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/fields'
 import { Dialog, DialogContent, DialogTrigger, Popover, PopoverContent, PopoverTrigger } from '@/components/ui/overlays'
 import { updateBook } from '@/lib/db'
+import { sectionMarkdown } from '@/lib/markdown'
 import { awaitingNextChapter, nextChapter, outlineNodes } from '@/lib/outline'
 import { isRunning, rewriteSection, useLive, writeBook, type LiveRun } from '@/lib/runner'
 import { modelOptions, sameRef, usePreferences, useProviderList } from '@/lib/settings'
@@ -108,6 +109,12 @@ function MobileToc({ book, live }: { book: Book; live?: LiveRun }) {
 
 // ---- Section ----------------------------------------------------------------------------------
 
+/** A chapter or section title: chapters are h2 under the book's h1, sections h3, deeper entries h4. */
+function OutlineHeading({ depth, className, children }: { depth: number; className: string; children: React.ReactNode }) {
+  const Tag = depth <= 1 ? 'h2' : depth === 2 ? 'h3' : 'h4'
+  return <Tag className={className}>{children}</Tag>
+}
+
 function useModelOptions() {
   const providers = useProviderList()
   return useMemo(() => modelOptions(providers), [providers])
@@ -196,23 +203,28 @@ const Section = memo(function Section({
   canEdit: boolean
   textSize: string
 }) {
-  const saved = book.sections[node.key]?.text
+  const savedText = book.sections[node.key]?.text
   const writtenBy = book.sections[node.key]?.model
   const heading = HEADING_SPACE[Math.min(node.depth, 3) as 1 | 2 | 3]
+  // Without a repeated title, and with the section's own headings one level below its title
+  const contentLevel = Math.min(6, node.depth + 2)
+  const saved = useMemo(() => savedText && sectionMarkdown(savedText, node.title, contentLevel), [savedText, node.title, contentLevel])
+  const live = useMemo(() => liveText && sectionMarkdown(liveText, node.title, contentLevel), [liveText, node.title, contentLevel])
   const showLive = isLive && (liveText || !saved || rewriting)
 
   return (
     <section id={anchor(node.key)} className="group scroll-mt-24">
       {node.depth === 1 && <div className="bg-brand mt-16 h-px w-16 opacity-60" />}
       <div className={cn('flex items-baseline gap-3', heading)}>
-        <h2
+        <OutlineHeading
+          depth={node.depth}
           className={cn(
             'font-display font-medium tracking-tight text-balance',
             node.depth === 1 ? 'text-2xl sm:text-3xl' : node.depth === 2 ? 'text-xl sm:text-2xl' : 'text-lg sm:text-xl',
           )}
         >
           {node.title}
-        </h2>
+        </OutlineHeading>
         {isLive && (
           <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
             <Loader2 className="size-3 animate-spin" /> {rewriting ? 'Rewriting' : 'Writing'}
@@ -221,8 +233,8 @@ const Section = memo(function Section({
       </div>
       <div className="mt-3">
         {showLive ? (
-          liveText ? (
-            <Markdown text={liveText} streaming className={textSize} />
+          live ? (
+            <Markdown text={live} streaming className={textSize} />
           ) : (
             <div className="grid gap-2.5 py-2">
               <div className="skeleton h-4 w-11/12" />
@@ -360,14 +372,15 @@ export function Reader({ book }: { book: Book }) {
             ) : (
               <div id={anchor(node.key)} className="scroll-mt-24">
                 {node.depth === 1 && <div className="bg-brand mt-16 h-px w-16 opacity-60" />}
-                <h2
+                <OutlineHeading
+                  depth={node.depth}
                   className={cn(
                     'font-display font-medium tracking-tight text-balance',
                     node.depth === 1 ? 'mt-4 text-2xl sm:text-3xl' : 'mt-10 text-xl sm:text-2xl',
                   )}
                 >
                   {node.title}
-                </h2>
+                </OutlineHeading>
               </div>
             )}
           </Fragment>

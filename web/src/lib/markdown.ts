@@ -89,3 +89,64 @@ export function prepareMarkdown(text: string): string {
     .map((p) => (p.code ? p.text : normaliseMath(p.text)))
     .join('')
 }
+
+// ---- Sections ----------------------------------------------------------------------------------
+
+const FENCE = /^ {0,3}(`{3,}|~{3,})/
+const ATX_HEADING = /^( {0,3})(#{1,6})(?=[ \t]|$)/
+
+/** Comparable text of a title: lower case, no "Section 2.1:" prefix, no punctuation. */
+function titleWords(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/^\s*(?:chapter|section|part)\s+[\d.]+\s*[:.\-–—]?\s*/, '')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+}
+
+/**
+ * Drops a first line that only restates the section's title: a heading or a bold line that
+ * matches it, or starts with it ("Private Traffic and Connectivity: VPC Peering…"). Models do
+ * this even when told not to, and the reader and exports already show the title.
+ */
+function dropRepeatedTitle(text: string, title: string): string {
+  const match = /^\s*(?:#{1,6}[ \t]+(.+?)[ \t#]*|\*\*(.+?)\*\*:?|__(.+?)__:?)[ \t]*(?:\n|$)/.exec(text)
+  if (!match) return text
+  const line = titleWords(match[1] ?? match[2] ?? match[3])
+  const wanted = titleWords(title)
+  if (!wanted || (line !== wanted && !line.startsWith(`${wanted} `))) return text
+  return text.slice(match[0].length).replace(/^\s*\n/, '')
+}
+
+/**
+ * Moves the text's headings down so the biggest one is at `level` (never up, never past 6).
+ * Lines in fenced code blocks, such as `# comments`, are left alone.
+ */
+function shiftHeadings(text: string, level: number): string {
+  const lines = text.split('\n')
+  const headings: number[] = []
+  let fence: string | null = null
+  lines.forEach((line, i) => {
+    const marker = FENCE.exec(line)?.[1]
+    if (fence) {
+      if (marker && marker[0] === fence[0] && marker.length >= fence.length) fence = null
+    } else if (marker) fence = marker
+    else if (ATX_HEADING.test(line)) headings.push(i)
+  })
+  if (!headings.length) return text
+  const top = Math.min(...headings.map((i) => ATX_HEADING.exec(lines[i])![2].length))
+  const shift = level - top
+  if (shift <= 0) return text
+  for (const i of headings) {
+    lines[i] = lines[i].replace(ATX_HEADING, (_, indent: string, hashes: string) => indent + '#'.repeat(Math.min(6, hashes.length + shift)))
+  }
+  return lines.join('\n')
+}
+
+/**
+ * A section's text as it's shown and exported: without a first line that repeats the section's
+ * title, and with its own headings starting at `level`, one below the section's heading.
+ */
+export function sectionMarkdown(text: string, title: string, level: number): string {
+  return shiftHeadings(dropRepeatedTitle(text, title), level)
+}

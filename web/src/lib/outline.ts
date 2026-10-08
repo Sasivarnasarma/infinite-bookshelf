@@ -1,4 +1,4 @@
-import { prepareMarkdown } from './markdown'
+import { prepareMarkdown, sectionMarkdown } from './markdown'
 import type { Book, Outline, OutlineNode } from './types'
 import { newId } from './utils'
 
@@ -128,7 +128,9 @@ export function rowsToOutline(rows: OutlineRow[]): Outline {
 export function bookToMarkdown(book: Book): string {
   const parts = [`# ${book.title}\n`]
   for (const node of outlineNodes(book.outline)) {
-    const text = book.sections[node.key] && prepareMarkdown(book.sections[node.key].text.trim())
+    const saved = book.sections[node.key]?.text.trim()
+    // Chapters are ##, sections ###, and a section's own headings start one level below its title
+    const text = saved && prepareMarkdown(sectionMarkdown(saved, node.title, Math.min(6, node.depth + 2)))
     if (node.isSection && !text) continue
     parts.push(`${'#'.repeat(Math.min(6, node.depth + 1))} ${node.title}\n`)
     if (text) parts.push(`${text}\n`)
