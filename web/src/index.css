@@ -444,10 +444,26 @@ html {
 .reading.reading-sans {
   font-family: var(--font-sans);
 }
-.reading :where(h1, h2, h3, h4) {
+.reading :where(h1, h2, h3, h4, h5, h6) {
   font-family: var(--font-display);
   font-weight: 600;
   letter-spacing: -0.025em;
+  color: var(--tw-prose-headings);
+}
+.reading :where(h4) {
+  font-size: 1.25em;
+  line-height: 1.6;
+  margin-top: 1.6em;
+  margin-bottom: 0.6em;
+}
+.reading :where(h5, h6) {
+  font-size: 1em;
+  line-height: 1.5;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+.reading :where(h6) {
+  color: var(--tw-prose-body);
 }
 .reading :where(blockquote) {
   font-style: normal;

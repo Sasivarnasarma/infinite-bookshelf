@@ -32,7 +32,8 @@ def build_section_messages(
         "instead of repeating it, and leave topics that belong to later sections for those sections. "
         "Do not re-introduce the book or its subject from scratch; continue naturally from the previous section.",
         "Use markdown: ### subheadings, lists, tables, or code blocks where they help the reader. "
-        "Do not repeat the section title as a heading. Output only the section text.",
+        "The section title is already shown above your text: start with the first paragraph, not a "
+        "heading or bold line that repeats or rephrases the title. Output only the section text.",
     ]
     if target_words:
         system.append(f"Aim for about {target_words} words.")
