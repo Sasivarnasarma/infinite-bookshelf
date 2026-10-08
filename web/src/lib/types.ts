@@ -47,6 +47,8 @@ export interface ApiError {
   title: string
   message: string
   hint: string
+  /** The provider's full error, when `message` is only the readable part of it. */
+  detail?: string
 }
 
 export interface Book {

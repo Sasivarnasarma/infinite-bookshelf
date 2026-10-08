@@ -62,7 +62,7 @@ curl -N http://localhost:9752/api/sections/stream \\
 
 ## Errors
 
-Every error is JSON in the same shape: `{{"error": {{"code", "title", "message", "hint"}}}}`.
+Every error is JSON in the same shape: `{{"error": {{"code", "title", "message", "hint", "detail"}}}}`.
 Inside a stream, the same object arrives as an `error` event, which ends the stream.
 
 ## This server

@@ -83,7 +83,7 @@ async function stream(path: string, body: unknown, handlers: Handlers, signal: A
     signal,
   }).catch((e) => {
     if (signal.aborted) throw e
-    throw new ApiRequestError({ code: 'offline', title: "Can't reach the server", message: String(e), hint: 'Check your connection, then press Resume.' })
+    throw new ApiRequestError({ code: 'offline', title: "Can't reach the server", message: String(e), hint: 'Check your connection, then try again.' })
   })
   if (!response.ok || !response.body) {
     throw new ApiRequestError(toApiError(await response.json().catch(() => null), `Request failed (${response.status})`))
@@ -108,6 +108,10 @@ async function stream(path: string, body: unknown, handlers: Handlers, signal: A
       parser.feed(value)
       if (failure) break
     }
+  } catch (e) {
+    // The connection dropped mid-stream (the browser only says "network error")
+    if (signal.aborted) throw signal.reason
+    throw new ApiRequestError(connectionLost(String(e)))
   } finally {
     reader.releaseLock()
   }
@@ -115,7 +119,17 @@ async function stream(path: string, body: unknown, handlers: Handlers, signal: A
   if (!finished) {
     // Without `done` the result is incomplete, so it must not count as finished
     if (signal.aborted) throw signal.reason
-    throw new ApiRequestError({ code: 'interrupted', title: 'Connection interrupted', message: 'The stream ended early.', hint: 'Press Resume to continue.' })
+    throw new ApiRequestError(connectionLost('The stream ended early.'))
+  }
+}
+
+function connectionLost(detail: string): ApiError {
+  return {
+    code: 'interrupted',
+    title: 'Connection lost',
+    message: 'The connection to the server dropped before this part was finished.',
+    hint: 'Try again to carry on from where it stopped. Nothing already written is lost.',
+    detail,
   }
 }
 

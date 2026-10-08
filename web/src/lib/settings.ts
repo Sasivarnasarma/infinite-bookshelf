@@ -451,13 +451,17 @@ export interface KeyChoice {
 
 const rotation = new Map<string, number>()
 
-/** Error codes where another key may succeed: a rejected key, an exhausted quota or rate limit, or a model this key can't use. */
-export const KEY_FAILOVER_CODES = new Set(['auth', 'rate_limit', 'model_unavailable'])
+/**
+ * Error codes where another key may succeed: a rejected key, no credits, a rate limit, or a model
+ * this key can't use. Not a busy model (model_busy): it's busy for every key.
+ */
+export const KEY_FAILOVER_CODES = new Set(['auth', 'quota', 'rate_limit', 'model_unavailable'])
 
 /**
  * Keys that just failed are set aside (tried last) for a while, so every request doesn't start
- * with a key that's known to fail: a rate limit for a minute, a rejected key until its secret
- * changes, an unavailable model for that model. Kept in memory: a reload starts fresh.
+ * with a key that's known to fail: a rate limit for a minute, a rejected key or one without
+ * credits until its secret changes, an unavailable model for that model. Kept in memory: a
+ * reload starts fresh.
  */
 const RATE_LIMIT_PAUSE_MS = 60_000
 const setAside = new Map<string, { until: number; secret: string }>()
@@ -471,10 +475,13 @@ export function noteKeyFailure(ref: ModelRef, keyId: string | null, code: string
   if (code === 'rate_limit') {
     const until = Date.now() + RATE_LIMIT_PAUSE_MS
     setAside.set(slotOf(keyId, null), { until, secret })
-    health.report(keyId, { state: 'limited', message: 'Rate limit or quota reached', until, code })
+    health.report(keyId, { state: 'limited', message: 'Rate limit reached', until, code })
   } else if (code === 'auth') {
     setAside.set(slotOf(keyId, null), { until: Infinity, secret })
     health.report(keyId, { state: 'failed', message: 'Key rejected', code })
+  } else if (code === 'quota') {
+    setAside.set(slotOf(keyId, null), { until: Infinity, secret })
+    health.report(keyId, { state: 'failed', message: 'Out of credits', code })
   } else if (code === 'model_unavailable') setAside.set(slotOf(keyId, ref.model), { until: Infinity, secret })
 }
 

@@ -16,6 +16,12 @@ from .errors import APIAuthenticationError, APIConnectionError, classify_api_err
 # Built-in providers, in the order the web app lists them; all speak the OpenAI Chat Completions
 # API. `models` are suggestions (users can load the live list or type any model ID), and `tiers`
 # marks each as best / balanced / fast, which the web app uses to suggest models per step.
+# A stalled provider fails within minutes rather than the SDK's 10-minute default. `read` is the
+# longest wait for the next bytes: a streamed section gets one chunk at a time, but the outline
+# arrives whole, after the model has finished writing it.
+PROVIDER_TIMEOUT = openai.Timeout(connect=15.0, read=180.0, write=30.0, pool=15.0)
+PROVIDER_RETRIES = 1
+
 PROVIDER_PRESETS: dict[str, dict[str, Any]] = {
     "openai": {
         "name": "OpenAI",
@@ -229,7 +235,7 @@ def create_llm_client(
             raise APIAuthenticationError("API Key is missing. Please provide a valid API key.")
         api_key = "not-needed"  # Local servers (e.g. Ollama) ignore the key, but the SDK requires one
 
-    client_kwargs = {"api_key": api_key}
+    client_kwargs = {"api_key": api_key, "timeout": PROVIDER_TIMEOUT, "max_retries": PROVIDER_RETRIES}
     if base_url and base_url.strip():
         client_kwargs["base_url"] = base_url.strip()
     if not follow_redirects:

@@ -1,7 +1,22 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { AlertTriangle, ArrowLeft, Braces, ChevronDown, Download, FileText, FileType2, KeyRound, ListTree, Pause, Play, RefreshCw, Trash2 } from 'lucide-react'
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Braces,
+  ChevronDown,
+  ChevronRight,
+  Download,
+  FileText,
+  FileType2,
+  KeyRound,
+  ListTree,
+  Pause,
+  Play,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 
@@ -155,42 +170,96 @@ function SetupCard({ book, problem }: { book: Book; problem: SetupProblem }) {
   )
 }
 
+/** The model the book's next request uses: the outline's until there is one, then the chapters'. */
+const nextModel = (book: Book) => (book.outline ? book.models.section : book.models.outline)
+
+/**
+ * Moves the book's next request to `ref`: the chapters once there's an outline. Before it, the
+ * outline moves, and so do the title and chapters if they were using the same model.
+ */
+function switchModel(bookId: string, ref: ModelRef) {
+  return updateBook(bookId, (b) => {
+    if (b.outline) return { error: null, models: { ...b.models, section: ref } }
+    const follow = (m: ModelRef) => (sameRef(m, b.models.outline) ? ref : m)
+    return { error: null, models: { outline: ref, title: follow(b.models.title), section: follow(b.models.section) } }
+  })
+}
+
 function ErrorBanner({ book, onRetry }: { book: Book; onRetry: () => void }) {
+  const providers = useProviderList()
+  const options = useMemo(() => modelOptions(providers), [providers])
+  const switchId = useId()
   // Setup problems get the setup card instead
   if (!book.error || book.error.code === NEEDS_SETUP) return null
-  const keyProblem = book.error.code === 'auth' || book.error.code === 'invalid_input'
+  const { title, message, hint, detail, code } = book.error
+  const keyProblem = code === 'auth' || code === 'quota' || code === 'invalid_input'
+  const others = options.filter((o) => !sameRef(o, nextModel(book)))
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col gap-3 rounded-2xl border border-danger/30 bg-danger/[0.07] p-4 sm:flex-row sm:items-start"
+      role="alert"
+      className="grid grid-cols-1 gap-4 rounded-2xl border border-danger/30 bg-danger/[0.07] p-4 sm:p-5"
     >
-      <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger" />
-      <div className="grid min-w-0 gap-1 text-sm">
-        <p className="font-semibold text-danger">{book.error.title}</p>
-        <p className="wrap-break-word text-foreground/80">{book.error.message}</p>
-        {book.error.hint && <p className="text-muted-foreground">{book.error.hint}</p>}
+      <div className="flex items-start gap-3">
+        <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger" />
+        <div className="grid min-w-0 flex-1 gap-1.5 text-sm">
+          <p className="font-semibold text-danger">{title}</p>
+          {message && message !== title && <p className="wrap-break-word text-foreground/85">{message}</p>}
+          {hint && <p className="text-muted-foreground">{hint}</p>}
+          {detail && (
+            <details className="group mt-1">
+              <summary className="inline-flex cursor-pointer list-none items-center gap-1 rounded text-xs text-muted-foreground select-none hover:text-foreground [&::-webkit-details-marker]:hidden">
+                <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" /> Show full error
+              </summary>
+              <pre className="mt-2 max-h-48 overflow-auto rounded-lg border border-border/80 bg-background/60 p-3 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap text-foreground/80">
+                {detail}
+              </pre>
+            </details>
+          )}
+        </div>
       </div>
-      <div className="flex shrink-0 flex-wrap gap-2 sm:ml-auto">
-        {keyProblem && (
-          <Button asChild variant="outline" size="sm">
-            <Link to="/settings">
-              <KeyRound /> Settings
-            </Link>
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:pl-8">
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={onRetry}>
+            <RefreshCw /> Try again
           </Button>
+          {keyProblem && (
+            <Button asChild variant="outline" size="sm">
+              <Link to="/settings">
+                <KeyRound /> Settings
+              </Link>
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" onClick={() => void updateBook(book.id, { error: null })}>
+            Dismiss
+          </Button>
+        </div>
+        {others.length > 0 && (
+          <div className="grid min-w-0 flex-1 gap-1.5 sm:max-w-sm">
+            <label htmlFor={switchId} className="text-xs text-muted-foreground">
+              Or try again with another model
+            </label>
+            <ModelSelect
+              id={switchId}
+              step={book.outline ? 'section' : 'outline'}
+              value={null}
+              emptyLabel="Choose a model"
+              options={others}
+              onChange={(ref) => ref && void switchModel(book.id, ref).then(onRetry)}
+            />
+          </div>
         )}
-        <Button size="sm" onClick={onRetry}>
-          <RefreshCw /> Try again
-        </Button>
-        <Button variant="ghost" size="sm" onClick={() => void updateBook(book.id, { error: null })}>
-          Dismiss
-        </Button>
       </div>
     </motion.div>
   )
 }
 
 function DraftingView({ book, blocked }: { book: Book; blocked: boolean }) {
+  const providers = useProviderList()
+  const options = useMemo(() => modelOptions(providers), [providers])
+  const modelId = useId()
   const live = useLive((s) => s.runs[book.id])
   const running = Boolean(live)
   const draft: Outline | null = live?.draftOutline ?? null
@@ -198,11 +267,17 @@ function DraftingView({ book, blocked }: { book: Book; blocked: boolean }) {
 
   if (!running) {
     return (
-      <div className="surface grid justify-items-center gap-4 p-10 text-center">
+      <div className="surface grid justify-items-center gap-5 p-8 text-center sm:p-10">
         <ListTree className="size-8 text-muted-foreground" />
         <div>
           <p className="font-display text-xl font-medium">The outline hasn't been drafted yet</p>
-          <p className="mt-1 text-sm text-muted-foreground">Draft it now with {book.models.outline.model}.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Choose the model that plans the chapters, then draft it.</p>
+        </div>
+        <div className="grid w-full max-w-sm gap-1.5 text-left">
+          <label htmlFor={modelId} className="text-xs font-medium text-muted-foreground">
+            Outline model
+          </label>
+          <ModelSelect id={modelId} step="outline" value={book.models.outline} options={options} onChange={(ref) => ref && void switchModel(book.id, ref)} />
         </div>
         <Button disabled={blocked} onClick={() => void draftOutline(book.id)}>
           <Play /> Draft the outline

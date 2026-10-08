@@ -169,7 +169,7 @@ flowchart TD
     Benched --> Try["Send the request with the first key"]
     Try --> OK{"Worked?"}
     OK -- Yes --> Done(["Mark the key as working"])
-    OK -- No --> Kind{"Could another key help?<br/>auth · rate_limit · model_unavailable"}
+    OK -- No --> Kind{"Could another key help?<br/>auth · quota · rate_limit · model_unavailable"}
     Kind -- No --> Fail(["Show the error on the book"])
     Kind -- Yes --> More{"Switching on,<br/>and keys left?"}
     More -- No --> Fail
@@ -245,16 +245,21 @@ API works. `client.chat_completion` smooths over the differences:
 
 ### Errors
 
-Every error has the same shape: `{code, title, message, hint}`, with API keys removed from the
-message.
+Every error has the same shape: `{code, title, message, hint, detail}`, with API keys removed.
+`message` is the provider's own explanation when its error contains one (read from OpenAI-style,
+Gemini and OpenRouter error bodies); `detail` keeps the full error, which the web app shows under
+"Show full error".
 
 | Code                   | Meaning                                     | Another key may help |
 | ---------------------- | ------------------------------------------- | :------------------: |
 | `auth`                 | Key missing, invalid or not allowed         |          ✅          |
-| `rate_limit`           | Provider's rate limit or quota reached      |          ✅          |
-| `model_unavailable`    | Model not found, or at capacity             |          ✅          |
+| `quota`                | The key's account is out of credits         |          ✅          |
+| `rate_limit`           | Provider's rate limit reached               |          ✅          |
+| `model_unavailable`    | Model not found, or this key can't use it   |          ✅          |
+| `model_busy`           | Model overloaded (HTTP 502–504, 529)        |                      |
 | `bad_request`          | Provider rejected the request               |                      |
 | `connection`           | Provider couldn't be reached, or redirected |                      |
+| `timeout`              | Provider stopped answering (after 3 min)    |                      |
 | `empty_response`       | Model finished without writing any text     |                      |
 | `outline`              | The outline couldn't be parsed              |                      |
 | `generation_error`     | Anything else from the provider             |                      |

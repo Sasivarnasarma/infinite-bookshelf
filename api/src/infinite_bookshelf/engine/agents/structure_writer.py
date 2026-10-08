@@ -8,13 +8,7 @@ import time
 from typing import Any
 
 from ..client import chat_completion
-from ..errors import (
-    APIAuthenticationError,
-    APIRateLimitError,
-    APIRequestError,
-    ModelUnavailableError,
-    StructureGenerationError,
-)
+from ..errors import InfiniteBookshelfError, StructureGenerationError
 from ..stats import GenerationStatistics
 
 
@@ -150,8 +144,11 @@ def generate_book_structure(
                 f"JSON decoding error: {je}",
                 hint=f"Model '{model}' returned invalid JSON after {max_retries + 1} attempts. Try a different model.",
             )
-        except (APIAuthenticationError, APIRateLimitError, ModelUnavailableError, APIRequestError):
-            # A retry can't fix these; failing now lets the web app try the provider's next key
+        except StructureGenerationError as e:
+            last_exception = e
+        except InfiniteBookshelfError:
+            # Provider errors: the client has already retried, and failing now lets the web app
+            # try the provider's next key or another model
             raise
         except Exception as e:
             last_exception = e

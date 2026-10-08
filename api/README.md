@@ -173,10 +173,11 @@ curl -s http://127.0.0.1:8000/api/export/pdf \
 
 ## Errors
 
-Every error has the same shape, with any API key removed from the message:
+Every error has the same shape, with any API key removed. `message` is the provider's own
+explanation when it gave one, and `detail` is its full error (empty when there's nothing more):
 
 ```json
-{ "error": { "code": "auth", "title": "Authentication failed", "message": "...", "hint": "Check this provider's API key in Settings." } }
+{ "error": { "code": "auth", "title": "Authentication failed", "message": "...", "hint": "Check this provider's API key in Settings.", "detail": "..." } }
 ```
 
 | HTTP status | When                                                           |

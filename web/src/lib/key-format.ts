@@ -49,9 +49,12 @@ export function explainKeyError(error: Pick<ApiError, 'code' | 'message'>, provi
   switch (error.code) {
     case 'auth':
       return { text: 'This key was rejected. Check you copied all of it, or create a new one.', link: keyPage }
+    case 'quota':
+      return { text: 'This key’s account has no credits or quota left. Add credits with the provider, or use another key.', link: keyPage }
     case 'rate_limit':
-      return { text: 'This key is out of quota or rate-limited right now. Check your plan or billing, or try again later.', link: keyPage, mayStillWork: true }
+      return { text: 'This key is rate-limited right now. Try again in a minute.', link: keyPage, mayStillWork: true }
     case 'connection':
+    case 'timeout':
     case 'offline':
       return {
         text: provider.custom
