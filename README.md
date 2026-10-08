@@ -17,6 +17,8 @@ Bring your own API key · 16 providers and any OpenAI-compatible API · Self-hos
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 
+### [Try it live at ib.sasivarnasarma.me →](https://ib.sasivarnasarma.me)
+
 [Quick start](#-quick-start) · [Features](#-features) · [How it works](#-how-it-works) · [Privacy](#-your-data-stays-yours) · [Docs](#-documentation)
 
 </div>
@@ -38,6 +40,11 @@ It runs on **your** API keys, which never leave your browser except to make a re
 books never leave your browser at all.
 
 ## 🚀 Quick start
+
+> [!TIP]
+> **Just want to try it?** Open [ib.sasivarnasarma.me](https://ib.sasivarnasarma.me) and add a key
+> from any provider: nothing to install. Your key and book text pass through that server for each
+> request (never stored or logged); run your own copy if you'd rather they didn't.
 
 ### 🐳 Docker (recommended)
 
@@ -213,6 +220,7 @@ The server stores nothing: no database, no accounts, no sessions. Read the
 | [Web app](web/README.md)             | The web app's commands, `IB_API_URL`, and conventions                                   |
 | [Contributing](CONTRIBUTING.md)      | Development setup, checks, tests and commit style                                       |
 | [Security policy](SECURITY.md)       | How to report a vulnerability, and what's protected                                     |
+| [Changelog](CHANGELOG.md)            | What changed in each release                                                            |
 
 ## 📁 Project layout
 

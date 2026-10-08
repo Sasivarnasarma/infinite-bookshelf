@@ -89,8 +89,18 @@ A multi-stage build ([`Dockerfile`](../Dockerfile)):
    export, then copies in the built web app.
 
 The container runs as an unprivileged user (`bookshelf`, uid 1000), listens on `0.0.0.0:9752`, and
-has a health check on `/api/health`. Published tags: `latest` (the `main` branch), each release
-version (e.g. `1.0.0`), and `sha-<commit>`.
+has a health check on `/api/health`. It's published for amd64 and arm64 with these tags:
+
+| Tag            | Points to                                                           |
+| -------------- | ------------------------------------------------------------------- |
+| `latest`       | The `main` branch                                                   |
+| `1.0.0`        | Exactly that release                                                |
+| `1.0`          | The newest `1.0.x` release (fixes only)                             |
+| `1`            | The newest `1.x` release (new features, nothing that breaks setups) |
+| `sha-<commit>` | One commit                                                          |
+
+To get fixes and features without surprises, use `:1` instead of `:latest` in
+`docker-compose.yml`.
 
 [uv]: https://docs.astral.sh/uv/
 
