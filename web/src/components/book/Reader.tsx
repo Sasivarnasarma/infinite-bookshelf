@@ -1,6 +1,6 @@
 import { BookOpenCheck, Check, Copy, ListTree, Loader2, PenLine, Play, Wand2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Fragment, memo, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, memo, useEffect, useId, useMemo, useRef, useState } from 'react'
 
 import { Markdown } from '@/components/Markdown'
 import { ModelSelect } from '@/components/ModelSelect'
@@ -117,6 +117,7 @@ function RewriteButton({ book, node }: { book: Book; node: OutlineNode }) {
   const [note, setNote] = useState('')
   const [open, setOpen] = useState(false)
   const [model, setModel] = useState<ModelRef | null>(null)
+  const modelId = useId()
   const options = useModelOptions()
   const busy = isRunning(book.id)
   const chosen = model ?? book.models.section
@@ -137,10 +138,10 @@ function RewriteButton({ book, node }: { book: Book; node: OutlineNode }) {
           placeholder="What should change? e.g. Add a worked example, make it shorter…"
           className="min-h-20"
         />
-        <label htmlFor={`rewrite-model-${node.key}`} className="mt-3 mb-1.5 block text-xs font-medium text-muted-foreground">
+        <label htmlFor={modelId} className="mt-3 mb-1.5 block text-xs font-medium text-muted-foreground">
           Model
         </label>
-        <ModelSelect id={`rewrite-model-${node.key}`} step="section" value={chosen} options={options} onChange={(ref) => ref && setModel(ref)} />
+        <ModelSelect id={modelId} step="section" value={chosen} options={options} onChange={(ref) => ref && setModel(ref)} />
         <Button
           className="mt-3 w-full"
           onClick={() => {

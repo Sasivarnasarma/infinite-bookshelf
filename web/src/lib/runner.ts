@@ -197,7 +197,7 @@ export async function draftOutline(bookId: string): Promise<void> {
   try {
     // One request covers both steps; a key failure retries it with the next key of the step that failed
     const outlineKeys = keyOrder(book.models.outline)
-    const titleKeys = keyOrder(book.models.title)
+    let titleKeys = keyOrder(book.models.title)
     let o = 0
     let t = 0
     for (;;) {
@@ -237,6 +237,9 @@ export async function draftOutline(bookId: string): Promise<void> {
         } else if (stage === 'outline' && o + 1 < outlineKeys.length) {
           announceSwitch(outlineKeys[o], outlineKeys[o + 1], e.error)
           o++
+          // The key that just failed is now set aside, so the title step picks its key again
+          titleKeys = keyOrder(book.models.title)
+          t = 0
         } else throw e
       }
     }

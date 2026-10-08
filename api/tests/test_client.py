@@ -7,7 +7,14 @@ import openai
 import pytest
 
 from infinite_bookshelf.engine.client import chat_completion, create_llm_client, list_models
-from infinite_bookshelf.engine.errors import APIAuthenticationError, APIConnectionError, APIRequestError
+from infinite_bookshelf.engine.errors import (
+    APIAuthenticationError,
+    APIConnectionError,
+    APIRateLimitError,
+    APIRequestError,
+    ModelBusyError,
+    QuotaExceededError,
+)
 
 REQUEST = httpx.Request("POST", "https://example.com/v1/chat/completions")
 
@@ -138,3 +145,86 @@ def test_redirects_are_followed_by_default(redirecting_server):
     base_url, hits = redirecting_server
     assert list_models(create_llm_client("", base_url, requires_key=False)) == ["internal-secret"]
     assert hits == ["/v1/models", "/internal/models"]
+
+
+@pytest.fixture
+def failing_server():
+    """A provider that answers every chat request with the status and JSON body set in `reply`."""
+    reply = {}
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            self.rfile.read(int(self.headers.get("Content-Length", 0)))
+            body = json.dumps(reply["body"]).encode()
+            self.send_response(reply["status"])
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    yield f"http://127.0.0.1:{server.server_address[1]}/v1", reply
+    server.shutdown()
+
+
+@pytest.mark.parametrize(
+    "status, body, expected, message",
+    [
+        (
+            429,
+            {
+                "error": {
+                    "message": "You have no credits remaining.",
+                    "type": "insufficient_quota",
+                    "code": "credit_balance_exhausted",
+                }
+            },
+            QuotaExceededError,
+            "You have no credits remaining.",
+        ),
+        (
+            503,
+            [
+                {
+                    "error": {
+                        "code": 503,
+                        "message": "This model is currently experiencing high demand.",
+                        "status": "UNAVAILABLE",
+                    }
+                }
+            ],
+            ModelBusyError,
+            "This model is currently experiencing high demand.",
+        ),
+        (
+            429,
+            {
+                "error": {
+                    "message": "Provider returned error",
+                    "code": 429,
+                    "metadata": {"raw": "Rate-limited upstream."},
+                }
+            },
+            APIRateLimitError,
+            "Rate-limited upstream.",
+        ),
+    ],
+)
+def test_real_provider_errors_give_their_readable_message(failing_server, status, body, expected, message):
+    base_url, reply = failing_server
+    reply.update(status=status, body=body)
+    client = create_llm_client("key", base_url).with_options(max_retries=0)
+    with pytest.raises(expected) as error:
+        chat_completion(client, model="m", messages=[{"role": "user", "content": "hi"}])
+    assert error.value.message == message
+    assert error.value.detail.startswith(f"Error code: {status}")
+
+
+def test_clients_have_a_bounded_timeout_and_one_retry():
+    client = create_llm_client("key", "https://example.com/v1")
+    assert client.max_retries == 1
+    assert client.timeout.read == 180.0

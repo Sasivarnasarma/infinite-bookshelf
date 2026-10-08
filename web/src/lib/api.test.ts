@@ -54,6 +54,26 @@ describe('streamSection', () => {
     expect((error as ApiRequestError).error.code).toBe('interrupted')
   })
 
+  it('explains a connection that drops mid-stream instead of showing "network error"', async () => {
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(START + DELTA))
+        controller.error(new TypeError('network error'))
+      },
+    })
+    vi.stubGlobal('fetch', async () => new Response(body, { headers: { 'Content-Type': 'text/event-stream' } }))
+    const error = await write(new AbortController().signal).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(ApiRequestError)
+    expect((error as ApiRequestError).error).toMatchObject({ code: 'interrupted', title: 'Connection lost', detail: 'TypeError: network error' })
+  })
+
+  it('passes on the readable message and full detail of an error event', async () => {
+    const event = { code: 'quota', title: 'Out of credits', message: 'You have no credits remaining.', hint: 'Add credits.', detail: 'Error code: 429 - {...}' }
+    vi.stubGlobal('fetch', async () => sseResponse([START, `event: error\ndata: ${JSON.stringify(event)}\n\n`]))
+    const error = await write(new AbortController().signal).catch((e: unknown) => e)
+    expect((error as ApiRequestError).error).toEqual(event)
+  })
+
   it('rejects as aborted when paused just as the stream ends, so nothing half-written is saved', async () => {
     const controller = new AbortController()
     vi.stubGlobal('fetch', async () => sseResponse([START, DELTA], () => controller.abort()))

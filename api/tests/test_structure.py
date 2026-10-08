@@ -12,7 +12,9 @@ from infinite_bookshelf.engine.agents.structure_writer import (
 from infinite_bookshelf.engine.errors import (
     APIConnectionError,
     APIRateLimitError,
+    ModelBusyError,
     ModelUnavailableError,
+    QuotaExceededError,
     StructureGenerationError,
 )
 
@@ -65,7 +67,9 @@ def _failing_client(error):
     return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create))), calls
 
 
-@pytest.mark.parametrize("error", [APIRateLimitError("429"), ModelUnavailableError("404")])
+@pytest.mark.parametrize(
+    "error", [APIRateLimitError("429"), ModelUnavailableError("404"), ModelBusyError("503"), QuotaExceededError("402")]
+)
 def test_outline_fails_at_once_when_a_retry_cant_help(monkeypatch, error):
     monkeypatch.setattr(structure_writer.time, "sleep", lambda s: pytest.fail("should not wait to retry"))
     client, calls = _failing_client(error)
@@ -74,9 +78,39 @@ def test_outline_fails_at_once_when_a_retry_cant_help(monkeypatch, error):
     assert len(calls) == 1
 
 
-def test_outline_retries_a_dropped_connection(monkeypatch):
-    monkeypatch.setattr(structure_writer.time, "sleep", lambda s: None)
+def test_outline_leaves_connection_retries_to_the_client(monkeypatch):
+    # The SDK client already retries dropped connections; retrying again here multiplies the wait
+    monkeypatch.setattr(structure_writer.time, "sleep", lambda s: pytest.fail("should not wait to retry"))
     client, calls = _failing_client(APIConnectionError("timed out"))
     with pytest.raises(APIConnectionError):
         generate_book_structure("Tea", "", "m", client, max_retries=2)
-    assert len(calls) == 3
+    assert len(calls) == 1
+
+
+# --- Titles --------------------------------------------------------------------------------------
+
+
+def _title_client(content, finish_reason="stop"):
+    def create(**kwargs):
+        message = SimpleNamespace(content=content)
+        return SimpleNamespace(choices=[SimpleNamespace(message=message, finish_reason=finish_reason)])
+
+    return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+
+
+def test_title_cut_off_by_the_token_limit_falls_back_to_the_topic():
+    from infinite_bookshelf.engine.agents.title_writer import generate_book_title
+
+    topic = "AWS for DevOps engineers: a hands-on guide from IAM to EKS"
+    assert generate_book_title(topic, "m", _title_client("Brain", finish_reason="length")) == "AWS for DevOps engineers"
+    assert generate_book_title(topic, "m", _title_client('"Cloud Native Ops"')) == "Cloud Native Ops"
+    assert generate_book_title(topic, "m", _title_client("<think>hmm</think>\nShip It")) == "Ship It"
+
+
+def test_fallback_title_is_short_and_capitalised():
+    from infinite_bookshelf.engine.agents.title_writer import FALLBACK_MAX_CHARS, fallback_title
+
+    assert fallback_title("quantum computing for beginners") == "Quantum computing for beginners"
+    assert fallback_title("Tea - a history") == "Tea"
+    long = fallback_title("word " * 60)
+    assert len(long) <= FALLBACK_MAX_CHARS + 1 and long.endswith("…")

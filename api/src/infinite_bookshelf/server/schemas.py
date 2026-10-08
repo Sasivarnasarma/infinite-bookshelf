@@ -184,19 +184,26 @@ class ErrorDetail(BaseModel):
         ...,
         description=(
             "Machine-readable reason: `invalid_input`, `endpoint_not_allowed`, `rate_limited`, `too_large`, "
-            "`not_found`, or from the provider: `auth`, `rate_limit`, `model_unavailable`, `bad_request`, "
-            "`connection`, `empty_response`, `outline`, `generation_error`."
+            "`not_found`, or from the provider: `auth`, `rate_limit`, `quota`, `model_unavailable`, `model_busy`, "
+            "`bad_request`, `connection`, `timeout`, `empty_response`, `outline`, `generation_error`."
         ),
         examples=["auth"],
     )
     title: str = Field(..., description="Short, human-readable summary.", examples=["Authentication failed"])
     message: str = Field(
-        ..., description="Details. Any API key is scrubbed out.", examples=["Incorrect API key provided: [redacted]"]
+        ...,
+        description="Details: the provider's own explanation when it gave one. Any API key is scrubbed out.",
+        examples=["Incorrect API key provided: [redacted]"],
     )
     hint: str = Field(
         "",
         description="What to try next, when there is a suggestion.",
         examples=["Check this provider's API key in Settings."],
+    )
+    detail: str = Field(
+        "",
+        description="The provider's full error, when `message` is only the readable part of it. Keys scrubbed.",
+        examples=["Error code: 401 - {'error': {'message': 'Incorrect API key provided: [redacted]'}}"],
     )
 
 
