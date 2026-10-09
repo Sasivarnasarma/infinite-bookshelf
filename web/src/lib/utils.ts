@@ -95,6 +95,19 @@ export function readingTime(words: number): string {
   return rest ? `${hours} h ${rest} min read` : `${hours} h read`
 }
 
+/** The badge on the section being written. Until the first words arrive it says what's holding it up. */
+export function liveStatus(hasText: boolean, thinking: boolean, rewriting: boolean): string {
+  if (!hasText) return thinking ? 'Thinking' : 'Waiting for the model'
+  return rewriting ? 'Rewriting' : 'Writing'
+}
+
+export const MAX_TITLE_CHARS = 200
+
+/** A title typed by the reader: one line, single spaces, not too long. Empty means "keep the old one". */
+export function cleanTitle(text: string): string {
+  return text.replace(/\s+/g, ' ').trim().slice(0, MAX_TITLE_CHARS).trim()
+}
+
 export function formatNumber(n: number): string {
   return new Intl.NumberFormat(undefined, { notation: n >= 10000 ? 'compact' : 'standard' }).format(n)
 }

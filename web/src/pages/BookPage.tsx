@@ -11,6 +11,7 @@ import {
   KeyRound,
   ListTree,
   Pause,
+  PenLine,
   Play,
   RefreshCw,
   Trash2,
@@ -28,7 +29,7 @@ import { AddProviderDialog } from '@/components/settings/AddProviderDialog'
 import { OutlineEditor } from '@/components/book/OutlineEditor'
 import { Reader } from '@/components/book/Reader'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/fields'
+import { Input, Switch } from '@/components/ui/fields'
 import { ProgressBar } from '@/components/ui/misc'
 import { Dialog, DialogClose, DialogContent, DialogTrigger, Menu, MenuContent, MenuItem, MenuTrigger } from '@/components/ui/overlays'
 import { db, updateBook } from '@/lib/db'
@@ -37,7 +38,7 @@ import { bookProgress, nextChapter, outlineNodes } from '@/lib/outline'
 import { draftOutline, NEEDS_SETUP, pause, useLive, writeBook } from '@/lib/runner'
 import { modelOptions, modelsInUse, sameRef, setupProblems, useProviderList, useServer, type SetupProblem } from '@/lib/settings'
 import type { Book, ModelRef, Outline } from '@/lib/types'
-import { bookWords, formatNumber, readingTime } from '@/lib/utils'
+import { bookWords, cleanTitle, formatNumber, MAX_TITLE_CHARS, readingTime } from '@/lib/utils'
 
 function ModelLabels({ book }: { book: Book }) {
   const providers = useProviderList()
@@ -373,6 +374,57 @@ function ExportMenu({ book }: { book: Book }) {
   )
 }
 
+function RenameButton({ book }: { book: Book }) {
+  const [open, setOpen] = useState(false)
+  const [title, setTitle] = useState(book.title)
+  const inputId = useId()
+  const next = cleanTitle(title)
+  const save = async () => {
+    if (!next) return
+    if (next !== book.title) await updateBook(book.id, { title: next })
+    setOpen(false)
+  }
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o)
+        if (o) setTitle(book.title)
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label="Rename book" title="Rename">
+          <PenLine />
+        </Button>
+      </DialogTrigger>
+      <DialogContent title="Rename book" description="The new title is used in the library, the reader and exports.">
+        <form
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void save()
+          }}
+        >
+          <label htmlFor={inputId} className="sr-only">
+            Title
+          </label>
+          <Input id={inputId} autoFocus value={title} maxLength={MAX_TITLE_CHARS} onChange={(e) => setTitle(e.target.value)} />
+          <div className="flex justify-end gap-2">
+            <DialogClose asChild>
+              <Button type="button" variant="ghost">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button type="submit" disabled={!next}>
+              Save
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function DeleteButton({ book }: { book: Book }) {
   const navigate = useNavigate()
   return (
@@ -459,6 +511,7 @@ function Header({ book, blocked }: { book: Book; blocked: boolean }) {
               </Button>
             ) : null)}
           {done > 0 && <ExportMenu book={book} />}
+          <RenameButton book={book} />
           <DeleteButton book={book} />
         </div>
         {writable && total > 0 && book.status !== 'complete' && <WritingControls book={book} running={running} />}
