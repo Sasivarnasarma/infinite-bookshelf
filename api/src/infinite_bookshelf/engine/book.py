@@ -63,6 +63,7 @@ class Book:
         structure: dict[str, Any],
         contents: dict[str, str] | None = None,
         completed: set[str] | None = None,
+        summaries: dict[str, str] | None = None,
     ):
         self.book_title = book_title
         self.structure = structure
@@ -75,14 +76,23 @@ class Book:
             if k in keys:
                 self.contents[k] = text
         self.completed: set[str] = {k for k in (completed or set()) if k in keys}
+        self.summaries: dict[str, str] = {k: v.strip() for k, v in (summaries or {}).items() if k in keys and v.strip()}
 
     @classmethod
     def from_written(
-        cls, book_title: str, structure: dict[str, Any], written: Iterable[tuple[Sequence[str], str]]
+        cls,
+        book_title: str,
+        structure: dict[str, Any],
+        written: Iterable[tuple[Sequence[str], str]],
+        summaries: dict[tuple[str, ...], str] | None = None,
     ) -> "Book":
-        """Builds a book from (path, text) pairs of finished sections; unknown paths are ignored."""
+        """
+        Builds a book from (path, text) pairs of finished sections, with their summaries (by path)
+        where the model wrote one. Unknown paths are ignored.
+        """
         contents = {section_key(path): text for path, text in written}
-        return cls(book_title, structure, contents=contents, completed=set(contents))
+        keyed = {section_key(path): text for path, text in (summaries or {}).items()}
+        return cls(book_title, structure, contents=contents, completed=set(contents), summaries=keyed)
 
     def outline_text(self, current_key: str | None = None) -> str:
         """The outline as an indented list, with the section being written marked."""
@@ -96,12 +106,13 @@ class Book:
             lines.append(line)
         return "\n".join(lines)
 
-    def context_digest(self, current_key: str, max_chars: int = 6000, tail_chars: int = 1200) -> str:
+    def context_digest(self, current_key: str, max_chars: int = 12_000, tail_chars: int = 1200) -> str:
         """
         What the book has covered before `current_key`, so the writer can build on it without
-        repeating it: a one-line digest per earlier written section (opening sentence and
-        subheadings), plus the closing text of the immediately preceding section for continuity.
-        Built locally, without extra model calls. Oldest digests are dropped to fit `max_chars`.
+        repeating it: a line per earlier written section, plus the closing text of the immediately
+        preceding section for continuity. Each line is the section's summary, written by the model
+        with the section, or for older sections without one, its opening sentence. Subheadings
+        are added either way. If it's still too long, the oldest lines are dropped to fit `max_chars`.
         """
         earlier = []
         for node in self.sections:
@@ -112,7 +123,7 @@ class Book:
         if not earlier:
             return ""
 
-        digests = [_digest(n.path, self.contents[n.key]) for n in earlier[:-1]]
+        digests = [_digest(n.path, self.contents[n.key], self.summaries.get(n.key, "")) for n in earlier[:-1]]
         last = earlier[-1]
         last_entry = (
             f"Previous section, {' > '.join(last.path)}, ended with:\n{_tail(self.contents[last.key], tail_chars)}"
@@ -145,9 +156,9 @@ def _first_sentence(text: str, limit: int = 240) -> str:
     return ""
 
 
-def _digest(path: Path, text: str, max_headings: int = 8) -> str:
+def _digest(path: Path, text: str, summary: str = "", max_headings: int = 8) -> str:
     headings = [m.group(1) for line in text.splitlines() if (m := _HEADING_RE.match(line.strip()))]
-    line = f"- {' > '.join(path)}: {_first_sentence(text)}"
+    line = f"- {' > '.join(path)}: {summary or _first_sentence(text)}"
     if headings:
         line += f" Covers: {'; '.join(headings[:max_headings])}."
     return line

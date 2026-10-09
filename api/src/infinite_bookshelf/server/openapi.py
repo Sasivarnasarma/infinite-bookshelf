@@ -150,6 +150,7 @@ SECTION_STREAM = _events(
     ("start", '{"path": ["Origins"]}'),
     ("delta", '{"text": "Legend credits the emperor Shennong "}'),
     ("delta", '{"text": "with the first cup, around 2737 BCE..."}'),
+    ("summary", '{"text": "Traces tea from the Shennong legend to its spread along trade routes."}'),
     (
         "stats",
         '{"input_tokens": 900, "output_tokens": 1200, "input_time": 0.4, "output_time": 13.8, "total_time": 14.2}',

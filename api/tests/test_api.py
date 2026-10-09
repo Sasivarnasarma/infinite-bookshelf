@@ -152,6 +152,33 @@ def test_section_streams_deltas_with_book_context(clients):
     assert sent["max_tokens"] == 4000  # "short" length budget
 
 
+def test_section_summary_is_sent_as_its_own_event_and_used_as_context(monkeypatch):
+    class SummarizingClient(FakeClient):
+        def create(self, **kwargs):
+            self.requests.append(kwargs)
+            words = ["The section.\n\n<section_", "summary>What it ", "covered.</section_summary>"]
+            chunks = [
+                SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=w))], usage=None) for w in words
+            ]
+            return iter(chunks)
+
+    client = SummarizingClient()
+    monkeypatch.setattr(app_module, "create_llm_client", lambda *a, **k: client)
+    body = section_body(path=["Chapter 2", "Deep dive"])
+    body["book"]["written"] = [
+        {"path": ["Chapter 1"], "text": "First chapter text.", "summary": "Chapter one's gist."},
+        {"path": ["Chapter 2", "Intro"], "text": "Intro text."},
+    ]
+    events = sse(make_client().post("/api/sections/stream", json=body))
+
+    assert "".join(data["text"] for name, data in events if name == "delta") == "The section.\n\n"
+    assert ("summary", {"text": "What it covered."}) in events
+    assert [name for name, _ in events][-2:] == ["stats", "done"]
+    sent = client.requests[0]["messages"]
+    assert "<section_summary>" in sent[0]["content"]  # Asked for
+    assert "- Chapter 1: Chapter one's gist." in sent[1]["content"]  # And used
+
+
 def test_section_rewrite_sends_note_and_previous_text(clients):
     body = section_body(revision={"note": "Add an example", "previous": "Old version"})
     sse(make_client().post("/api/sections/stream", json=body))
@@ -177,6 +204,52 @@ def test_section_without_text_is_an_error_event(monkeypatch):
 def test_section_for_a_heading_is_an_error_event(clients):
     events = sse(make_client().post("/api/sections/stream", json=section_body(path=["Chapter 2"])))
     assert events[-1][0] == "error" and "No section" in events[-1][1]["message"]
+
+
+def test_health_answers_while_streams_wait_on_slow_models(monkeypatch):
+    # Streams wait on the model in their own threads, so they can't use up the threads other requests need
+    import threading
+
+    from anyio import to_thread
+
+    from infinite_bookshelf.server import streaming
+
+    release = threading.Event()
+
+    class SlowClient(FakeClient):
+        def create(self, **kwargs):
+            def chunks():
+                release.wait(10)
+                yield SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content="Text."))], usage=None)
+
+            return chunks()
+
+    monkeypatch.setattr(app_module, "create_llm_client", lambda *a, **k: SlowClient())
+    with make_client() as client:
+        default_threads = client.portal.call(lambda: to_thread.current_default_thread_limiter().total_tokens)
+        streams = default_threads + 5
+        monkeypatch.setattr(streaming, "STREAM_THREADS", streams + 5)
+        workers = [
+            threading.Thread(target=client.post, args=("/api/sections/stream",), kwargs={"json": section_body()})
+            for _ in range(streams)
+        ]
+        for w in workers:
+            w.start()
+        try:
+            # Wait until every stream is waiting on its model
+            for _ in range(200):
+                busy = client.portal.call(lambda: streaming.stream_limiter().borrowed_tokens)
+                if busy >= streams:
+                    break
+                threading.Event().wait(0.05)
+            assert busy >= streams
+            assert client.portal.call(lambda: to_thread.current_default_thread_limiter().borrowed_tokens) == 0
+            assert client.get("/api/health").json()["status"] == "ok"
+            assert client.post("/api/export/pdf", json={"title": "T", "markdown": "# Hi"}).status_code == 200
+        finally:
+            release.set()
+            for w in workers:
+                w.join(15)
 
 
 # --- Keys never leak ---------------------------------------------------------------------------

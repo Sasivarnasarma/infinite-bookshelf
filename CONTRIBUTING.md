@@ -47,6 +47,16 @@ pnpm build      # production build of the web app
 
 CI fails on unformatted code, so `pnpm format` before committing saves a round trip.
 
+**Changing a prompt?** Compare books written before and after with the quality report. Export the
+books as a backup (Settings → Your data), then run:
+
+```bash
+cd api && uv run python -m infinite_bookshelf.engine.quality ../my-books.json
+```
+
+It lists each section's length against its target, and how much of it repeats earlier sections.
+Add `--json` to save the numbers and compare runs.
+
 ## 📐 Ground rules
 
 These keep the project's promises to its users. See the [architecture guide](docs/architecture.md)

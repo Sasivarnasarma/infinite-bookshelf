@@ -9,6 +9,7 @@ from typing import Any
 from ..client import chat_completion
 from ..errors import EmptyResponseError, classify_api_error
 from ..stats import GenerationStatistics
+from ..summary import SUMMARY_CLOSE, SUMMARY_OPEN, SectionSummary, SummarySplitter
 
 # The previous version is only a reference for a rewrite; cap it to keep the prompt bounded
 MAX_PREVIOUS_CHARS = 12_000
@@ -37,6 +38,11 @@ def build_section_messages(
     ]
     if target_words:
         system.append(f"Aim for about {target_words} words.")
+    system.append(
+        f"After the section, on a line of its own, add {SUMMARY_OPEN}2-3 sentences on what this section "
+        f"covered: its key ideas, terms and examples{SUMMARY_CLOSE}. Readers don't see it; later sections "
+        "use it to build on this one."
+    )
 
     user = []
     if outline:
@@ -70,7 +76,8 @@ def generate_section(
     **context: Any,
 ) -> Generator[Any, None, None]:
     """
-    Streams section content tokens and yields GenerationStatistics upon completion.
+    Streams section content tokens, then yields the section's SectionSummary (if the model wrote
+    one) and GenerationStatistics.
     Applies inter-request rate limit delay if requested. `context` is passed to
     build_section_messages (book_title, outline, context, target_words, revision_note, previous_text).
     """
@@ -94,6 +101,8 @@ def generate_section(
         stream_options={"include_usage": True},
     )
 
+    splitter = SummarySplitter()
+    shown_chars = 0
     try:
         for chunk in stream:
             if chunk.choices:
@@ -102,12 +111,17 @@ def generate_section(
                     if first_token_time is None:
                         first_token_time = time.time()
                     output_chars += len(tokens)
-                    yield tokens
+                    if text := splitter.feed(tokens):
+                        shown_chars += len(text.strip())
+                        yield text
             if getattr(chunk, "usage", None):
                 usage = chunk.usage
     except Exception as e:
         raise classify_api_error(e, f"Error streaming section '{prompt}'") from None
-    if not output_chars:
+    if text := splitter.finish():
+        shown_chars += len(text.strip())
+        yield text
+    if not shown_chars:
         raise EmptyResponseError(f"{model} finished section '{prompt}' without writing any text.")
 
     end_time = time.time()
@@ -123,6 +137,8 @@ def generate_section(
     input_tokens = getattr(usage, "prompt_tokens", None) or 0
     output_tokens = getattr(usage, "completion_tokens", None) or output_chars // 4
 
+    if splitter.summary:
+        yield SectionSummary(splitter.summary)
     yield GenerationStatistics(
         input_time=input_time,
         output_time=output_time,

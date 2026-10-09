@@ -17,11 +17,11 @@
 import { toast } from 'sonner'
 import { create } from 'zustand'
 
-import { ApiRequestError, streamOutline, streamSection, type ServerStats } from './api'
+import { ApiRequestError, streamOutline, streamSection, type ServerStats, type WrittenSection } from './api'
 import { db, updateBook } from './db'
 import { outlineNodes, pendingSections, sectionKey } from './outline'
 import { currentSetupProblems, KEY_FAILOVER_CODES, keyOrder, modelsInUse, noteKeyFailure, noteKeySuccess, usePreferences, type KeyChoice } from './settings'
-import type { ApiError, Book, ModelRef, Outline, Stats } from './types'
+import type { ApiError, Book, ModelRef, Outline, SectionState, Stats } from './types'
 import { isAbort, sleep } from './utils'
 
 // ---- Live state (what's streaming right now) --------------------------------------------------
@@ -265,10 +265,20 @@ export async function draftOutline(bookId: string): Promise<void> {
 
 // ---- Sections ---------------------------------------------------------------------------------
 
-function writtenSections(book: Book) {
+function writtenSections(book: Book): WrittenSection[] {
   return outlineNodes(book.outline)
     .filter((n) => n.isSection && book.sections[n.key])
-    .map((n) => ({ path: n.path, text: book.sections[n.key].text }))
+    .map((n) => {
+      const { text, summary } = book.sections[n.key]
+      return summary ? { path: n.path, text, summary } : { path: n.path, text }
+    })
+}
+
+/** A section as saved when it finishes. The summary is kept only when the model wrote one. */
+function finishedSection(text: string, summary: string, model: ModelRef): SectionState {
+  const section: SectionState = { text: text.trimEnd(), updatedAt: Date.now(), model }
+  if (summary) section.summary = summary
+  return section
 }
 
 /**
@@ -301,10 +311,12 @@ export async function writeBook(bookId: string): Promise<void> {
       live.set(bookId, { phase: 'sections', sectionKey: next.key, text: '', rewriting: false })
       const buffer = textBuffer(bookId)
       let stats = book.stats
+      let summary = ''
       try {
         await withKeys(bookId, model, (key) => {
           buffer.reset()
           stats = book.stats
+          summary = ''
           return streamSection(
             book,
             model,
@@ -312,16 +324,16 @@ export async function writeBook(bookId: string): Promise<void> {
             next.path,
             writtenSections(book),
             null,
-            { onDelta: (t) => buffer.append(t), onStats: (s) => (stats = addStats(stats, s)) },
+            { onDelta: (t) => buffer.append(t), onSummary: (s) => (summary = s), onStats: (s) => (stats = addStats(stats, s)) },
             signal,
           )
         })
       } finally {
         buffer.stop()
       }
-      const text = buffer.text
+      const section = finishedSection(buffer.text, summary, model)
       await updateBook(bookId, (b) => ({
-        sections: { ...b.sections, [next.key]: { text, updatedAt: Date.now(), model } },
+        sections: { ...b.sections, [next.key]: section },
         stats,
       }))
 
@@ -360,12 +372,14 @@ export async function rewriteSection(bookId: string, path: string[], note: strin
 
   const buffer = textBuffer(bookId)
   let stats = book.stats
+  let summary = ''
   // Context: everything written except the section being rewritten
   const written = writtenSections(book).filter((w) => sectionKey(w.path) !== key)
   try {
     await withKeys(bookId, ref, (key) => {
       buffer.reset()
       stats = book.stats
+      summary = ''
       return streamSection(
         book,
         ref,
@@ -373,13 +387,13 @@ export async function rewriteSection(bookId: string, path: string[], note: strin
         path,
         written,
         { note, previous },
-        { onDelta: (t) => buffer.append(t), onStats: (s) => (stats = addStats(stats, s)) },
+        { onDelta: (t) => buffer.append(t), onSummary: (s) => (summary = s), onStats: (s) => (stats = addStats(stats, s)) },
         controller.signal,
       )
     })
     buffer.stop()
     await updateBook(bookId, (b) => ({
-      sections: { ...b.sections, [key]: { text: buffer.text, updatedAt: Date.now(), model: ref } },
+      sections: { ...b.sections, [key]: finishedSection(buffer.text, summary, ref) },
       stats,
       status: statusBefore === 'writing' ? 'paused' : statusBefore,
     }))

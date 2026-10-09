@@ -6,7 +6,7 @@ their browser), is turned into model calls, and is forgotten. Long operations st
 progress as Server-Sent Events:
 
     POST /api/outline           stage → outline → stage → title → stats → done
-    POST /api/sections/stream   start → delta* → stats → done
+    POST /api/sections/stream   start → delta* → summary? → stats → done
     (any of them may end with an `error` event instead)
 """
 
@@ -35,6 +35,7 @@ from ..engine.errors import InfiniteBookshelfError, error_payload
 from ..engine.generation import SECTION_LENGTHS, section_inputs
 from ..engine.pdf import create_pdf_file
 from ..engine.stats import GenerationStatistics
+from ..engine.summary import SectionSummary
 from . import openapi
 from .config import Settings, get_settings
 from .docs import DOCS_URL, OPENAPI_URL, mount_docs
@@ -148,7 +149,12 @@ def _section_events(req: SectionRequest, settings: Settings) -> Iterator[Event]:
         structure = normalize_structure(req.book.structure)
         if len(outline_nodes(structure)) > MAX_OUTLINE_NODES:
             raise ValueError(f"The outline is too large (over {MAX_OUTLINE_NODES} entries).")
-        book = Book.from_written(req.book.title, structure, [(w.path, w.text) for w in req.book.written])
+        book = Book.from_written(
+            req.book.title,
+            structure,
+            [(w.path, w.text) for w in req.book.written],
+            {tuple(w.path): w.summary for w in req.book.written},
+        )
         revision = req.revision
         inputs = section_inputs(
             book,
@@ -163,6 +169,8 @@ def _section_events(req: SectionRequest, settings: Settings) -> Iterator[Event]:
         for chunk in generate_section(model=req.model.model, llm_client=client, **inputs):
             if isinstance(chunk, GenerationStatistics):
                 yield "stats", _stats(chunk)
+            elif isinstance(chunk, SectionSummary):
+                yield "summary", {"text": str(chunk)}
             elif chunk:
                 yield "delta", {"text": chunk}
         yield "done", {}
@@ -297,12 +305,13 @@ def create_app(settings: Settings = None) -> FastAPI:
         return _service_info(app.title, settings)
 
     @api.get("/health", response_model=HealthStatus, tags=["Service"], summary="Health check")
-    def health() -> HealthStatus:
+    async def health() -> HealthStatus:
         """Returns `ok` while the server is running. Used by the Docker health check."""
+        # async: answered on the event loop, without waiting for a free worker thread
         return HealthStatus(version=__version__)
 
     @api.get("/config", response_model=ServerConfig, tags=["Service"], summary="Server configuration")
-    def server_config() -> ServerConfig:
+    async def server_config() -> ServerConfig:
         """Built-in providers and what this server allows (custom and private endpoints, limits)."""
         presets = [
             ProviderPreset(id=pid, **{k: v for k, v in p.items() if k in ProviderPreset.model_fields})
@@ -366,7 +375,7 @@ def create_app(settings: Settings = None) -> FastAPI:
         summary="Write one section",
         response_class=EventSourceResponse,
         responses=openapi.event_stream(
-            "A stream of events: `start`, a `delta` for each piece of text, `stats`, then `done`, or `error` at any point.",
+            "A stream of events: `start`, a `delta` for each piece of text, `summary` (when the model wrote one), `stats`, then `done`, or `error` at any point.",
             openapi.SECTION_STREAM,
             413,
             422,
@@ -382,6 +391,8 @@ def create_app(settings: Settings = None) -> FastAPI:
 
         - **Context:** send the sections already finished in `book.written`. The model sees the
           outline and a digest of them, so chapters build on each other instead of repeating.
+        - **Summary:** the `summary` event is a short summary of the section for later requests,
+          not for readers. Save it, and send it back as that section's `summary`.
         - **Rewrite:** add `revision` with a note and the current text.
         - **Pause:** close the connection. The model call stops; send the request again to restart
           the section.

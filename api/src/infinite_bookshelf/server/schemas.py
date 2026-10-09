@@ -91,6 +91,11 @@ class OutlineRequest(BaseModel):
 class WrittenSection(BaseModel):
     path: list[str] = Field(..., min_length=1, description="The section's path in the outline.", examples=[["Origins"]])
     text: str = Field(..., description="The section's finished text.")
+    summary: str = Field(
+        "",
+        max_length=2000,
+        description="The section's summary from its `summary` event, if it had one. Later sections use it to build on this one.",
+    )
 
 
 class BookIn(BaseModel):
