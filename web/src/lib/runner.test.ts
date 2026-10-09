@@ -54,7 +54,7 @@ vi.mock('sonner', () => ({ toast: { success: vi.fn(), warning: vi.fn() } }))
 const { ApiRequestError, streamOutline, streamSection } = await import('./api')
 const settings = await import('./settings')
 const { toast } = await import('sonner')
-const { draftOutline, isRunning, pause, recoverInterruptedBooks, rewriteSection, useLive, writeBook } = await import('./runner')
+const { draftOutline, isRunning, pause, recoverInterruptedBooks, rewriteSection, undoRewrite, useLive, writeBook } = await import('./runner')
 const { sectionKey } = await import('./outline')
 
 // ---- Helpers ----------------------------------------------------------------------------------
@@ -326,6 +326,17 @@ describe('rewriteSection', () => {
     expect(revision).toEqual({ note: 'Add a legend', previous: 'Old origins.' })
     expect(saved().sections[ORIGINS]).toMatchObject({ text: 'New origins.', summary: 'New summary.', model: other })
     expect(saved().status).toBe('complete')
+  })
+
+  it('can be undone, back to the version it replaced', async () => {
+    store.set(ID, written())
+    answerSections((_path, handlers) => handlers.onDelta('New origins.'))
+    await rewriteSection(ID, ['Origins'], 'Shorter')
+    expect(saved().sections[ORIGINS].previous).toMatchObject({ text: 'Old origins.', summary: 'Old summary.' })
+
+    await undoRewrite(ID, ['Origins'])
+    expect(saved().sections[ORIGINS]).toMatchObject({ text: 'Old origins.', summary: 'Old summary.' })
+    expect(saved().sections[ORIGINS].previous).toBeUndefined()
   })
 
   it('keeps the original when the rewrite fails', async () => {

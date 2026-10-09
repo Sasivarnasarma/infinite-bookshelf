@@ -1,4 +1,4 @@
-import { BookOpenCheck, Check, Copy, ListTree, Loader2, PenLine, Play, Wand2 } from 'lucide-react'
+import { BookOpenCheck, Check, Copy, ListTree, Loader2, PenLine, Play, Undo2, Wand2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Fragment, memo, useEffect, useId, useMemo, useRef, useState } from 'react'
 
@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogTrigger, Popover, PopoverContent, PopoverT
 import { updateBook } from '@/lib/db'
 import { sectionMarkdown } from '@/lib/markdown'
 import { awaitingNextChapter, nextChapter, outlineNodes } from '@/lib/outline'
-import { isRunning, rewriteSection, useLive, writeBook, type LiveRun } from '@/lib/runner'
+import { REWRITE_PRESETS, rememberNote, rewriteNote } from '@/lib/rewrite'
+import { isRunning, rewriteSection, undoRewrite, useLive, writeBook, type LiveRun } from '@/lib/runner'
 import { modelOptions, sameRef, usePreferences, useProviderList } from '@/lib/settings'
 import type { Book, ModelRef, OutlineNode } from '@/lib/types'
 import { cn, copyText } from '@/lib/utils'
@@ -120,14 +121,35 @@ function useModelOptions() {
   return useMemo(() => modelOptions(providers), [providers])
 }
 
+/** A chip that toggles (a rewrite preset) or fills in text (a recent note). */
+function Chip({ pressed, onClick, children, title }: { pressed?: boolean; onClick: () => void; children: React.ReactNode; title?: string }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      title={title}
+      onClick={onClick}
+      className={cn(
+        'max-w-full truncate rounded-full border px-2.5 py-1 text-xs font-medium transition-colors pointer-coarse:py-2',
+        pressed ? 'border-foreground bg-foreground text-background' : 'border-border text-muted-foreground hover:text-foreground',
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
 function RewriteButton({ book, node }: { book: Book; node: OutlineNode }) {
   const [note, setNote] = useState('')
+  const [presets, setPresets] = useState<string[]>([])
   const [open, setOpen] = useState(false)
   const [model, setModel] = useState<ModelRef | null>(null)
   const modelId = useId()
   const options = useModelOptions()
+  const recent = usePreferences((s) => s.recentRewriteNotes)
   const busy = isRunning(book.id)
   const chosen = model ?? book.models.section
+  const toggle = (id: string) => setPresets((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -137,14 +159,33 @@ function RewriteButton({ book, node }: { book: Book; node: OutlineNode }) {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-96">
         <p className="font-display text-base font-medium">Rewrite “{node.title}”</p>
-        <p className="mt-1 mb-3 text-xs text-muted-foreground">The current version is kept until the new one is finished.</p>
+        <p className="mt-1 mb-3 text-xs text-muted-foreground">The current version is kept until the new one is finished, and you can undo the rewrite.</p>
+        <div className="mb-2 flex flex-wrap gap-1.5" role="group" aria-label="Quick changes">
+          {REWRITE_PRESETS.map((p) => (
+            <Chip key={p.id} pressed={presets.includes(p.id)} onClick={() => toggle(p.id)} title={p.instruction}>
+              {p.label}
+            </Chip>
+          ))}
+        </div>
         <Textarea
           autoFocus
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="What should change? e.g. Add a worked example, make it shorter…"
+          placeholder={presets.length ? 'Anything else? (optional)' : 'What should change? Pick above, or describe it here…'}
           className="min-h-20"
         />
+        {recent.length > 0 && (
+          <div className="mt-2 grid gap-1.5">
+            <p className="text-xs font-medium text-muted-foreground">Recent</p>
+            <div className="flex flex-wrap gap-1.5">
+              {recent.map((n) => (
+                <Chip key={n} onClick={() => setNote(n)} title={n}>
+                  {n}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        )}
         <label htmlFor={modelId} className="mt-3 mb-1.5 block text-xs font-medium text-muted-foreground">
           Model
         </label>
@@ -153,8 +194,11 @@ function RewriteButton({ book, node }: { book: Book; node: OutlineNode }) {
           className="mt-3 w-full"
           onClick={() => {
             setOpen(false)
-            void rewriteSection(book.id, node.path, note, chosen)
+            void rewriteSection(book.id, node.path, rewriteNote(presets, note), chosen)
+            const prefs = usePreferences.getState()
+            prefs.set({ recentRewriteNotes: rememberNote(prefs.recentRewriteNotes, note) })
             setNote('')
+            setPresets([])
             setModel(null)
           }}
         >
@@ -207,6 +251,7 @@ const Section = memo(function Section({
 }) {
   const savedText = book.sections[node.key]?.text
   const writtenBy = book.sections[node.key]?.model
+  const hasPrevious = Boolean(book.sections[node.key]?.previous)
   const heading = HEADING_SPACE[Math.min(node.depth, 3) as 1 | 2 | 3]
   // Without a repeated title, and with the section's own headings one level below its title
   const contentLevel = Math.min(6, node.depth + 2)
@@ -255,6 +300,11 @@ const Section = memo(function Section({
                   </span>
                 )}
                 <CopyButton text={saved} />
+                {hasPrevious && (
+                  <Button variant="ghost" size="sm" onClick={() => void undoRewrite(book.id, node.path)} title="Put back the version before the last rewrite">
+                    <Undo2 /> Undo rewrite
+                  </Button>
+                )}
                 <RewriteButton book={book} node={node} />
               </div>
             )}

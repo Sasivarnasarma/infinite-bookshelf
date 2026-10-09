@@ -20,6 +20,7 @@ import { create } from 'zustand'
 import { ApiRequestError, streamOutline, streamSection, type ServerStats, type WrittenSection } from './api'
 import { db, updateBook } from './db'
 import { outlineNodes, pendingSections, sectionKey } from './outline'
+import { undone, withPrevious } from './rewrite'
 import { currentSetupProblems, KEY_FAILOVER_CODES, keyOrder, modelsInUse, noteKeyFailure, noteKeySuccess, usePreferences, type KeyChoice } from './settings'
 import type { ApiError, Book, ModelRef, Outline, SectionState, Stats } from './types'
 import { isAbort, sleep } from './utils'
@@ -380,7 +381,8 @@ export async function writeBook(bookId: string): Promise<void> {
 
 /**
  * Rewrites one finished section with an optional note. The current text stays saved until the
- * new version is complete, so pausing or an error keeps the original.
+ * new version is complete, so pausing or an error keeps the original. After that it's kept as the
+ * section's `previous` version, which undoRewrite puts back.
  */
 export async function rewriteSection(bookId: string, path: string[], note: string, model?: ModelRef): Promise<void> {
   const book = await db.books.get(bookId)
@@ -423,7 +425,7 @@ export async function rewriteSection(bookId: string, path: string[], note: strin
     })
     buffer.stop()
     await updateBook(bookId, (b) => ({
-      sections: { ...b.sections, [key]: finishedSection(buffer.text, summary, ref) },
+      sections: { ...b.sections, [key]: withPrevious(finishedSection(buffer.text, summary, ref), b.sections[key]) },
       stats,
       status: statusBefore === 'writing' ? 'paused' : statusBefore,
     }))
@@ -436,6 +438,15 @@ export async function rewriteSection(bookId: string, path: string[], note: strin
   } finally {
     finish(bookId, controller)
   }
+}
+
+/** Puts back the version a section's last rewrite replaced. */
+export async function undoRewrite(bookId: string, path: string[]): Promise<void> {
+  const key = sectionKey(path)
+  await updateBook(bookId, (b) => {
+    const restored = undone(b.sections[key])
+    return restored ? { sections: { ...b.sections, [key]: restored } } : {}
+  })
 }
 
 /** After a reload nothing is running: books left mid-run become paused (or drafting). */
