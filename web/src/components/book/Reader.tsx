@@ -1,4 +1,4 @@
-import { BookOpenCheck, Check, Copy, ListTree, Loader2, PenLine, Play, Undo2, Wand2 } from 'lucide-react'
+import { BookOpenCheck, Check, Copy, ListTree, Loader2, PenLine, Play, Square, Undo2, Wand2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Fragment, memo, useEffect, useId, useMemo, useRef, useState } from 'react'
 
@@ -11,10 +11,10 @@ import { updateBook } from '@/lib/db'
 import { sectionMarkdown } from '@/lib/markdown'
 import { awaitingNextChapter, nextChapter, outlineNodes } from '@/lib/outline'
 import { REWRITE_PRESETS, rememberNote, rewriteNote } from '@/lib/rewrite'
-import { isRunning, rewriteSection, undoRewrite, useLive, writeBook, type LiveRun } from '@/lib/runner'
+import { isRunning, pause, rewriteSection, undoRewrite, useLive, writeBook, type LiveRun } from '@/lib/runner'
 import { modelOptions, sameRef, usePreferences, useProviderList } from '@/lib/settings'
 import type { Book, ModelRef, OutlineNode } from '@/lib/types'
-import { cn, copyText } from '@/lib/utils'
+import { cn, copyText, liveStatus } from '@/lib/utils'
 
 const READING_SIZE = { sm: 'prose-base', md: 'prose-lg', lg: 'prose-xl' }
 
@@ -274,8 +274,19 @@ const Section = memo(function Section({
         </OutlineHeading>
         {isLive && (
           <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
-            <Loader2 className="size-3 animate-spin" /> {thinking && !liveText ? 'Thinking' : rewriting ? 'Rewriting' : 'Writing'}
+            <Loader2 className="size-3 animate-spin" /> {liveStatus(Boolean(liveText), thinking, rewriting)}
           </span>
+        )}
+        {isLive && rewriting && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto shrink-0 self-center"
+            onClick={() => pause(book.id)}
+            title="Stop the rewrite and keep the current version"
+          >
+            <Square /> Stop
+          </Button>
         )}
       </div>
       <div className="mt-3">

@@ -12,6 +12,14 @@ FALLBACK_MAX_CHARS = 90
 # Thinking models count their reasoning against max_tokens, so the budget is far above what a title needs
 TITLE_MAX_TOKENS = 2048
 
+# Punctuation is allowed on purpose: asking for "no extra symbols" made models drop the colon
+# before a subtitle ("From Click to Content The Hidden Journey…")
+TITLE_PROMPT = (
+    "Generate a compelling, professional book title for the topic provided. Keep it between 4 and 15 "
+    "words; a subtitle after a colon is welcome. Output only the title on one line, written as it "
+    "would appear on the cover with its normal punctuation, without quotes, markdown or explanations."
+)
+
 
 def fallback_title(topic: str) -> str:
     """A title made from the topic itself: its first clause, shortened at a word boundary."""
@@ -34,7 +42,7 @@ def generate_book_title(prompt: str, model: str, llm_client) -> str:
             messages=[
                 {
                     "role": "system",
-                    "content": "Generate a compelling, professional book title for the topic provided. Output only the title string without quotes, explanations, or extra symbols. Keep it between 4 and 15 words.",
+                    "content": TITLE_PROMPT,
                 },
                 {
                     "role": "user",

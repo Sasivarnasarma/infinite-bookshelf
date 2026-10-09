@@ -107,6 +107,16 @@ def test_title_cut_off_by_the_token_limit_falls_back_to_the_topic():
     assert generate_book_title(topic, "m", _title_client("<think>hmm</think>\nShip It")) == "Ship It"
 
 
+def test_title_keeps_its_subtitle_punctuation():
+    from infinite_bookshelf.engine.agents.title_writer import TITLE_PROMPT, generate_book_title
+
+    title = "From Click to Content: The Hidden Journey Behind Every Web Page"
+    assert generate_book_title("How the Internet works", "m", _title_client(title)) == title
+    # The prompt used to ask for "no extra symbols", and models dropped the colon
+    assert "symbols" not in TITLE_PROMPT
+    assert "colon" in TITLE_PROMPT
+
+
 def test_fallback_title_is_short_and_capitalised():
     from infinite_bookshelf.engine.agents.title_writer import FALLBACK_MAX_CHARS, fallback_title
 

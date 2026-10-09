@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { bookWords, newId, readingTime } from './utils'
+import { bookWords, cleanTitle, liveStatus, MAX_TITLE_CHARS, newId, readingTime } from './utils'
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
@@ -30,5 +30,32 @@ describe('reading time', () => {
     expect(readingTime(2300)).toBe('10 min read')
     expect(readingTime(13_800)).toBe('1 h read')
     expect(readingTime(18_400)).toBe('1 h 20 min read')
+  })
+})
+
+describe('live status', () => {
+  it('says what is holding a section up until the first words arrive', () => {
+    expect(liveStatus(false, false, true)).toBe('Waiting for the model')
+    expect(liveStatus(false, true, true)).toBe('Thinking')
+    expect(liveStatus(false, false, false)).toBe('Waiting for the model')
+  })
+
+  it('says writing or rewriting once text is streaming', () => {
+    expect(liveStatus(true, true, true)).toBe('Rewriting')
+    expect(liveStatus(true, false, false)).toBe('Writing')
+  })
+})
+
+describe('cleanTitle', () => {
+  it('keeps a title to one line with single spaces', () => {
+    expect(cleanTitle('  From Click to Content:\n  The Hidden   Journey ')).toBe('From Click to Content: The Hidden Journey')
+  })
+
+  it('is empty for blank input, so the old title is kept', () => {
+    expect(cleanTitle(' \n\t ')).toBe('')
+  })
+
+  it('caps the length', () => {
+    expect(cleanTitle('a'.repeat(500))).toHaveLength(MAX_TITLE_CHARS)
   })
 })

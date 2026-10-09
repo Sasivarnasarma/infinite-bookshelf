@@ -95,7 +95,12 @@ export function PopoverContent({ className, align = 'start', ...props }: React.C
         align={align}
         sideOffset={8}
         collisionPadding={12}
-        className={cn('surface z-50 w-80 max-w-[calc(100vw-1.5rem)] bg-popover! p-4', popIn, className)}
+        // On short windows the content scrolls instead of running off the screen
+        className={cn(
+          'surface z-50 max-h-(--radix-popover-content-available-height) w-80 max-w-[calc(100vw-1.5rem)] overflow-y-auto bg-popover! p-4',
+          popIn,
+          className,
+        )}
         {...props}
       />
     </PopoverPrimitive.Portal>
