@@ -177,6 +177,8 @@ export function streamOutline(book: Book, keys: { outline: string | null; title:
 
 interface SectionHandlers {
   onDelta: (text: string) => void
+  /** A reasoning model started thinking; its thinking itself is never sent. */
+  onThinking?: () => void
   onSummary?: (summary: string) => void
   onStats?: (stats: ServerStats) => void
 }
@@ -207,7 +209,12 @@ export function streamSection(
       path,
       revision,
     },
-    { delta: (d) => handlers.onDelta(d.text), summary: (d) => handlers.onSummary?.(d.text), stats: (d) => handlers.onStats?.(d) },
+    {
+      delta: (d) => handlers.onDelta(d.text),
+      thinking: () => handlers.onThinking?.(),
+      summary: (d) => handlers.onSummary?.(d.text),
+      stats: (d) => handlers.onStats?.(d),
+    },
     signal,
   )
 }

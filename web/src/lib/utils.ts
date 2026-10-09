@@ -78,6 +78,23 @@ export function countWords(text: string): number {
   return text.trim() ? text.trim().split(/\s+/).length : 0
 }
 
+/** Words in all of a book's finished sections. */
+export function bookWords(book: { sections: Record<string, { text: string }> }): number {
+  return Object.values(book.sections).reduce((sum, s) => sum + countWords(s.text), 0)
+}
+
+/** Reading speed for non-fiction, in words a minute. */
+const READING_WPM = 230
+
+/** "8 min read", "1 h 20 min read". */
+export function readingTime(words: number): string {
+  const minutes = Math.max(1, Math.round(words / READING_WPM))
+  if (minutes < 60) return `${minutes} min read`
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  return rest ? `${hours} h ${rest} min read` : `${hours} h read`
+}
+
 export function formatNumber(n: number): string {
   return new Intl.NumberFormat(undefined, { notation: n >= 10000 ? 'compact' : 'standard' }).format(n)
 }

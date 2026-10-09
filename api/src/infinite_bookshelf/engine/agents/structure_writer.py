@@ -10,17 +10,19 @@ from typing import Any
 from ..client import chat_completion
 from ..errors import InfiniteBookshelfError, StructureGenerationError
 from ..stats import GenerationStatistics
+from ..thinking import strip_thinking
 
 
 def clean_json_string(raw_text: str) -> str:
     """
-    Cleans raw LLM text into a valid JSON string by removing markdown backticks,
+    Cleans raw LLM text into a valid JSON string by removing <think> blocks, markdown backticks,
     comments, and leading/trailing extra text.
     """
     if not raw_text:
         return "{}"
 
-    cleaned = raw_text.strip()
+    # A thinking model's reasoning can hold braces of its own
+    cleaned = strip_thinking(raw_text)
     # Strip markdown block wrappers ```json ... ``` or ``` ... ```
     if "```" in cleaned:
         match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", cleaned)

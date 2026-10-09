@@ -54,7 +54,7 @@ vi.mock('sonner', () => ({ toast: { success: vi.fn(), warning: vi.fn() } }))
 const { ApiRequestError, streamOutline, streamSection } = await import('./api')
 const settings = await import('./settings')
 const { toast } = await import('sonner')
-const { draftOutline, isRunning, pause, recoverInterruptedBooks, rewriteSection, writeBook } = await import('./runner')
+const { draftOutline, isRunning, pause, recoverInterruptedBooks, rewriteSection, useLive, writeBook } = await import('./runner')
 const { sectionKey } = await import('./outline')
 
 // ---- Helpers ----------------------------------------------------------------------------------
@@ -155,6 +155,20 @@ describe('writeBook', () => {
 
     expect(saved().sections[ORIGINS]).not.toHaveProperty('summary')
     expect(sectionCalls()[1][4]).toEqual([{ path: ['Origins'], text: 'Text of Origins.' }])
+  })
+
+  it('shows that a reasoning model is thinking until its text starts', async () => {
+    store.set(ID, makeBook())
+    const seen: boolean[] = []
+    answerSections((path, handlers) => {
+      handlers.onThinking?.()
+      seen.push(useLive.getState().runs[ID].thinking)
+      handlers.onDelta(`Text of ${path.at(-1)}.`)
+    })
+    await writeBook(ID)
+
+    expect(seen).toEqual([true, true, true])
+    expect(saved().sections[ORIGINS].text).toBe('Text of Origins.') // The thinking itself is never sent
   })
 
   it('continues from the first unfinished section', async () => {

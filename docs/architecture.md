@@ -198,7 +198,9 @@ api/src/infinite_bookshelf/
 │   │   ├── title_writer.py       title, with a fallback from the topic
 │   │   └── section_writer.py     one section, streamed
 │   ├── book.py             outline model, outline text, digest of earlier sections
-│   ├── summary.py          takes each section's summary out of the streamed text
+│   ├── tags.py             takes tagged parts out of streamed text as it arrives
+│   ├── summary.py          each section's summary, for later sections
+│   ├── thinking.py         keeps thinking models' reasoning out of the book
 │   ├── quality.py          measures written books: length and repetition (see below)
 │   ├── generation.py       book options, length presets, inputs for one section
 │   ├── client.py           OpenAI-compatible client, provider presets, request adaptation
@@ -231,15 +233,22 @@ Every request passes through these layers, outermost first:
 
 Long operations answer a POST with Server-Sent Events:
 
-| Endpoint               | Events, in order                                           |
-| ---------------------- | ---------------------------------------------------------- |
-| `/api/outline`         | `stage` → `outline` → `stage` → `title` → `stats` → `done` |
-| `/api/sections/stream` | `start` → `delta` (many) → `summary` → `stats` → `done`    |
+| Endpoint               | Events, in order                                                     |
+| ---------------------- | -------------------------------------------------------------------- |
+| `/api/outline`         | `stage` → `outline` → `stage` → `title` → `stats` → `done`           |
+| `/api/sections/stream` | `start` → `thinking` → `delta` (many) → `summary` → `stats` → `done` |
 
 Either may end with an `error` event instead. The engine's generators are ordinary synchronous
 Python; `streaming.py` runs each step in a worker thread and, when the browser disconnects, closes
 the generator, which closes the provider's stream. A ping every 15 seconds keeps proxies from
-closing the connection while a model thinks. `summary` is left out when the model wrote none.
+closing the connection while a model thinks. `thinking` and `summary` are left out when they don't
+apply.
+
+**Thinking models** never put their reasoning in the book. Some providers send it in a field of
+its own, and others write it into the text between `<think>` tags (DeepSeek-R1, Qwen3, and most
+models in Ollama and LM Studio). `thinking.py` takes those blocks out of the section stream, the
+outline and the title, and the stream sends one `thinking` event when the model starts thinking,
+so the reader shows **Thinking** until the first words arrive.
 
 A step holds its thread while it waits for the model, which can be a minute for a reasoning model.
 So streams have their own pool of up to 200 threads (`STREAM_THREADS`), apart from the 40 that

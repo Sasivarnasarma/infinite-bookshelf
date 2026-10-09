@@ -192,6 +192,7 @@ const Section = memo(function Section({
   liveText,
   isLive,
   rewriting,
+  thinking,
   canEdit,
   textSize,
 }: {
@@ -200,6 +201,7 @@ const Section = memo(function Section({
   liveText?: string
   isLive: boolean
   rewriting: boolean
+  thinking: boolean
   canEdit: boolean
   textSize: string
 }) {
@@ -227,7 +229,7 @@ const Section = memo(function Section({
         </OutlineHeading>
         {isLive && (
           <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
-            <Loader2 className="size-3 animate-spin" /> {rewriting ? 'Rewriting' : 'Writing'}
+            <Loader2 className="size-3 animate-spin" /> {thinking && !liveText ? 'Thinking' : rewriting ? 'Rewriting' : 'Writing'}
           </span>
         )}
       </div>
@@ -366,6 +368,7 @@ export function Reader({ book }: { book: Book }) {
                 isLive={live?.sectionKey === node.key}
                 liveText={live?.sectionKey === node.key ? live.text : undefined}
                 rewriting={Boolean(live?.rewriting)}
+                thinking={Boolean(live?.thinking)}
                 canEdit={canEdit}
                 textSize={READING_SIZE[size]}
               />

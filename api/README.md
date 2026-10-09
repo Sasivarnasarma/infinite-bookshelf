@@ -144,7 +144,8 @@ event: done
 data: {}
 ```
 
-Join the `delta` texts to build the section. Save the `summary` with it, if one comes, and send it
+Join the `delta` texts to build the section. A reasoning model's thinking is never included: a
+`thinking` event, just after `start`, only says that it has started. Save the `summary` with it, if one comes, and send it
 back as that section's `summary` in later requests: it tells the model what the section covered.
 To **rewrite** one, add
 `"revision": {"note": "Add a worked example", "previous": "<current text>"}`. To **stop**, close the

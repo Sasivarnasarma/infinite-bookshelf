@@ -33,6 +33,8 @@ export interface LiveRun {
   text: string
   /** True while rewriting one finished section. */
   rewriting: boolean
+  /** The model is thinking before it writes (reasoning models). */
+  thinking: boolean
   draftOutline: Outline | null
   draftTitle: string | null
   /** Label of the API key the current request uses (when the service has several). */
@@ -45,7 +47,16 @@ interface LiveState {
   end: (bookId: string) => void
 }
 
-const NEW_RUN: LiveRun = { phase: 'sections', sectionKey: null, text: '', rewriting: false, draftOutline: null, draftTitle: null, keyLabel: null }
+const NEW_RUN: LiveRun = {
+  phase: 'sections',
+  sectionKey: null,
+  text: '',
+  rewriting: false,
+  thinking: false,
+  draftOutline: null,
+  draftTitle: null,
+  keyLabel: null,
+}
 
 export const useLive = create<LiveState>()((set) => ({
   runs: {},
@@ -59,6 +70,15 @@ export const useLive = create<LiveState>()((set) => ({
 }))
 
 const controllers = new Map<string, AbortController>()
+
+// Closing the tab stops a run and loses the section in progress, so the browser asks first
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', (event) => {
+    if (!controllers.size) return
+    event.preventDefault()
+    event.returnValue = '' // Safari still needs this
+  })
+}
 
 export function isRunning(bookId: string): boolean {
   return controllers.has(bookId)
@@ -119,7 +139,7 @@ function textBuffer(bookId: string) {
       text = ''
       if (timer) clearTimeout(timer)
       timer = null
-      useLive.getState().set(bookId, { text: '' })
+      useLive.getState().set(bookId, { text: '', thinking: false })
     },
     stop() {
       if (timer) clearTimeout(timer)
@@ -308,7 +328,7 @@ export async function writeBook(bookId: string): Promise<void> {
       if (!first && delay > 0) await sleep(delay * 1000, signal)
       first = false
 
-      live.set(bookId, { phase: 'sections', sectionKey: next.key, text: '', rewriting: false })
+      live.set(bookId, { phase: 'sections', sectionKey: next.key, text: '', rewriting: false, thinking: false })
       const buffer = textBuffer(bookId)
       let stats = book.stats
       let summary = ''
@@ -324,7 +344,12 @@ export async function writeBook(bookId: string): Promise<void> {
             next.path,
             writtenSections(book),
             null,
-            { onDelta: (t) => buffer.append(t), onSummary: (s) => (summary = s), onStats: (s) => (stats = addStats(stats, s)) },
+            {
+              onDelta: (t) => buffer.append(t),
+              onThinking: () => live.set(bookId, { thinking: true }),
+              onSummary: (s) => (summary = s),
+              onStats: (s) => (stats = addStats(stats, s)),
+            },
             signal,
           )
         })
@@ -367,7 +392,7 @@ export async function rewriteSection(bookId: string, path: string[], note: strin
   const controller = begin(bookId)
   const live = useLive.getState()
   const statusBefore = book.status
-  live.set(bookId, { phase: 'sections', sectionKey: key, text: '', rewriting: true })
+  live.set(bookId, { phase: 'sections', sectionKey: key, text: '', rewriting: true, thinking: false })
   await updateBook(bookId, { status: 'writing', error: null })
 
   const buffer = textBuffer(bookId)
@@ -387,7 +412,12 @@ export async function rewriteSection(bookId: string, path: string[], note: strin
         path,
         written,
         { note, previous },
-        { onDelta: (t) => buffer.append(t), onSummary: (s) => (summary = s), onStats: (s) => (stats = addStats(stats, s)) },
+        {
+          onDelta: (t) => buffer.append(t),
+          onThinking: () => live.set(bookId, { thinking: true }),
+          onSummary: (s) => (summary = s),
+          onStats: (s) => (stats = addStats(stats, s)),
+        },
         controller.signal,
       )
     })
