@@ -118,7 +118,7 @@ curl -N http://127.0.0.1:8000/api/sections/stream \
     "book": {
       "title": "Steeped: A Short History of Tea",
       "structure": {"Origins": "Where tea began", "Tea and Empire": "Trade and war"},
-      "written": [{"path": ["Origins"], "text": "Tea began in China..."}]
+      "written": [{"path": ["Origins"], "text": "Tea began in China...", "summary": "The legends and history of how tea began in China."}]
     },
     "path": ["Tea and Empire"]
   }'
@@ -134,6 +134,9 @@ data: {"text": "By the seventeenth century, "}
 event: delta
 data: {"text": "tea had reached Europe..."}
 
+event: summary
+data: {"text": "How the tea trade shaped empires, from the East India Company to the Opium Wars."}
+
 event: stats
 data: {...}
 
@@ -141,7 +144,9 @@ event: done
 data: {}
 ```
 
-Join the `delta` texts to build the section. To **rewrite** one, add
+Join the `delta` texts to build the section. Save the `summary` with it, if one comes, and send it
+back as that section's `summary` in later requests: it tells the model what the section covered.
+To **rewrite** one, add
 `"revision": {"note": "Add a worked example", "previous": "<current text>"}`. To **stop**, close the
 connection: the model call stops too.
 

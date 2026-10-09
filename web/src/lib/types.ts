@@ -34,6 +34,8 @@ export interface SectionState {
   updatedAt: number
   /** The model that wrote it. */
   model?: ModelRef
+  /** The model's short summary of it, sent with later sections so they build on it (never shown). */
+  summary?: string
 }
 
 export interface Stats {

@@ -177,7 +177,15 @@ export function streamOutline(book: Book, keys: { outline: string | null; title:
 
 interface SectionHandlers {
   onDelta: (text: string) => void
+  onSummary?: (summary: string) => void
   onStats?: (stats: ServerStats) => void
+}
+
+/** A finished section sent as context: its text, and its summary when the model wrote one. */
+export interface WrittenSection {
+  path: string[]
+  text: string
+  summary?: string
 }
 
 export function streamSection(
@@ -185,7 +193,7 @@ export function streamSection(
   model: ModelRef,
   keyId: string | null,
   path: string[],
-  written: { path: string[]; text: string }[],
+  written: WrittenSection[],
   revision: { note: string; previous: string } | null,
   handlers: SectionHandlers,
   signal: AbortSignal,
@@ -199,7 +207,7 @@ export function streamSection(
       path,
       revision,
     },
-    { delta: (d) => handlers.onDelta(d.text), stats: (d) => handlers.onStats?.(d) },
+    { delta: (d) => handlers.onDelta(d.text), summary: (d) => handlers.onSummary?.(d.text), stats: (d) => handlers.onStats?.(d) },
     signal,
   )
 }

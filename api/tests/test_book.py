@@ -75,3 +75,16 @@ def test_context_digest_respects_the_size_cap():
     assert len(digest) <= 1700
     assert "Chapter 38" in digest  # Most recent kept, oldest dropped
     assert "- Chapter 1:" not in digest
+
+
+def test_context_digest_uses_the_models_summary_when_there_is_one():
+    book = Book.from_written(
+        "My Book",
+        STRUCTURE,
+        [(p, SECTION_TEXT.format(p[-1])) for p in (CH1, CH2_INTRO)],
+        {CH1: "Defines unit tests and fixtures, with a worked pytest example."},
+    )
+    digest = book.context_digest(section_key(CH2_EX))
+    assert "- Chapter 1: Basics: Defines unit tests and fixtures, with a worked pytest example." in digest
+    assert "Opening sentence of Chapter 1" not in digest
+    assert "Covers: Key terms; Common pitfalls." in digest  # Subheadings still listed

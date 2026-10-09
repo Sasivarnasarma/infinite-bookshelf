@@ -131,8 +131,8 @@ sequenceDiagram
         P-->>A: tokens
         A-->>R: event: delta {text}
     end
-    A-->>R: event: stats, then event: done
-    R->>DB: Save the section and its model
+    A-->>R: event: summary {text}, stats, then done
+    R->>DB: Save the section, its summary and its model
     R->>R: Next section (after the delay setting), or stop at the chapter's end
 ```
 
@@ -150,9 +150,17 @@ To make chapters build on each other without extra model calls, the API gives th
 built from what the browser sends:
 
 1. **The outline** as an indented list, with the current section marked `<-- THIS SECTION`.
-2. **A digest of earlier sections:** each one's opening sentence and subheadings, plus the closing
-   text of the section just before. The oldest digests are dropped first to keep it within a
-   fixed size.
+2. **A digest of earlier sections:** a line for each, plus the closing text of the section just
+   before. The line is the section's **summary**, or for sections written before summaries
+   existed, its opening sentence, followed by its subheadings. The oldest lines are dropped first
+   to keep it within a fixed size.
+
+**Summaries** come with the section, in the same request. The prompt asks the model to end with
+2 or 3 sentences between `<section_summary>` tags on what the section covered. `summary.py` takes
+them out of the stream as it arrives, so readers never see them, and sends them as a `summary`
+event. The browser saves the summary with the section and sends it back with every later request.
+So a section late in a long book knows what each earlier one actually explained, not only how it
+began. A model that leaves the summary out just falls back to the opening sentence.
 
 The prompt asks for only the marked section, building on earlier ones instead of repeating them,
 and gives a target length: about 500, 1,000 or 2,000 words.
@@ -190,6 +198,8 @@ api/src/infinite_bookshelf/
 │   │   ├── title_writer.py       title, with a fallback from the topic
 │   │   └── section_writer.py     one section, streamed
 │   ├── book.py             outline model, outline text, digest of earlier sections
+│   ├── summary.py          takes each section's summary out of the streamed text
+│   ├── quality.py          measures written books: length and repetition (see below)
 │   ├── generation.py       book options, length presets, inputs for one section
 │   ├── client.py           OpenAI-compatible client, provider presets, request adaptation
 │   ├── errors.py           error types, classification, key scrubbing, JSON error payloads
@@ -224,12 +234,17 @@ Long operations answer a POST with Server-Sent Events:
 | Endpoint               | Events, in order                                           |
 | ---------------------- | ---------------------------------------------------------- |
 | `/api/outline`         | `stage` → `outline` → `stage` → `title` → `stats` → `done` |
-| `/api/sections/stream` | `start` → `delta` (many) → `stats` → `done`                |
+| `/api/sections/stream` | `start` → `delta` (many) → `summary` → `stats` → `done`    |
 
 Either may end with an `error` event instead. The engine's generators are ordinary synchronous
 Python; `streaming.py` runs each step in a worker thread and, when the browser disconnects, closes
 the generator, which closes the provider's stream. A ping every 15 seconds keeps proxies from
-closing the connection while a model thinks.
+closing the connection while a model thinks. `summary` is left out when the model wrote none.
+
+A step holds its thread while it waits for the model, which can be a minute for a reasoning model.
+So streams have their own pool of up to 200 threads (`STREAM_THREADS`), apart from the 40 that
+other requests use: however many books are being written, the health check, `/api/config` and PDF
+exports still answer straight away.
 
 ### Working with many providers
 
