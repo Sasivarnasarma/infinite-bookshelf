@@ -6,7 +6,7 @@ their browser), is turned into model calls, and is forgotten. Long operations st
 progress as Server-Sent Events:
 
     POST /api/outline           stage → outline → stage → title → stats → done
-    POST /api/sections/stream   start → delta* → summary? → stats → done
+    POST /api/sections/stream   start → thinking? → delta* → summary? → stats → done
     (any of them may end with an `error` event instead)
 """
 
@@ -15,6 +15,7 @@ import re
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Annotated, Any
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Body, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -27,11 +28,18 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from .. import __version__
 from ..engine.agents import generate_book_structure, generate_book_title, generate_section
+from ..engine.agents.section_writer import Thinking
 from ..engine.agents.structure_writer import normalize_structure
 from ..engine.book import Book, outline_nodes
 from ..engine.client import PROVIDER_PRESETS, create_llm_client
 from ..engine.client import list_models as fetch_model_ids
-from ..engine.errors import InfiniteBookshelfError, error_payload
+from ..engine.errors import (
+    APIConnectionError,
+    InfiniteBookshelfError,
+    ProviderTimeoutError,
+    classify_api_error,
+    error_payload,
+)
 from ..engine.generation import SECTION_LENGTHS, section_inputs
 from ..engine.pdf import create_pdf_file
 from ..engine.stats import GenerationStatistics
@@ -103,6 +111,42 @@ def _client_for(auth: ProviderAuth, settings: Settings) -> tuple[Any, list[str]]
     return create_llm_client(key, base_url, requires_key=requires_key, follow_redirects=follow_redirects), [key]
 
 
+_START_LOCAL = {
+    "ollama": "Start it with `ollama serve`, or open the Ollama app",
+    "lmstudio": "Open LM Studio, load a model, and start its server (Developer tab)",
+}
+
+
+def _local_hint(e: Exception, auth: ProviderAuth) -> Exception:
+    """
+    A clearer error when Ollama or LM Studio can't be reached: it's almost always not running,
+    or the server runs in Docker, where localhost is the container itself.
+    """
+    preset = PROVIDER_PRESETS.get(auth.preset or "")
+    if (
+        not preset
+        or not preset.get("local")
+        or (isinstance(e, ValueError) and not isinstance(e, InfiniteBookshelfError))
+    ):
+        return e
+    err = classify_api_error(e)
+    if not isinstance(err, APIConnectionError) or isinstance(err, ProviderTimeoutError):
+        return err
+    base_url = auth.base_url or preset["base_url"]
+    hint = f"{_START_LOCAL.get(auth.preset or '', 'Start it')}, then try again."
+    host = urlsplit(base_url).hostname or ""
+    if host in ("localhost", "127.0.0.1", "::1"):
+        port = urlsplit(base_url).port
+        hint += (
+            " If Infinite Bookshelf runs in Docker, localhost is the container itself: set this "
+            f"provider's address to http://host.docker.internal:{port}/v1 in Settings."
+        )
+    err.title = f"{preset['name']} isn't answering"
+    err.message = f"Nothing answered at {base_url}."
+    err.hint = hint
+    return err
+
+
 def _stats(stats: GenerationStatistics) -> dict[str, Any]:
     return {
         "input_tokens": stats.input_tokens,
@@ -118,6 +162,7 @@ def _stats(stats: GenerationStatistics) -> dict[str, Any]:
 
 def _outline_events(req: OutlineRequest, settings: Settings) -> Iterator[Event]:
     secrets: list[str] = []
+    auth = req.outline_model.provider
     try:
         options = req.options.to_engine()
         yield "stage", {"stage": "outline"}
@@ -133,6 +178,7 @@ def _outline_events(req: OutlineRequest, settings: Settings) -> Iterator[Event]:
         yield "outline", {"structure": structure}
 
         yield "stage", {"stage": "title"}
+        auth = req.title_model.provider
         title_client, title_secrets = _client_for(req.title_model.provider, settings)
         secrets += title_secrets
         title = generate_book_title(prompt=options.topic, model=req.title_model.model, llm_client=title_client)
@@ -140,7 +186,7 @@ def _outline_events(req: OutlineRequest, settings: Settings) -> Iterator[Event]:
         yield "stats", _stats(stats)
         yield "done", {}
     except Exception as e:
-        yield "error", error_payload(e, secrets)
+        yield "error", error_payload(_local_hint(e, auth), secrets)
 
 
 def _section_events(req: SectionRequest, settings: Settings) -> Iterator[Event]:
@@ -169,6 +215,8 @@ def _section_events(req: SectionRequest, settings: Settings) -> Iterator[Event]:
         for chunk in generate_section(model=req.model.model, llm_client=client, **inputs):
             if isinstance(chunk, GenerationStatistics):
                 yield "stats", _stats(chunk)
+            elif isinstance(chunk, Thinking):
+                yield "thinking", {}
             elif isinstance(chunk, SectionSummary):
                 yield "summary", {"text": str(chunk)}
             elif chunk:
@@ -177,7 +225,7 @@ def _section_events(req: SectionRequest, settings: Settings) -> Iterator[Event]:
     except KeyError as e:
         yield "error", error_payload(ValueError(str(e).strip("'\"")), secrets)
     except Exception as e:
-        yield "error", error_payload(e, secrets)
+        yield "error", error_payload(_local_hint(e, req.model.provider), secrets)
 
 
 # --- ASGI middleware -------------------------------------------------------------------------
@@ -342,7 +390,7 @@ def create_app(settings: Settings = None) -> FastAPI:
         try:
             return ModelsResponse(models=fetch_model_ids(client))
         except Exception as e:
-            return JSONResponse({"error": error_payload(e, secrets)}, status_code=502)
+            return JSONResponse({"error": error_payload(_local_hint(e, req.provider), secrets)}, status_code=502)
 
     @api.post(
         "/outline",
@@ -375,7 +423,7 @@ def create_app(settings: Settings = None) -> FastAPI:
         summary="Write one section",
         response_class=EventSourceResponse,
         responses=openapi.event_stream(
-            "A stream of events: `start`, a `delta` for each piece of text, `summary` (when the model wrote one), `stats`, then `done`, or `error` at any point.",
+            "A stream of events: `start`, `thinking` (when a reasoning model starts thinking), a `delta` for each piece of text, `summary` (when the model wrote one), `stats`, then `done`, or `error` at any point.",
             openapi.SECTION_STREAM,
             413,
             422,
@@ -391,6 +439,8 @@ def create_app(settings: Settings = None) -> FastAPI:
 
         - **Context:** send the sections already finished in `book.written`. The model sees the
           outline and a digest of them, so chapters build on each other instead of repeating.
+        - **Thinking:** a reasoning model's thinking is never part of the text. `thinking` says it
+          has started, so you can show that while waiting for the first `delta`.
         - **Summary:** the `summary` event is a short summary of the section for later requests,
           not for readers. Save it, and send it back as that section's `summary`.
         - **Rewrite:** add `revision` with a note and the current text.

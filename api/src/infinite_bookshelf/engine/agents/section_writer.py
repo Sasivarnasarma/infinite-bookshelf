@@ -10,6 +10,14 @@ from ..client import chat_completion
 from ..errors import EmptyResponseError, classify_api_error
 from ..stats import GenerationStatistics
 from ..summary import SUMMARY_CLOSE, SUMMARY_OPEN, SectionSummary, SummarySplitter
+from ..thinking import ThinkingFilter, reasoning_delta
+
+
+class Thinking:
+    """Yielded by generate_section once, when the model starts thinking before it writes."""
+
+
+THINKING = Thinking()
 
 # The previous version is only a reference for a rewrite; cap it to keep the prompt bounded
 MAX_PREVIOUS_CHARS = 12_000
@@ -77,7 +85,8 @@ def generate_section(
 ) -> Generator[Any, None, None]:
     """
     Streams section content tokens, then yields the section's SectionSummary (if the model wrote
-    one) and GenerationStatistics.
+    one) and GenerationStatistics. A thinking model's reasoning is left out; THINKING is yielded
+    once when it starts, so the reader can say so.
     Applies inter-request rate limit delay if requested. `context` is passed to
     build_section_messages (book_title, outline, context, target_words, revision_note, previous_text).
     """
@@ -101,25 +110,45 @@ def generate_section(
         stream_options={"include_usage": True},
     )
 
+    thinking = ThinkingFilter()
     splitter = SummarySplitter()
+    said_thinking = False
     shown_chars = 0
+
+    def shown(text: str) -> str:
+        # The section's text, without reasoning or the summary, and starting at its first word
+        nonlocal shown_chars
+        text = splitter.feed(text)
+        if not shown_chars:
+            text = text.lstrip()
+        shown_chars += len(text)
+        return text
+
     try:
         for chunk in stream:
             if chunk.choices:
-                tokens = chunk.choices[0].delta.content
+                delta = chunk.choices[0].delta
+                tokens = delta.content
                 if tokens:
                     if first_token_time is None:
                         first_token_time = time.time()
                     output_chars += len(tokens)
-                    if text := splitter.feed(tokens):
-                        shown_chars += len(text.strip())
-                        yield text
+                    text = thinking.feed(tokens)
+                if not said_thinking and (thinking.inside or (not shown_chars and reasoning_delta(delta))):
+                    said_thinking = True
+                    yield THINKING
+                if tokens and (text := shown(text)):
+                    yield text
             if getattr(chunk, "usage", None):
                 usage = chunk.usage
     except Exception as e:
         raise classify_api_error(e, f"Error streaming section '{prompt}'") from None
-    if text := splitter.finish():
-        shown_chars += len(text.strip())
+    rest = shown(thinking.finish())
+    tail = splitter.finish()
+    if not shown_chars:
+        tail = tail.lstrip()
+    shown_chars += len(tail)
+    if text := rest + tail:
         yield text
     if not shown_chars:
         raise EmptyResponseError(f"{model} finished section '{prompt}' without writing any text.")

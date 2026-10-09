@@ -37,7 +37,7 @@ import { bookProgress, nextChapter, outlineNodes } from '@/lib/outline'
 import { draftOutline, NEEDS_SETUP, pause, useLive, writeBook } from '@/lib/runner'
 import { modelOptions, modelsInUse, sameRef, setupProblems, useProviderList, useServer, type SetupProblem } from '@/lib/settings'
 import type { Book, ModelRef, Outline } from '@/lib/types'
-import { countWords, formatNumber } from '@/lib/utils'
+import { bookWords, formatNumber, readingTime } from '@/lib/utils'
 
 function ModelLabels({ book }: { book: Book }) {
   const providers = useProviderList()
@@ -411,7 +411,7 @@ function Header({ book, blocked }: { book: Book; blocked: boolean }) {
   const live = useLive((s) => s.runs[book.id])
   const running = Boolean(live)
   const { done, total, ratio } = bookProgress(book)
-  const words = Object.values(book.sections).reduce((sum, s) => sum + countWords(s.text), 0)
+  const words = bookWords(book)
   const writable = book.status === 'paused' || book.status === 'writing' || book.status === 'complete'
   const chapter = book.chapterByChapter ? nextChapter(book) : null
   const resumeLabel = chapter
@@ -441,7 +441,8 @@ function Header({ book, blocked }: { book: Book; blocked: boolean }) {
           <div className="grid max-w-md gap-1.5">
             <ProgressBar value={ratio} />
             <p className="text-xs text-muted-foreground">
-              {done} of {total} sections · {formatNumber(words)} words · {formatNumber(book.stats.outputTokens)} tokens written
+              {done} of {total} sections · {formatNumber(words)} words{words > 0 && ` · ${readingTime(words)}`} · {formatNumber(book.stats.outputTokens)} tokens
+              written
             </p>
           </div>
         )}

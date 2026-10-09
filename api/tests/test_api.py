@@ -266,6 +266,34 @@ def test_provider_errors_are_scrubbed_of_the_key(monkeypatch):
     assert SECRET not in json.dumps(payload) and "[redacted]" in payload["message"]
 
 
+@pytest.mark.parametrize(
+    ("preset", "start", "port"), [("ollama", "ollama serve", 11434), ("lmstudio", "start its server", 1234)]
+)
+def test_a_local_model_server_that_isnt_running_gets_a_clear_hint(monkeypatch, preset, start, port):
+    import httpx2 as httpx
+    import openai
+
+    down = openai.APIConnectionError(request=httpx.Request("POST", "http://localhost/v1/chat/completions"))
+    monkeypatch.setattr(app_module, "create_llm_client", lambda *a, **k: FakeClient(fail_with=down))
+    body = section_body(model={"provider": {"preset": preset}, "model": "qwen3"})
+    _, error = sse(make_client(allow_private_endpoints=True).post("/api/sections/stream", json=body))[-1]
+
+    assert error["code"] == "connection"
+    assert error["title"].endswith("isn't answering")
+    assert start in error["hint"]
+    assert f"http://host.docker.internal:{port}/v1" in error["hint"]
+
+
+def test_other_providers_keep_the_usual_connection_hint(monkeypatch):
+    import httpx2 as httpx
+    import openai
+
+    down = openai.APIConnectionError(request=httpx.Request("POST", "https://api.openai.com/v1/chat/completions"))
+    monkeypatch.setattr(app_module, "create_llm_client", lambda *a, **k: FakeClient(fail_with=down))
+    _, error = sse(make_client().post("/api/sections/stream", json=section_body()))[-1]
+    assert error["title"] == "Couldn't reach the provider" and "docker" not in error["hint"]
+
+
 def test_validation_errors_never_echo_the_request():
     body = section_body()
     del body["model"]["model"]  # Invalid: the error would normally include the input (with the key)

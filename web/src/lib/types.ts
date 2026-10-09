@@ -36,6 +36,8 @@ export interface SectionState {
   model?: ModelRef
   /** The model's short summary of it, sent with later sections so they build on it (never shown). */
   summary?: string
+  /** The version the last rewrite replaced, so it can be undone. */
+  previous?: Omit<SectionState, 'previous'>
 }
 
 export interface Stats {

@@ -30,6 +30,8 @@ interface PreferencesState {
   reviewOutline: boolean
   chapterByChapter: boolean
   delaySeconds: number
+  /** Notes typed for rewrites, newest first: offered again next time. */
+  recentRewriteNotes: string[]
   set: (patch: Partial<Omit<PreferencesState, 'set'>>) => void
 }
 
@@ -45,6 +47,7 @@ export const usePreferences = create<PreferencesState>()(
       reviewOutline: true,
       chapterByChapter: false,
       delaySeconds: 0.5,
+      recentRewriteNotes: [],
       set: (patch) => set(patch),
     }),
     { name: 'ib-preferences', version: 1 },

@@ -5,13 +5,12 @@ Agent to generate engaging book titles
 import re
 
 from ..client import chat_completion
+from ..thinking import strip_thinking
 
 FALLBACK_MAX_CHARS = 90
 
 # Thinking models count their reasoning against max_tokens, so the budget is far above what a title needs
 TITLE_MAX_TOKENS = 2048
-
-_THINKING = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 
 
 def fallback_title(topic: str) -> str:
@@ -49,7 +48,7 @@ def generate_book_title(prompt: str, model: str, llm_client) -> str:
         choice = completion.choices[0]
         # A title cut off by the token limit is a fragment ("Brain"), not a title
         if getattr(choice, "finish_reason", None) != "length":
-            text = _THINKING.sub("", choice.message.content or "").strip()
+            text = strip_thinking(choice.message.content or "")
             title = text.splitlines()[0].strip().strip("\"'*#").strip() if text else ""
             if title:
                 return title

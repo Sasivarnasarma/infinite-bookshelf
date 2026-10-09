@@ -7,7 +7,7 @@ import { Badge, ProgressBar } from '@/components/ui/misc'
 import { bookProgress } from '@/lib/outline'
 import { useLive } from '@/lib/runner'
 import type { Book } from '@/lib/types'
-import { cn, timeAgo } from '@/lib/utils'
+import { bookWords, cn, readingTime, timeAgo } from '@/lib/utils'
 
 export function StatusBadge({ book }: { book: Book }) {
   const running = useLive((s) => Boolean(s.runs[book.id]))
@@ -32,6 +32,7 @@ export function StatusBadge({ book }: { book: Book }) {
 
 export function BookCard({ book, index = 0, className, ref }: { book: Book; index?: number; className?: string; ref?: React.Ref<HTMLDivElement> }) {
   const { done, total, ratio } = bookProgress(book)
+  const words = bookWords(book)
   return (
     <motion.div
       ref={ref}
@@ -59,7 +60,7 @@ export function BookCard({ book, index = 0, className, ref }: { book: Book; inde
             <div className="grid gap-1.5">
               <ProgressBar value={ratio} />
               <span className="text-xs text-muted-foreground">
-                {done} of {total} sections
+                {done} of {total} sections{words > 0 && ` · ${readingTime(words)}`}
               </span>
             </div>
           ) : (
