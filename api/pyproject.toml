@@ -1,6 +1,6 @@
 [project]
 name = "infinite-bookshelf-api"
-version = "1.0.0"
+version = "1.1.0"
 description = "Infinite Bookshelf API: a stateless engine that turns a topic into a book, streamed live"
 readme = "README.md"
 license = "MIT"
