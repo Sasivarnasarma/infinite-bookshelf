@@ -51,6 +51,7 @@ def test_code_blocks_dont_count_as_repetition():
         )
     )
     assert report.sections[1].repeated == 0
+    assert report.sections[1].words == 12  # But code counts towards the length
 
 
 def test_rejects_files_that_arent_backups():

@@ -4,7 +4,8 @@ Measures written books, so changes to the prompts can be compared by numbers and
 Reads a backup exported from the web app (Settings → Your data, or a book's Export menu) and
 reports, for each book:
 
-- **Length:** each section's words against the target for the book's section length.
+- **Length:** each section's words, code included, against the target for the book's section
+  length.
 - **Repetition:** how much of each section repeats an earlier one, as the share of its 8-word
   phrases that already appeared before it. A few percent is normal (names, set phrases); a high
   number means the section explains something again.
@@ -48,8 +49,12 @@ def _section_paths(outline: dict[str, Any], prefix: tuple[str, ...] = ()) -> Ite
 
 
 def _words(text: str) -> list[str]:
-    # Code is left out: listings legitimately repeat (imports, boilerplate)
-    return _WORD_RE.findall(_CODE_RE.sub(" ", text).lower())
+    return _WORD_RE.findall(text.lower())
+
+
+def _prose_words(text: str) -> list[str]:
+    # For repetition, code is left out: listings legitimately repeat (imports, boilerplate)
+    return _words(_CODE_RE.sub(" ", text))
 
 
 def _shingles(words: list[str]) -> set[tuple[str, ...]]:
@@ -119,8 +124,7 @@ def measure_book(book: dict[str, Any]) -> BookReport:
         if not section or not section.get("text", "").strip():
             report.unwritten += 1
             continue
-        words = _words(section["text"])
-        shingles = _shingles(words)
+        shingles = _shingles(_prose_words(section["text"]))
         sources: dict[str, int] = {}
         for shingle in shingles:
             if shingle in seen:
@@ -131,7 +135,7 @@ def measure_book(book: dict[str, Any]) -> BookReport:
         report.sections.append(
             SectionReport(
                 path=path,
-                words=len(words),
+                words=len(_words(section["text"])),
                 target=target,
                 repeated=round(repeated, 3),
                 repeats_most=top.split(" > ") if top else None,
