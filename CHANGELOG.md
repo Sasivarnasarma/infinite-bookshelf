@@ -4,6 +4,58 @@ All notable changes to Infinite Bookshelf are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-10-09
+
+Long books that build on themselves, thinking models handled properly, and better rewrites. Nothing
+breaks: books, backups, API clients and settings from 1.0.0 keep working.
+
+### Added
+
+#### Writing
+
+- Section summaries: the model ends each section with a short summary that readers never see.
+  Later sections get these summaries as context, so a chapter late in a long book knows what
+  earlier ones explained, not only how they began. They come in the same request, at no extra
+  cost. Older sections without one fall back to their opening sentence.
+- Quick changes for rewrites: Shorter, Longer, Simpler, More technical, Add an example, Add code,
+  Fix mistakes and More engaging, combined with your own note. Your last five notes are offered
+  again.
+- Undo rewrite puts back the version the last rewrite replaced.
+- Reading time on book cards and the book page.
+- The browser asks before the tab is closed while a book is being written.
+
+#### Models
+
+- Thinking models: a reasoning model's thinking is kept out of sections, outlines and titles,
+  including models that write it between `<think>` tags (DeepSeek-R1, Qwen3 and most Ollama and
+  LM Studio models). The reader shows "Thinking" until the first words arrive.
+- When Ollama or LM Studio isn't running, the error says so and how to start it, with the Docker
+  address to use when the app runs in a container.
+
+#### API
+
+- `thinking` and `summary` events on `/api/sections/stream`, and an optional `summary` for each
+  section in `book.written`.
+
+#### Development
+
+- Tests for the browser's writing loop: section order, pause and resume, key failover,
+  chapter-by-chapter, rewrites and recovery after a reload.
+- A quality report for comparing prompt changes:
+  `uv run python -m infinite_bookshelf.engine.quality backup.json` shows each section's length
+  against its target, how much it repeats earlier sections, and how many have summaries.
+
+### Fixed
+
+- Many slow streams (reasoning models can pause for a minute) could use up the server's worker
+  threads, so health checks, settings and PDF exports stalled and Docker marked the container
+  unhealthy. Streams now have their own pool of threads.
+- Braces in a thinking model's reasoning could break the outline.
+
+### Changed
+
+- Earlier sections are summarised in up to 12,000 characters of context, up from 6,000.
+
 ## [1.0.0] - 2026-10-09
 
 A complete rebuild. Infinite Bookshelf is now a stateless FastAPI API and a React web app, shipped
@@ -86,5 +138,6 @@ can be shared without keeping anyone's data.
 The final release of the original Streamlit edition. See the
 [release notes](https://github.com/Sasivarnasarma/infinite-bookshelf/releases/tag/v0.5.0).
 
+[1.1.0]: https://github.com/Sasivarnasarma/infinite-bookshelf/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Sasivarnasarma/infinite-bookshelf/compare/v0.5.0...v1.0.0
 [0.5.0]: https://github.com/Sasivarnasarma/infinite-bookshelf/releases/tag/v0.5.0
