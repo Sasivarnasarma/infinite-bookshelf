@@ -15,7 +15,7 @@ COPY web/ web/
 RUN pnpm --filter @infinite-bookshelf/web build
 
 # ---- 2. Runtime: Python API serving the web app -----------------------------------------------
-FROM python:3.12-slim AS runtime
+FROM python:3.15-slim AS runtime
 
 # Native libraries for WeasyPrint (PDF export) and a basic font set
 RUN apt-get update \
